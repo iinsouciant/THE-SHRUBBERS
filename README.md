@@ -16,7 +16,6 @@ Consists of 2 sonar sensors to monitor the water levels of the two tanks. The pH
 There are two submerged pumps to move water to the channels holding plants and through the filtration system.
 
 ## Libraries
-Needed libraries for ???? can be found [here](https://learn.adafruit.com/adafruit-feather-sense/feather-sense-circuitpython-libraries "need to find library to use sonar w/ rpi")
-
-The needed libraries from there are: 
-- ???
+- [sonar](https://github.com/alaudet/hcsr04sensor "HC-SR04 Ultrasonic Sensor on Raspberry Pi")
+- [conductivity](https://github.com/alaudet/hcsr04sensor "placeholder")
+- [pH](https://github.com/alaudet/hcsr04sensor "placeholder")
