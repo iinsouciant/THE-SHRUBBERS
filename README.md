@@ -19,3 +19,4 @@ There are two submerged pumps to move water to the channels holding plants and t
 - [sonar](https://github.com/alaudet/hcsr04sensor "HC-SR04 Ultrasonic Sensor on Raspberry Pi")
 - [conductivity](https://github.com/alaudet/hcsr04sensor "placeholder")
 - [pH](https://github.com/alaudet/hcsr04sensor "placeholder")
+- [GPIO Zero](https://gpiozero.readthedocs.io/en/stable/installing.html "Installing GPIO Zero")
