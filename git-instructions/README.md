@@ -1,13 +1,13 @@
 ## How to fix issues in the program
-When dealing with one of the issues on the github repository, create a separate branch that has a title that references the issue and has a breif description of what it is. For example, if you are going to fix issue number 4, you would create a branch by going to the main page and create a branch by typing in that textbox with the title of 4-IR_SENSOR. Do not make changes directly to the main branch directly.
+When dealing with one of the issues on the github repository, create a separate branch for that issue. The branch title should have the number of the issue and a brief description of what it is. For example, if you are going to work on issue number 4, you would create a branch by going to the main page and create a branch with the title of 4-IR_SENSOR. Do not make changes to the main branch directly unless necessary.
 ![imagename](./images/create_branch.png)
 
-- **NOTE**: Once you have created a branch via this method, it takes the *version of main at that time* and clones it into the branch. If someone updates the main branch  before you are able to push your changes into the main branch, you want to pull that new version of the main branch into your branch so that the code will merge properly. **DO NOT** push to the main branch if the main branch has been changed before your changes and you have not pulled the changed main branch into your branch. To update your branch, click this:
+- **NOTE**: Once you have created a branch via this method, it takes the *version of main at that time* and clones it into the branch. If someone updates the main branch  before you are able to push your changes into the main branch, you should pull that new version of the main branch into your branch. By pulling it into your branch first, you can apply and test the changes you have made outside the main branch. **DO NOT** push to the main branch if the main branch has been changed since the last time you pulled from main into your branch. To update your branch, click this:
 
 ![image](./images/update_branch.png)
-- **NOTE #2**: ***always*** click 'Fetch origin' then 'Pull origin' when launching desktop github.
+- **NOTE #2**: ***always*** click 'Fetch origin' then 'Pull origin' when launching the desktop github app or VSCode.
 
-To then make changes to solve your specific issue in your dedicated branch, go to the github desktop and choose your current branch. Click on this button and select your branch.
+To then make changes to solve your specific issue in your dedicated branch, go to the github app or VSCode and choose your current branch. Click on this button and select your branch.
 
 ![imagename](./images/branch_button.png)
 
