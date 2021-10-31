@@ -8,6 +8,10 @@ import gpiozero as GZ
 from lib.hcsr04sensor import sensor as hcsr04
 import time
 
+# Butterowrth lowpass filter
+import numpy as np
+import math
+
 R1_trig_pin = 13  # placeholder value
 R1_echo_pin = 14  # placeholder value
 
@@ -48,3 +52,4 @@ while end is not True:
         a = dim  # do stuff here
 
 # note that in the case of program crash, raise exception so clean up pin state
+
