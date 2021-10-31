@@ -55,4 +55,4 @@ while end is not True:
 
 # note that in the case of program crash, raise exception so clean up pin state
 
-y = m*x+b
+y = m*x-b
