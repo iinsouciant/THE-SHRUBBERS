@@ -13,7 +13,7 @@ R1_echo_pin = 14  # placeholder value
 
 R3_trig_pin = 15  # placeholder value
 R3_echo_pin = 16  # placeholder value
-
+'''
 sonar1 = hcsr04.Measurement(R1_trig_pin, R1_echo_pin, temperature=20)  # example code, 20 C
 
 # gives cm, default sample size is 11 readings
@@ -24,13 +24,13 @@ raw_measurement = sonar1.raw_distance()  # can lower it by `sample_wait` and fil
 # alternatively if we know initial hole depth we can use this method instead
 hole_depth1 = 100  # cm
 liquid_depth1 = sonar1.depth(raw_measurement, hole_depth1)
-
+'''
 
 # PWM use via GPIO Zero
 led = GZ.PWMLED(2)
 
 last_t = 0
-dt = 0.005
+dt = 0.05
 dim = 0
 dm = 1
 end = False
@@ -42,7 +42,9 @@ while end is not True:
 
     elif (time.monotonic() > (last_t + dt)) and (dim >= 100):
         last_t = time.monotonic()
-        end is True
+        print("Script terminated")
+        end = True
+
     
     else:
         a = dim  # do stuff here
