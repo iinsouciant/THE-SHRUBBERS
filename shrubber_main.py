@@ -79,19 +79,14 @@ def error(err_string):
     raise Exception(err_string)
 
 # potentially useful function for pump control
-
 def pump_pwm(level, pump):  # input is range of percents, 0 to 100
-    pump.throttle = float(level / 100)  # will need to change this to PWM method
+    pump.value = float(level / 100)
 
 
 def motor_test(pumpM, pumpF, drive_time, mag=60):  # for testing each direction of the motors
-    drive = drive_time / 2
     pump_pwm(mag, pumpM)
     pump_pwm(mag, pumpF)
-    time.sleep(drive)
-    pump_pwm(-mag, pumpM)
-    pump_pwm(-mag, pumpF)
-    time.sleep(drive)
+    time.sleep(drive_time)
     pump_pwm(0, pumpM)
     pump_pwm(0, pumpF)
     time.sleep(0.1)
@@ -121,6 +116,7 @@ class state_machine():
         pump_pwm(pwr, self.pumpM)  # TODO fine tune values so they match flow rates 
         pump_pwm(pwr, self.pumpF)
 
+    # TODO update this
     def get_state(self):
         if self.state == "LOCATE":
             return (self.LOCATE, 1)
@@ -135,6 +131,7 @@ class state_machine():
         elif self.state == "FORWARD":
             return (self.FORWARD, 1)
 
+    # TODO update this
     def state_change(self, ignite):
         if (ignite is True) and (self.state == "IDLE"):
             self.state = "LOCATE"
@@ -164,15 +161,16 @@ class state_machine():
         '''
 
     def overflow_det(self, thresh=20):  # in case water level is too high?
-        dist = self.water_height()
+        height = self.water_height()
         try:
-            if dist >= thresh:
+            if height >= thresh:
                 return True
             else:
                 return False
         except TypeError:
             return True
 
+    # TODO update methods
     def grab_sonar(self):  # to handle faulty sonar connections
         try:
             distL = self.sL.distance
@@ -184,12 +182,7 @@ class state_machine():
         except Exception:
             print("The right sonar is not detected.")
             distR = 0
-        try:
-            distF = self.sF.distance
-        except Exception:
-            print("The front sonar is not detected.")
-            distF = 0
-        return [distL, distF, distR]
+        return [distL, distR]
 
     def timer_event(self):
         if (self.timer_time is not None) and time.monotonic() >= self.timer_time:
@@ -204,6 +197,7 @@ class state_machine():
     def timer_set(self):
         self.timer_time = time.monotonic() + self.DATA_SEND_INTERVAL
 
+    # TODO update this
     def evt_handler(self, ignite=False):
         # change state stuff here
         # example
@@ -241,10 +235,14 @@ s_thold = 25  # in cm
 # creating instance of state machine
 shrub = state_machine(pumps, pHsens, ECsens, press, sonars)
 
-#will need t oalter inital starting method since we prob won't have a keyboard for input
+# will need to alter inital starting method since we prob won't have a keyboard for input
+# shrub.state used t otrack what state it is in
+# shrub.go can be used as a parameter to change between certain methods
+# might be able to condense that to just a parameter in event handler
 while True: 
     if testing:
         shrub.test = True
+    # TODO update this
     while (test_q == "Y") or (test_q == "SKIP"):  # for running test procedure with some input
         shrub.test_print()
         dists = shrub.grab_sonar()
@@ -272,21 +270,21 @@ while True:
         if testing:
             if time.monotonic() - last > print_time:
                 last = time.monotonic()
-                if shrub.state == "TURN":
-                    print(shrub.go)
                 if testing2:
                     shrub.test_print()
+
+        # TODO update this
         if shrub.state == "IDLE":
             shrub.forward(speed=0)
             if start_button:  # some trigger to start the system
                 shrub.evt_handler(ignite=start_button)
             start_button = False
-
+        # TODO update this
         if shrub.state != "IDLE":
             if shrub.timer_time is None:  # timer acts independently and does not use locate -> doesn't change state
                 shrub.timer_set()
             shrub.timer_event()
-
+        # TODO update this
         if shrub.state == "FORWARD":
             shrub.forward()
             distL, distF, distR = shrub.grab_sonar()
@@ -305,7 +303,7 @@ while True:
             if start_button is True:  # only used by bluetooth
                 shrub.state = "IDLE"
                 start_button = False
-
+        # TODO update this
         if shrub.state == "TURN":
             shrub.turn(shrub.go)
             distL, distF, distR = shrub.grab_sonar()
