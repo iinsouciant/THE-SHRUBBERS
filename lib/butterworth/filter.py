@@ -1,6 +1,12 @@
+# butterworth/filter.py - ME 195 Shrubbers Project Code
+# Raspberry Pi 4B/3B
+#
 # Implement a Butterworth Low Pass Filter to interpret a semi noisy signal
 # following this as reference:
 # https://github.com/curiores/ArduinoTutorials/blob/main/ButterworthFilter/Design/ButterworthFilter.ipynb
+#
+# Written by Gustavo Garay, Summer Selness, Ryan Sands (sandsryanj@gmail.com)
+#   v0.80 06-Nov-2021 Following discretization process of curiores
 
 import numpy as np
 from scipy import signal
@@ -39,5 +45,5 @@ class LowPassFilter(object):
         b = discreteLowPass.num
         a = -discreteLowPass.den
 
- # next step is to create some kind of small buffer system 
- # so it can read small set of data and filter then move to next buffer and repeat
+    # next step once discretized is to create some kind of small buffer system 
+    # so it can read small set of data and filter then move to next buffer and repeat
