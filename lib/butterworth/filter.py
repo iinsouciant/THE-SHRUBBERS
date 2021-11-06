@@ -3,6 +3,7 @@
 # https://github.com/curiores/ArduinoTutorials/blob/main/ButterworthFilter/Design/ButterworthFilter.ipynb
 
 import numpy as np
+from scipy import signal
 import math
 
 
@@ -16,18 +17,27 @@ class LowPassFilter(object):
     # WIP
     def fil_coeff(self):
         # Compute the Butterworth filter coefficents
-        a = np.zeros(self.n+1)
-        gamma = self.pi/(2.0*self.n)
-        a[0] = 1  # first coef is always 1
-        for k in range(0, self.n):
-            rfac = np.cos(k*gamma)/np.sin((k+1)*gamma)
+        a = np.zeros(self.n + 1)
+        gamma = self.pi / (2.0 * self.n)
+        a[0] = 1  # first coeff always 1
+        for k in range(self.n):
+            rfac = np.cos(k * gamma) / np.sin((k+1) * gamma)
             a[k+1] = rfac*a[k]  # Other coefficients by recursion
 
-        print("Butterworth polynomial coefficients a_i:                " + str(a))
+        # Adjust for cutoff frequency
+        c = np.zeros(self.n + 1)
+        for k in range(self.n + 1):
+            c[self.n - k] = a[k] / pow(self.wc, k)
+        
+        return c  # coefficients are in c 
+    
+    def discretization(self, fs):
+        denom = self.fil_coeff()
+        lowPass = signal.TransferFunction(1, denom)
+        dt = 1.0/fs
+        discreteLowPass = lowPass.to_discrete(dt, method='gbt', alpha=0.5)
+        b = discreteLowPass.num
+        a = -discreteLowPass.den
 
-        # Adjust the cutoff frequency
-        c = np.zeros(self.n+1)
-        for k in range(0, self.n+1):
-            c[self.n-k] = a[k]/pow(self.wc, k)
-
-        print("Butterworth coefficients with frequency adjustment c_i: " + str(c))
+ # next step is to create some kind of small buffer system 
+ # so it can read small set of data and filter then move to next buffer and repeat

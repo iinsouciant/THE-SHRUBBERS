@@ -49,10 +49,11 @@ while end is not True:
         print("Script terminated")
         end = True
 
-    
     else:
         a = dim  # do stuff here
 
 # note that in the case of program crash, raise exception so clean up pin state
 
-y = m*x-b
+# we could try and approximate flow rate
+# for both the reservoirs to monitor when the filtration needs to be swapped?
+# approx derivative withbackwards differencing?
