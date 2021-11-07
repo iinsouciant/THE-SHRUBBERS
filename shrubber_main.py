@@ -83,7 +83,7 @@ def pump_pwm(level, pump):  # input is range of percents, 0 to 100
     pump.value = float(level / 100)
 
 
-def motor_test(pumpM, pumpF, drive_time, mag=60):  # for testing each direction of the motors
+def pump_test(pumpM, pumpF, drive_time, mag=60):  # for testing each direction of the pumps
     pump_pwm(mag, pumpM)
     pump_pwm(mag, pumpF)
     time.sleep(drive_time)
@@ -96,9 +96,10 @@ def motor_test(pumpM, pumpF, drive_time, mag=60):  # for testing each direction 
 class state_machine():
     go = None  # indicates direction for turning
     start = "IDLE"
-    test = False
+    test = False  # for printing state change and events
+    test_q = "Y"
     # independent timer event
-    DATA_SEND_INTERVAL = 0.3
+    TIMER_INTERVAL = 0.3
     timer_time = None
 
     def __init__(self, pumps, pHsens, ECsens, press, sonars):
@@ -110,7 +111,7 @@ class state_machine():
         self.press = press
         self.sM = sonars[0]
         self.sF = sonars[1]
-
+        self.timer_set()
 
     def active(self, pwr=70):
         pump_pwm(pwr, self.pumpM)  # TODO fine tune values so they match flow rates 
@@ -195,23 +196,28 @@ class state_machine():
             return False
 
     def timer_set(self):
-        self.timer_time = time.monotonic() + self.DATA_SEND_INTERVAL
+        self.timer_time = time.monotonic() + self.TIMER_INTERVAL
 
     # TODO update this
-    def evt_handler(self, ignite=False):
+    def evt_handler(self, evt, ignite=False):
+        if self.test:
+            print(self.state)
+            print(evt)
+
         # change state stuff here
         # example
         if (self.state == "IDLE") and ignite:
             self.state = "PLACEHOLDER NAME"
-        elif (self.state == "MAX") and (self.go == True):
+        elif (self.state == "MAX") and (evt == "nut"):
             self.state = "IDK"
-            thing = 1
 
         self.timer_set()  # resets timer
-        if testing2:
-            print(thing)
+        if self.test:
+            print(self.state)
+            self.test_print()
 
-    def test_print(self):  # TODO mod this for our sensors
+    # TODO mod this for our sensors
+    def test_print(self):  
         print("Sonar distances:{0:10.2f}L {1:10.2f}F {2:10.2f}R (cm)".format(*self.grab_sonar()))
         encs = [self.encL.position, self.encR.position]
         print('Encoders:      {0:10.2f}L {1:10.2f}R pulses'.format(*encs))
@@ -223,13 +229,11 @@ class state_machine():
 
 # testing parameters
 testing = True  # to show state
-testing2 = False  # to show sensor data
+testing2 = True  # to determine if we run beginning test q's
 print_time = .5
-test_q = "Y"
 
 # initializing variables
 last = time.monotonic()
-i = 0
 s_thold = 25  # in cm
 
 # creating instance of state machine
@@ -240,33 +244,30 @@ shrub = state_machine(pumps, pHsens, ECsens, press, sonars)
 # shrub.go can be used as a parameter to change between certain methods
 # might be able to condense that to just a parameter in event handler
 while True: 
-    if testing:
-        shrub.test = True
-    # TODO update this
-    while (test_q == "Y") or (test_q == "SKIP"):  # for running test procedure with some input
+    # TODO update this. can we make this into a group of states?
+    UV_test1 = None
+    while testing2:  # for running test procedure with some input
         shrub.test_print()
-        dists = shrub.grab_sonar()
-        cliff = shrub.water_height()
-
         time.sleep(print_time)
-        if test_q != "SKIP":
-            mot_test0 = input("Test motors? \nY or N ")
-            mot_test1 = mot_test0.upper()
-            test_q = mot_test0.upper()
-            if (mot_test1 == "END"):
+        if shrub.test_q != "SKIP":
+            pump_test = input("Test pumps? \nY or N ")
+            shrub.test_q = pump_test.upper()
+            if (shrub.test_q == "END"):
+                testing2 = False
                 break
-            if mot_test1 != "SKIP":
-                uart_test0 = input("Test UART? \nY or N ")
-                uart_test1 = uart_test0.upper()
-                if uart_test1 == "SKIP":
-                    test_q = uart_test1
-                if (uart_test1 == "END"):
+            if UV_test1 != "SKIP":
+                UV_test0 = input("Test UV? \nY or N ")
+                UV_test1 = UV_test0.upper()
+                if UV_test1 == "SKIP":
+                    continue
+                if (UV_test1 == "END"):
                     break
-                elif mot_test1 == "Y":
-                    duration = float(input("How long? "))
-                    motor_test(pumpF, pumpM, duration)
+                elif UV_test1 == "Y":
+                    duration = float(input("How long?\n"))
+                    pump_test(pumpF, pumpM, duration)
 
-    while (test_q != "Y") and (test_q != "SKIP"):
+    # loop to run once diagnosis is done
+    while not testing2:
         if testing:
             if time.monotonic() - last > print_time:
                 last = time.monotonic()
@@ -277,7 +278,7 @@ while True:
         if shrub.state == "IDLE":
             shrub.forward(speed=0)
             if start_button:  # some trigger to start the system
-                shrub.evt_handler(ignite=start_button)
+                shrub.evt_handler(None, ignite=start_button)
             start_button = False
         # TODO update this
         if shrub.state != "IDLE":
@@ -289,19 +290,9 @@ while True:
             shrub.forward()
             distL, distF, distR = shrub.grab_sonar()
             if (distR <= s_thold) and (distF <= s_thold):
-                shrub.evt_handler()
-                shrub.go = "LEFT"
-            elif (distL <= s_thold) and (distF <= s_thold):
-                shrub.evt_handler()
-                shrub.go = "RIGHT"
-            elif (distF <= s_thold):
-                shrub.evt_handler()
-                shrub.go = "RIGHT"
-            if shrub.cliff_det() is True:
-                shrub.evt_handler()
-                shrub.go = "RIGHT"
-            if start_button is True:  # only used by bluetooth
-                shrub.state = "IDLE"
+                continue
+            if start_button:  # only used by bluetooth
+                shrub.evt_handler(None, ignite=start_button)
                 start_button = False
         # TODO update this
         if shrub.state == "TURN":
@@ -309,6 +300,6 @@ while True:
             distL, distF, distR = shrub.grab_sonar()
             if (distF >= s_thold) and (shrub.cliff_det() is False):
                 shrub.evt_handler()
-            elif start_button is True:  # only used by bluetooth
-                shrub.state = "IDLE"
+            elif start_button:  # only used by bluetooth
+                shrub.evt_handler(None, ignite=start_button)
                 start_button = False
