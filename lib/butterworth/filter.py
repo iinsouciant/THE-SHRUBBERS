@@ -45,5 +45,13 @@ class LowPassFilter(object):
         b = discreteLowPass.num
         a = -discreteLowPass.den
 
-    # next step once discretized is to create some kind of small buffer system 
-    # so it can read small set of data and filter then move to next buffer and repeat
+    # manually pass in the last two values and buffer them with main loop?
+
+    '''
+    # Filter the signal
+Nb = len(b)
+yfilt = np.zeros(len(y));  where y is the original signal
+for m in range(3,len(y)):
+    yfilt[m] = b[0]*y[m];
+    for i in range(1,Nb):
+        yfilt[m] += a[i]*yfilt[m-i] + b[i]*y[m-i];'''

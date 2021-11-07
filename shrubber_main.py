@@ -259,7 +259,7 @@ while True:
                 UV_test0 = input("Test UV? \nY or N ")
                 UV_test1 = UV_test0.upper()
                 if UV_test1 == "SKIP":
-                    continue
+                    continue  # TODO UV test function
                 if (UV_test1 == "END"):
                     break
                 elif UV_test1 == "Y":
@@ -270,7 +270,7 @@ while True:
     while not testing2:
         if testing:
             if time.monotonic() - last > print_time:
-                last = time.monotonic()
+                last = time.monotonic()                                                                                                                        
                 if testing2:
                     shrub.test_print()
 
