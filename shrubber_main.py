@@ -270,7 +270,7 @@ while True:
     while not testing2:
         if testing:
             if time.monotonic() - last > print_time:
-                last = time.monotonic()                                                                                                                        
+                last = time.monotonic() 
                 if testing2:
                     shrub.test_print()
 

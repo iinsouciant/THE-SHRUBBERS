@@ -14,11 +14,14 @@ import math
 
 
 class LowPassFilter(object):
+    # second order butterworth filter
 
     def __init__(self, cutoff, degree=2):
         self.wc = 2*np.pi*cutoff  # cutoff frequency (rad/s)
         self.n = degree
         self.pi = np.pi
+        self.yfilt = np.zeros(3)  # second to last val -> last val -> current val
+        self.y = np.zeros(3)  # second to last val -> last val -> current val
 
     # WIP
     def fil_coeff(self):
@@ -51,7 +54,10 @@ class LowPassFilter(object):
     # Filter the signal
 Nb = len(b)
 yfilt = np.zeros(len(y));  where y is the original signal
-for m in range(3,len(y)):
+for m in range(3,len(y)): prob get rid of this line to just get single val/small vector?
     yfilt[m] = b[0]*y[m];
     for i in range(1,Nb):
-        yfilt[m] += a[i]*yfilt[m-i] + b[i]*y[m-i];'''
+        yfilt[m] += a[i]*yfilt[m-i] + b[i]*y[m-i];
+    would need previous and one before that value of filtered and unfiltered each
+    in addition to current signal value
+    '''
