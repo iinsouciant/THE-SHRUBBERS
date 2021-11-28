@@ -7,6 +7,7 @@
 #
 # Written by Gustavo Garay, Summer Selness, Ryan Sands (sandsryanj@gmail.com)
 #   v0.80 06-Nov-2021 Following discretization process of curiores
+#   v0.10 28-Nov-2021 First draft implementation of filter
 
 import numpy as np
 from scipy import signal
@@ -16,14 +17,15 @@ import math
 class LowPassFilter(object):
     # second order butterworth filter
 
-    def __init__(self, cutoff, degree=2):
+    def __init__(self, cutoff, signal_frequency, degree=2):
         self.wc = 2*np.pi*cutoff  # cutoff frequency (rad/s)
+        self.fs = signal_frequency
         self.n = degree
         self.pi = np.pi
-        self.yfilt = np.zeros(3)  # second to last val -> last val -> current val
-        self.y = np.zeros(3)  # second to last val -> last val -> current val
+        self.yfilt = np.zeros(self.n+1)  # second to last val -> last val -> current val
+        self.fil_coeff()
+        self.discretization()
 
-    # WIP
     def fil_coeff(self):
         # Compute the Butterworth filter coefficents
         a = np.zeros(self.n + 1)
@@ -34,30 +36,27 @@ class LowPassFilter(object):
             a[k+1] = rfac*a[k]  # Other coefficients by recursion
 
         # Adjust for cutoff frequency
-        c = np.zeros(self.n + 1)
+        self.c = np.zeros(self.n + 1)
         for k in range(self.n + 1):
-            c[self.n - k] = a[k] / pow(self.wc, k)
-        
-        return c  # coefficients are in c 
+            self.c[self.n - k] = a[k] / pow(self.wc, k)
+        # coefficients are in c 
     
-    def discretization(self, fs):
-        denom = self.fil_coeff()
+    def discretization(self):
+        denom = self.c
         lowPass = signal.TransferFunction(1, denom)
-        dt = 1.0/fs
+        dt = 1.0/self.fs
         discreteLowPass = lowPass.to_discrete(dt, method='gbt', alpha=0.5)
-        b = discreteLowPass.num
-        a = -discreteLowPass.den
+        self.b = discreteLowPass.num
+        self.a = -discreteLowPass.den
 
-    # manually pass in the last two values and buffer them with main loop?
+    def filter(self, s_vals, fs):  # need to pass in signal frequency and list of 3 sensor vals
+        Nb = len(self.b)  # 2nd degree so 3 long?
+        filt_val = self.b[0]*s_vals[-1]
+        for i in range(1, Nb):
+            filt_val += self.a[i]*self.yfilt[self.n+1-i] + self.b[i]*s_vals[self.n+1-i]
 
-    '''
-    # Filter the signal
-Nb = len(b)
-yfilt = np.zeros(len(y));  where y is the original signal
-for m in range(3,len(y)): prob get rid of this line to just get single val/small vector?
-    yfilt[m] = b[0]*y[m];
-    for i in range(1,Nb):
-        yfilt[m] += a[i]*yfilt[m-i] + b[i]*y[m-i];
-    would need previous and one before that value of filtered and unfiltered each
-    in addition to current signal value
-    '''
+        for i in range(1, len(self.yfilt)-1):  # moving the values back one so we limit the size of the vals stored
+            self.yfilt[i] = self.yfilt[i+1]
+        self.yfilt[-1] = filt_val
+
+        return filt_val          
