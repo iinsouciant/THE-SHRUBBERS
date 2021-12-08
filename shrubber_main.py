@@ -36,13 +36,13 @@ sonarM = hcsr04.Measurement(M_trig_pin, M_echo_pin, temperature=20)  # example c
 sonars = [sonarM, sonarF]
 
 # gives cm, default sample size is 11 readings
-raw_measurement = sonar1.raw_distance()  # can lower it by `sample_wait` and filter it with low pass
-# could also used `sonar1.basic_distance(...)`
+raw_measurement = sonarM.raw_distance()  # can lower it by `sample_wait` and filter it with low pass
+# could also used `sonarM.basic_distance(...)`
 # can then use the height to calc water volume
 
 # alternatively if we know initial hole depth we can use this method instead
 hole_depth1 = 100  # cm
-liquid_depth1 = sonar1.depth(raw_measurement, hole_depth1)
+liquid_depth1 = sonarM.depth(raw_measurement, hole_depth1)
 '''
 
 # example PWM use via GPIO Zero

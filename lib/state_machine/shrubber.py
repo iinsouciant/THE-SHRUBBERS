@@ -19,39 +19,38 @@ class state_machine():
 
     def __init__(self, pumps, pHsens, ECsens, press, sonars):
         self.state = self.start
+        self.ps = pumps
         self.pumpM = pumps[0]
         self.pumpF = pumps[1]
         self.pHsens = pHsens
         self.ECsens = ECsens
         self.press = press
+        self.ss = sonars
         self.sM = sonars[0]
         self.sF = sonars[1]
         self.timer_set()
+
+    def __repr__(self):
+        return "state_machine({}, {}, {}, {}, {})".format(self.ps, self.pHsens,
+        self.ECsens, self.press, self.ss)
+    
+    def __str__(self):
+        return "State: {}\nWater level: {} cm\nPressure drop: {} psi\npH: {}\nEC: {} mS".format(
+            self.state, self.grab_sonar(), self.grab_press(), self.grab_pH(), self.grab_EC()
+        )  # dummy function names
+
+    def error(err_string):
+        raise Exception(err_string)
 
     def active(self, pwr=70):
         self.pump_pwm(pwr, self.pumpM)  # TODO fine tune values so they match flow rates 
         self.pump_pwm(pwr, self.pumpF)
 
-    # TODO update this
-    def get_state(self):
-        if self.state == "LOCATE":
-            return (self.LOCATE, 1)
-        elif self.state == "TURN":
-            if self.go == "LEFT":
-                return (self.TURN_LEFT, 1)
-            elif self.go == "RIGHT":
-                return (self.TURN_RIGHT, 1)
-            else:
-                self.error("Locate state change handled incorrectly")
-                return (self.BAD_DIRECTION, 1)  # error integer
-        elif self.state == "FORWARD":
-            return (self.FORWARD, 1)
-
-    # TODO update this
-    def state_change(self, ignite):
-        if (ignite is True) and (self.state == "IDLE"):
+    # TODO update this. pass in pause button toggle and it chooses next state depending on current state. prob need to change params
+    def state_change(self, pause):
+        if (pause is True) and (self.state == "IDLE"):
             self.state = "LOCATE"
-        elif (ignite is True) and (self.state != "IDLE"):
+        elif (pause is True) and (self.state != "IDLE"):
             self.state = "IDLE"
         if self.state == "LOCATE":
             self.state = "FORWARD"
@@ -88,18 +87,16 @@ class state_machine():
 
     # TODO update methods
     def grab_sonar(self):  # to handle faulty sonar connections
-        try:
-            distL = self.sL.distance
-        except Exception:
-            print("The left sonar is not detected.")
-            distL = 0
-        try:
-            distR = self.sR.distance
-        except Exception:
-            print("The right sonar is not detected.")
-            distR = 0
-        return [distL, distR]
+        dist = []
+        for i in self.ss:
+            try:
+                dist[i] = self.ss[i].basic_distance()
+            except Exception:
+                print("The "+str(i)+" sonar is not detected.")
+                dist[i] = 0
+        return dist
 
+# might need an update
     def timer_event(self):
         if (self.timer_time is not None) and time.monotonic() >= self.timer_time:
             self.timer_time = None
@@ -114,15 +111,16 @@ class state_machine():
         self.timer_time = time.monotonic() + self.TIMER_INTERVAL
 
     # TODO update this
-    def evt_handler(self, evt, ignite=False):
+    def evt_handler(self, evt, pause=False):
+        self.last_s = self.state
         if self.test:
             print(self.state)
             print(evt)
 
         # change state stuff here
         # example
-        if (self.state == "IDLE") and ignite:
-            self.state = "PLACEHOLDER NAME"
+        if (self.state == "IDLE") and pause:
+            self.state = self.last_s
         elif (self.state == "MAX") and (evt == "nut"):
             self.state = "IDK"
 
@@ -139,10 +137,7 @@ class state_machine():
         print('Magnetometer:  {0:10.2f}X {1:10.2f}Y {2:10.2f}Z uT'.format(*lis3.magnetic))
         print("Acceleration:  {0:10.2f} {1:10.2f} {2:10.2f} m/s^2".format(*lsm6.acceleration))
         print("Cliff distance:  ", self.water_height(), "cm")
-        print("Cliff?         ", self.cliff_det())me
-
-    def error(err_string):
-        raise Exception(err_string)
+        print("Cliff?         ", self.cliff_det())
 
     # potentially useful function for pump control
     def pump_pwm(level, pump):  # input is range of percents, 0 to 100
