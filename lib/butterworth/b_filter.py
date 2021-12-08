@@ -7,7 +7,7 @@
 #
 # Written by Gustavo Garay, Summer Selness, Ryan Sands (sandsryanj@gmail.com)
 #   v0.80 06-Nov-2021 Following discretization process of curiores
-#   v0.10 28-Nov-2021 First draft implementation of filter
+#   v0.99 28-Nov-2021 First draft implementation of filter
 
 import numpy as np
 from scipy import signal
@@ -26,7 +26,7 @@ class LowPassFilter(object):
         self.fil_coeff()
         self.discretization()
 
-    def fil_coeff(self):
+    def __fil_coeff(self):
         # Compute the Butterworth filter coefficents
         a = np.zeros(self.n + 1)
         gamma = self.pi / (2.0 * self.n)
@@ -41,7 +41,7 @@ class LowPassFilter(object):
             self.c[self.n - k] = a[k] / pow(self.wc, k)
         # coefficients are in c 
     
-    def discretization(self):
+    def __discretization(self):
         denom = self.c
         lowPass = signal.TransferFunction(1, denom)
         dt = 1.0/self.fs

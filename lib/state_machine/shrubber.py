@@ -39,34 +39,31 @@ class state_machine():
             self.state, self.grab_sonar(), self.grab_press(), self.grab_pH(), self.grab_EC()
         )  # dummy function names
 
-    def error(err_string):
+    def __error(err_string):
         raise Exception(err_string)
+
+    # TODO update this: pass in pause button toggle + event and it chooses next state depending on current state. 
+    def evt_handler(self, evt, pause=False):
+        self.last_s = self.state
+        if self.test:
+            print(self.state)
+            print(evt)
+
+        # change state stuff here
+        # example
+        if (self.state == "IDLE") and pause:
+            self.state = self.last_s
+        elif (self.state == "MAX") and (evt == "nut"):
+            self.state = "IDK"
+
+        self.timer_set()  # resets timer
+        if self.test:
+            print(self.state)
+            self.test_print()
 
     def active(self, pwr=70):
         self.pump_pwm(pwr, self.pumpM)  # TODO fine tune values so they match flow rates 
         self.pump_pwm(pwr, self.pumpF)
-
-    # TODO update this. pass in pause button toggle and it chooses next state depending on current state. prob need to change params
-    def state_change(self, pause):
-        if (pause is True) and (self.state == "IDLE"):
-            self.state = "LOCATE"
-        elif (pause is True) and (self.state != "IDLE"):
-            self.state = "IDLE"
-        if self.state == "LOCATE":
-            self.state = "FORWARD"
-            return (self.LOCATE, 0)  # this results in state number paired w/ data that trggered state change
-        elif self.state == "TURN":  # TODO FIX ??
-            self.state = "FORWARD"
-            if self.go == "LEFT":
-                return (self.TURN_LEFT, 0)
-            elif self.go == "RIGHT":
-                return (self.TURN_RIGHT, 0)
-            else:
-                self.error("Turn state change handled incorrectly")
-                return (self.BAD_DIRECTION, 0)  # error integer
-        elif self.state == "FORWARD":
-            self.state = "TURN"
-            return (self.FORWARD, 0)
 
     def water_height(self):  # in cm, good for ~9 to ~30
         '''
@@ -96,8 +93,8 @@ class state_machine():
                 dist[i] = 0
         return dist
 
-# might need an update
-    def timer_event(self):
+# might need an update for main pump timer vs peristaltic
+    def __timer_event(self):
         if (self.timer_time is not None) and time.monotonic() >= self.timer_time:
             self.timer_time = None
             self.evt_handler(timer=True)
@@ -110,40 +107,21 @@ class state_machine():
     def timer_set(self):
         self.timer_time = time.monotonic() + self.TIMER_INTERVAL
 
-    # TODO update this
-    def evt_handler(self, evt, pause=False):
-        self.last_s = self.state
-        if self.test:
-            print(self.state)
-            print(evt)
-
-        # change state stuff here
-        # example
-        if (self.state == "IDLE") and pause:
-            self.state = self.last_s
-        elif (self.state == "MAX") and (evt == "nut"):
-            self.state = "IDK"
-
-        self.timer_set()  # resets timer
-        if self.test:
-            print(self.state)
-            self.test_print()
-
-    # TODO mod this for our sensors
-    def test_print(self):  
+    # can replace this with __str__
+    '''def test_print(self):  
         print("Sonar distances:{0:10.2f}L {1:10.2f}F {2:10.2f}R (cm)".format(*self.grab_sonar()))
         encs = [self.encL.position, self.encR.position]
         print('Encoders:      {0:10.2f}L {1:10.2f}R pulses'.format(*encs))
         print('Magnetometer:  {0:10.2f}X {1:10.2f}Y {2:10.2f}Z uT'.format(*lis3.magnetic))
         print("Acceleration:  {0:10.2f} {1:10.2f} {2:10.2f} m/s^2".format(*lsm6.acceleration))
         print("Cliff distance:  ", self.water_height(), "cm")
-        print("Cliff?         ", self.cliff_det())
-
+        print("Cliff?         ", self.cliff_det())'''
+    
     # potentially useful function for pump control
-    def pump_pwm(level, pump):  # input is range of percents, 0 to 100
+    def __pump_pwm(self, level, pump):  # input is range of percents, 0 to 100
         pump.value = float(level / 100)
 
-    def pump_test(pumpM, pumpF, drive_time, mag=60):  # for testing each direction of the pumps
+    def pump_test(self, pumpM, pumpF, drive_time, mag=60):  # for testing each direction of the pumps
         self.pump_pwm(mag, pumpM)
         self.pump_pwm(mag, pumpF)
         time.sleep(drive_time)
