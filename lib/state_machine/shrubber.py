@@ -93,7 +93,7 @@ class state_machine():
                 dist[i] = 0
         return dist
 
-# might need an update for main pump timer vs peristaltic
+# TODO prob make this it's own class to have multiple instances of the timer
     def __timer_event(self):
         if (self.timer_time is not None) and time.monotonic() >= self.timer_time:
             self.timer_time = None
