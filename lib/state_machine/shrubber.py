@@ -6,8 +6,6 @@
 # Written by Gustavo Garay, Summer Selness, Ryan Sands (sandsryanj@gmail.com)
 #   v0.6 06-Nov-2021 Migration of skeleton from main file
 
-  git config --global user.email "sandsryanj@gmail.com"
-  git config --global user.name "iinsouciant"
 import time 
 
 class state_machine():
