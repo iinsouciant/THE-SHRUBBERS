@@ -17,23 +17,21 @@ import math
 # state machine
 from lib.state_machine import shrubber
 
-F_trig_pin = 13  # placeholder value
-F_echo_pin = 14  # placeholder value
+# placeholder values
+PINS = {"res_trig": 13, 'res_echo': 14, 'A_B': 15,
+'B_B': 16, 'U_B': 17, 'L_B': 18, 'D_B': 19, 'R_B': 20,
+'pump': 23, 'display?': 26}
 
-M_trig_pin = 15  # placeholder value
-M_echo_pin = 16  # placeholder value
-
-pumpM_pin = 23  # placeholder value
-pumpF_pin = 24  # placeholder value
-
-pumpM = GZ.PWMLED(pumpM_pin)
-pumpF = GZ.PWMLED(pumpF_pin)
-pumps = [pumpM, pumpF]
+pump = GZ.PWMLED(PINS['pump'])
+buttons = []  # list of button instances
+for k, v in PINS.items():
+    if k[1:3] == '_B':
+        buttons.append(GZ.Button(v))
+# TODO LCD output for state machine
+LCD = "filler"
 
 '''
-sonarF = hcsr04.Measurement(F_trig_pin, F_echo_pin, temperature=20)  # example code, 20 C
-sonarM = hcsr04.Measurement(M_trig_pin, M_echo_pin, temperature=20)  # example code, 20 C
-sonars = [sonarM, sonarF]
+sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'], temperature=20)  # example code, 20 C
 
 # gives cm, default sample size is 11 readings
 raw_measurement = sonarM.raw_distance()  # can lower it by `sample_wait` and filter it with low pass
@@ -103,7 +101,7 @@ last = time.monotonic()
 s_thold = 25  # in cm
 
 # creating instance of state machine
-shrub = shrubber(pumps, pHsens, ECsens, press, sonars)
+shrub = shrubber(pump, pHsens, ECsens, buttons, sonar, LCD)
 
 # will need to alter inital starting method since we prob won't have a keyboard for input
 # shrub.state used t otrack what state it is in
@@ -116,8 +114,8 @@ while True:
         shrub.test_print()
         time.sleep(print_time)
         if shrub.test_q != "SKIP":
-            pump_test = input("Test pumps? \nY or N ")
-            shrub.test_q = pump_test.upper()
+            shrub.test_q = input("Test pumps? \nY or N ")
+            shrub.test_q = shrub.test_q.upper()
             if (shrub.test_q == "END"):
                 testing2 = False
                 break
@@ -130,7 +128,7 @@ while True:
                     break
                 elif UV_test1 == "Y":
                     duration = float(input("How long?\n"))
-                    pump_test(pumpF, pumpM, duration)
+                    pump_test(pump, duration)
 
     # loop to run once diagnosis is done
     while not testing2:

@@ -6,6 +6,8 @@
 # Written by Gustavo Garay, Summer Selness, Ryan Sands (sandsryanj@gmail.com)
 #   v0.6 06-Nov-2021 Migration of skeleton from main file
 
+  git config --global user.email "sandsryanj@gmail.com"
+  git config --global user.name "iinsouciant"
 import time 
 
 class state_machine():
@@ -17,17 +19,19 @@ class state_machine():
     TIMER_INTERVAL = 0.3
     timer_time = None
 
-    def __init__(self, pumps, pHsens, ECsens, press, sonars):
+    def __init__(self, pump, pHsens, ECsens, buttons, sonar, LCD):
         self.state = self.start
-        self.ps = pumps
-        self.pumpM = pumps[0]
-        self.pumpF = pumps[1]
+        self.pump = pump
         self.pHsens = pHsens
         self.ECsens = ECsens
-        self.press = press
-        self.ss = sonars
-        self.sM = sonars[0]
-        self.sF = sonars[1]
+        self.AB = buttons[0]
+        self.BB = buttons[1]
+        self.UB = buttons[2]
+        self.LB = buttons[3]
+        self.DB = buttons[4]
+        self.RB = buttons[5]
+        self.ss = sonar
+        self.LCD = LCD
         self.timer_set()
 
     def __repr__(self):
@@ -61,7 +65,7 @@ class state_machine():
             print(self.state)
             self.test_print()
 
-    def active(self, pwr=70):
+    def active(self, pwr=30):
         self.pump_pwm(pwr, self.pumpM)  # TODO fine tune values so they match flow rates 
         self.pump_pwm(pwr, self.pumpF)
 
@@ -72,7 +76,7 @@ class state_machine():
         liquid_depth1 = sonar1.depth(raw_measurement, hole_depth1)
         '''
 
-    def overflow_det(self, thresh=20):  # in case water level is too high?
+    def overflow_det(self, thresh=15):  # in case water level is too high?
         height = self.water_height()
         try:
             if height >= thresh:
@@ -82,15 +86,12 @@ class state_machine():
         except TypeError:
             return True
 
-    # TODO update methods
     def grab_sonar(self):  # to handle faulty sonar connections
-        dist = []
-        for i in self.ss:
-            try:
-                dist[i] = self.ss[i].basic_distance()
-            except Exception:
-                print("The "+str(i)+" sonar is not detected.")
-                dist[i] = 0
+        try:
+            dist = self.ss.basic_distance()
+        except Exception:
+            print("The sonar is not detected.")
+            dist = 0
         return dist
 
 # TODO prob make this it's own class to have multiple instances of the timer
@@ -121,6 +122,7 @@ class state_machine():
     def __pump_pwm(self, level, pump):  # input is range of percents, 0 to 100
         pump.value = float(level / 100)
 
+    # currently redundant method in shrubber_main
     def pump_test(self, pumpM, pumpF, drive_time, mag=60):  # for testing each direction of the pumps
         self.pump_pwm(mag, pumpM)
         self.pump_pwm(mag, pumpF)
