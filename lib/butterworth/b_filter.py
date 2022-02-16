@@ -16,7 +16,8 @@ from scipy import signal
 class LowPassFilter(object):
     # second order butterworth filter
 
-    def __init__(self, cutoff, sample_frequency, degree=2):
+    # will want to fine tune sample frequency default value depending on loop time of program
+    def __init__(self, cutoff, sample_frequency=500, degree=2):
         self.wc = 2*np.pi*cutoff  # cutoff frequency (rad/s)
         self.sf = sample_frequency
         self.n = degree
@@ -63,7 +64,7 @@ class LowPassFilter(object):
         # use coeffs and prior discrete values to get new filtered value
         filt_new = self.num[0]*s_val
         for f, y, a, b in zip(reversed(self.f_vals), reversed(self.s_vals), self.den[1:], self.num[1:]):
-            filt_new +=  a*f + b*y
+            filt_new += a*f + b*y
     
         # maintain list length n-long
         self.f_vals.append(filt_new)
@@ -91,7 +92,7 @@ if __name__ == "__main__":
     signalMag = [1, 0.2]  # magnitude of each sine
     t = np.linspace(tlims[0], tlims[1], (tlims[1]-tlims[0])*samplingFreq)
     y = signalMag[0]*np.sin(2*math.pi*signalFreq[0]*t) + signalMag[1]*np.sin(2*math.pi*signalFreq[1]*t)
-    test = LowPassFilter(5,samplingFreq)
+    test = LowPassFilter(5, samplingFreq)
     yf = np.zeros(len(t))
     for i in range(len(t)):
         if i == 0:
@@ -102,7 +103,8 @@ if __name__ == "__main__":
     # View the result
     # Plot the signal
     plt.figure()
-    plt.plot(t,y);
-    plt.plot(t,yf);
+    plt.plot(t, y)
+    plt.plot(t, yf)
     plt.ylabel("$y(t)$")
-    plt.xlim([min(t),max(t)]);
+    plt.xlim([min(t), max(t)])
+    plt.show(block=True)

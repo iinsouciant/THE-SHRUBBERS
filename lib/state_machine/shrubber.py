@@ -6,6 +6,8 @@
 # Written by Gustavo Garay, Summer Selness, Ryan Sands (sandsryanj@gmail.com)
 #   v0.6 06-Nov-2021 Migration of skeleton from main file
 
+# Butterowrth lowpass filter
+from lib.butterworth import b_filter as BF
 import time 
 
 class state_machine():
@@ -22,19 +24,23 @@ class state_machine():
         self.pump = pump
         self.pHsens = pHsens
         self.ECsens = ECsens
+        self.bs = buttons
         self.AB = buttons[0]
         self.BB = buttons[1]
         self.UB = buttons[2]
         self.LB = buttons[3]
         self.DB = buttons[4]
         self.RB = buttons[5]
-        self.ss = sonar
+        self.s = sonar
         self.LCD = LCD
         self.timer_set()
+        self.fs = BF.LowPassFilter(7)
+        self.fpH = BF.LowPassFilter(5)
+        self.fEC = BF.LowPassFilter(5)
 
     def __repr__(self):
-        return "state_machine({}, {}, {}, {}, {})".format(self.ps, self.pHsens,
-        self.ECsens, self.press, self.ss)
+        return "state_machine({}, {}, {}, {}, {}, {})".format(self.pump, self.pHsens,
+        self.ECsens, self.bs, self.sonar, self.LCD)
     
     def __str__(self):
         return "State: {}\nWater level: {} cm\nPressure drop: {} psi\npH: {}\nEC: {} mS".format(
@@ -68,11 +74,8 @@ class state_machine():
         self.pump_pwm(pwr, self.pumpF)
 
     def water_height(self):  # in cm, good for ~9 to ~30
-        '''
-        use hcsr04sensor library for this. ex:
-        hole_depth1 = 100  # cm
-        liquid_depth1 = sonar1.depth(raw_measurement, hole_depth1)
-        '''
+        hole_depth1 = 35*2.54  # 35in to cm
+        return self.s.depth(self.grab_sonar(), hole_depth1)
 
     def overflow_det(self, thresh=15):  # in case water level is too high?
         height = self.water_height()
@@ -84,13 +87,30 @@ class state_machine():
         except TypeError:
             return True
 
-    def grab_sonar(self):  # to handle faulty sonar connections
+    # grab methods returns filtered value
+    def grab_pH(self):  # handle faulty pH
         try:
-            dist = self.ss.basic_distance()
+            dist = self.s.basic_distance()
         except Exception:
             print("The sonar is not detected.")
             dist = 0
-        return dist
+        return self.fpH.filter(dist)
+
+    def grab_EC(self):  # handle faulty EC
+        try:
+            dist = self.s.basic_distance()
+        except Exception:
+            print("The sonar is not detected.")
+            dist = 0
+        return self.fEC.filter(dist)
+
+    def grab_sonar(self):  # to handle faulty sonar connections
+        try:
+            dist = self.s.basic_distance()
+        except Exception:
+            print("The sonar is not detected.")
+            dist = 0
+        return self.fs.filter(dist)
 
 # TODO prob make this it's own class to have multiple instances of the timer
     def __timer_event(self):
@@ -120,8 +140,8 @@ class state_machine():
     def __pump_pwm(self, level, pump):  # input is range of percents, 0 to 100
         pump.value = float(level / 100)
 
-    # currently redundant method in shrubber_main
-    def pump_test(self, pumpM, pumpF, drive_time, mag=60):  # for testing each direction of the pumps
+    @staticmethod
+    def pump_test(pumpM, pumpF, drive_time, mag=60):  # for testing each direction of the pumps
         self.pump_pwm(mag, pumpM)
         self.pump_pwm(mag, pumpF)
         time.sleep(drive_time)

@@ -4,13 +4,13 @@
 # Written by Gustavo Garay, Summer Selness, Ryan Sands (sandsryanj@gmail.com)
 #   v0.50 30-Oct-2021 Finding code examples to use for this project
 #   v0.60 06-Nov-2021 Copying over class and logic for state machine with some edits. not working version
+#   v1.00 15-Feb-2022 Working version to take in a single value at a time. Only tested w/ 2nd order
 
 import gpiozero as GZ
 from lib.hcsr04sensor import sensor as hcsr04
 import time
 
-# Butterowrth lowpass filter
-from lib.butterworth import b_filter
+
 import numpy as np
 import math
 
@@ -29,6 +29,7 @@ for k, v in PINS.items():
         buttons.append(GZ.Button(v))
 # TODO LCD output for state machine
 LCD = "filler"
+
 
 '''
 sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'], temperature=20)  # example code, 20 C
@@ -82,15 +83,6 @@ def pump_pwm(level, pump):  # input is range of percents, 0 to 100
     pump.value = float(level / 100)
 
 
-def pump_test(pumpM, pumpF, drive_time, mag=60):  # for testing each direction of the pumps
-    pump_pwm(mag, pumpM)
-    pump_pwm(mag, pumpF)
-    time.sleep(drive_time)
-    pump_pwm(0, pumpM)
-    pump_pwm(0, pumpF)
-    time.sleep(0.1)
-
-
 # testing parameters
 testing = True  # to show state
 testing2 = True  # to determine if we run beginning test q's
@@ -128,7 +120,7 @@ while True:
                     break
                 elif UV_test1 == "Y":
                     duration = float(input("How long?\n"))
-                    pump_test(pump, duration)
+                    state_machine.pump_test(pump, duration)
 
     # loop to run once diagnosis is done
     while not testing2:
