@@ -140,8 +140,7 @@ class state_machine():
     def __pump_pwm(self, level, pump):  # input is range of percents, 0 to 100
         pump.value = float(level / 100)
 
-    @staticmethod
-    def pump_test(pumpM, pumpF, drive_time, mag=60):  # for testing each direction of the pumps
+    def pump_test(self, pumpM, pumpF, drive_time, mag=60):  # for testing each direction of the pumps
         self.pump_pwm(mag, pumpM)
         self.pump_pwm(mag, pumpF)
         time.sleep(drive_time)
