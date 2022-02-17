@@ -13,17 +13,18 @@ class DFRobot_EC():  # maybe update this to work with LCD
 		global _kvalueLow
 		global _kvalueHigh
 		try:
-			with open('ecdata.txt','r') as f:
+			with open('ecdata.txt', 'r') as f:
 				kvalueLowLine  = f.readline()
 				kvalueLowLine  = kvalueLowLine.strip('kvalueLow=')
 				_kvalueLow     = float(kvalueLowLine)
 				kvalueHighLine = f.readline()
 				kvalueHighLine = kvalueHighLine.strip('kvalueHigh=')
 				_kvalueHigh    = float(kvalueHighLine)
-		except :
+		except IOError:
 			print("ecdata.txt ERROR ! Please run DFRobot_EC_Reset")
 			sys.exit(1)
-	def readEC(self,voltage,temperature):
+
+	def readEC(self, voltage, temperature):
 		global _kvalueLow
 		global _kvalueHigh
 		global _kvalue
@@ -36,12 +37,13 @@ class DFRobot_EC():  # maybe update this to work with LCD
 		value = rawEC * _kvalue
 		value = value / (1.0+0.0185*(temperature-25.0))
 		return value
-	def calibration(self,voltage,temperature):
+
+	def calibration(self, voltage, temperature):
 		rawEC = 1000*voltage/820.0/200.0
 		if (rawEC>0.9 and rawEC<1.9):
 			compECsolution = 1.413*(1.0+0.0185*(temperature-25.0))
 			KValueTemp = 820.0*200.0*compECsolution/1000.0/voltage
-			round(KValueTemp,2)
+			round(KValueTemp, 2)
 			print(">>>Buffer Solution:1.413us/cm")
 			f=open('ecdata.txt','r+')
 			flist=f.readlines()
@@ -65,9 +67,10 @@ class DFRobot_EC():  # maybe update this to work with LCD
 			time.sleep(5.0)
 		else:
 			print(">>>Buffer Solution Error Try Again<<<")
+			
 	def reset(self):
-		_kvalueLow              = 1.0;
-		_kvalueHigh             = 1.0;
+		_kvalueLow              = 1.0
+		_kvalueHigh             = 1.0
 		try:
 			f=open('ecdata.txt','r+')
 			flist=f.readlines()
