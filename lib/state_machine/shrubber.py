@@ -8,12 +8,29 @@
 #   v0.65 17-Feb-2022 Drafting menu state machine to interact with hydro
 
 # Butterowrth lowpass filter
-from xml.etree.ElementPath import ops
 from lib.butterworth import b_filter as BF
 from lib.DFR import DFRobot_EC as EC
 from lib.DFR import DFRobot_PH as PH
 import time
 import warnings
+
+class timer():
+    '''Creates a nonblocking timer to trigger a timer event when checked'''
+    timer_time = None
+
+    def __init__(self, interval):
+        self.TIMER_INTERVAL = interval
+
+    def __timer_event(self):
+        if (self.timer_time is not None) and time.monotonic() >= self.timer_time:
+            self.timer_time = None
+            self.evt_handler(None, timer=True)
+            return True
+        else:
+            return False
+
+    def timer_set(self):
+        self.timer_time = time.monotonic() + self.TIMER_INTERVAL
 
 class hydro():
     '''Part of the Shrubber state machine that handles
@@ -23,8 +40,8 @@ class hydro():
     test = False  # for printing state change and events
     test_q = "Y"
     # independent timer event
-    TIMER_INTERVAL = 0.3
-    timer_time = None
+    active_timer = timer(0.1)
+    active_timer.timer_set()
 
     def __init__(self, pump, pHsens, ECsens, buttons, sonar, LCD):
         self.state = self.start
@@ -38,7 +55,6 @@ class hydro():
         self.RB = buttons[5]
         self.s = sonar
         self.LCD = LCD
-        self.timer_set()
         self.fs = BF.LowPassFilter(7)
         self.fpH = BF.LowPassFilter(5)
         self.fEC = BF.LowPassFilter(5)
@@ -76,23 +92,11 @@ class hydro():
         elif (self.state == "MAX") and (evt == "nut"):
             self.state = "IDK"
 
-        self.timer_set()  # resets timer
+        self.active_timer.timer_set()  # resets timer
         if self.test:
             print(self.state)
             self.test_print()
 
-    def __timer_event(self):
-        if (self.timer_time is not None) and time.monotonic() >= self.timer_time:
-            self.timer_time = None
-            self.evt_handler(timer=True)
-            if self.test:
-                print(self.state)
-            return True
-        else:
-            return False
-
-    def timer_set(self):
-        self.timer_time = time.monotonic() + self.TIMER_INTERVAL
 
     def active(self, pwr=30):
         self.pump_pwm(pwr, self.pumpM)  # TODO fine tune values so they match flow rates 
@@ -176,9 +180,9 @@ class menu():
         "EC thresholds", )
     parent = start
     child = ops
+    m1_hover = 0
+    m2_hover = 0
     # independent timer event to time out LCD
-    TIMER_INTERVAL = 60*5
-    timer_time = None
     ap = 120
     ip = 240
     pHH = 9
@@ -189,7 +193,7 @@ class menu():
 
     def __init__(self, buttons, LCD, shrub):
         self.state = self.start
-        self.bs = buttons
+        #self.bs = buttons
         self.AB = buttons[0]
         self.BB = buttons[1]
         self.UB = buttons[2]
@@ -216,31 +220,31 @@ class menu():
                 f"pH High Threshold = {self.pHH}\n", f"pH Low Threshold = {self.pHL}\n", 
                 f"EC High Threshold = {self.ECH}\n", f"EC Low Threshold = {self.ECL}\n", f"Water from top = {self.sT}\n"]
                 f.writelines(settings)
-                
-    def __timer_event(self):
-        if (self.timer_time is not None) and time.monotonic() >= self.timer_time:
-            self.timer_time = None
-            self.evt_handler(None, timer=True)
-            if self.test:
-                print(self.state)
-            return True
-        else:
-            return False
 
-    def timer_set(self):
-        self.timer_time = time.monotonic() + self.TIMER_INTERVAL
+    def write2settings(self):
+        pass
     
     def evt_handler(self, evt, timer=False):
         if timer:
             self.parent = self.start
-            self.child = ops
+            self.child = self.ops
             self.LCD.idle()
 
-        if self.U_B.is_pressed or self.D_B.is_pressed or self.L_B.is_pressed or self.R_B.is_pressed \
-            or self.A_B.is_pressed or self.B_B.is_pressed:
-            if (self.child == ops) and ():
+        if (self.child == self.ops) and (self.parent == self.start):
+            if self.U_B.is_pressed or self.D_B.is_pressed or self.L_B.is_pressed or self.R_B.is_pressed \
+                or self.A_B.is_pressed or self.B_B.is_pressed:
                 self.timer_set()
                 self.parent == self.start
-                self.child == ops[1]
+                self.child == self.ops[1]
+                self.m1_hover = 0
                 # potentially blocking depending on how we implement LCD, maybe threading library to help
-                self.LCD.run(ops[1])  
+                self.LCD.run(self.ops[0]) 
+        
+        if self.child in self.ops:
+            if self.B_B.is_pressed:
+                self.parent = self.start
+                self.child = self.ops
+                self.LCD.idle()
+            if self.A_B.is_pressed:
+                pass
+

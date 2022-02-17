@@ -21,7 +21,7 @@ import threading
 # state machine
 from lib.state_machine import shrubber
 
-# placeholder values
+# placeholder pin values
 PINS = {"res_trig": 13, 'res_echo': 14, 'A_B': 15,
 'B_B': 16, 'U_B': 17, 'L_B': 18, 'D_B': 19, 'R_B': 20,
 'pump': 23, 'display?': 26}
@@ -52,12 +52,14 @@ def error(err_string):
 
 # menu skeleton  
 # replace dict w/ reading from file so it persists between shutdowns        
-
+'''
 m_hover = 0
 d_text = ops[m_hover]
 time.sleep(0.01)  # to prevent tapping button skipping menus
 
 while True:
+    if A_B.is_pressed and B_B.is_pressed:
+        break
     if U_B:
         m_hover += 1
     if D_B:
@@ -78,7 +80,7 @@ while True:
             if B_B:
                 valid = False
 
-    d_text = ops[m_hover]
+    d_text = ops[m_hover]'''
 
 
 # testing parameters
