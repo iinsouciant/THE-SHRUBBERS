@@ -4,15 +4,17 @@
 # Written by Gustavo Garay, Summer Selness, Ryan Sands (sandsryanj@gmail.com)
 #   v0.50 30-Oct-2021 Finding code examples to use for this project
 #   v0.60 06-Nov-2021 Copying over class and logic for state machine with some edits. not working version
-#   v1.00 15-Feb-2022 Working version to take in a single value at a time. Only tested w/ 2nd order
 
 import gpiozero as GZ
 from lib.hcsr04sensor import sensor as hcsr04
-import time
-
+import board
+import busio
+import adafruit_ads1x15.ads1015 as ADS
+from adafruit_ads1x15.analog_in import AnalogIn
 
 import numpy as np
 import math
+import time
 
 # state machine
 from lib.state_machine import shrubber
@@ -27,10 +29,14 @@ buttons = []  # list of button instances
 for k, v in PINS.items():
     if k[1:3] == '_B':
         buttons.append(GZ.Button(v))
+
 # TODO LCD output for state machine
 LCD = "filler"
 
-
+i2c = busio.I2C(board.SCL, board.SDA)
+ads = ADS.ADS1015(i2c)
+chan = AnalogIn(ads, ADS.P0)  # signal at pin 0
+#print(chan.value, chan.voltage)
 '''
 sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'], temperature=20)  # example code, 20 C
 
@@ -66,22 +72,10 @@ while end is not True:
     else:
         a = dim  # do stuff here
 
-# note that in the case of program crash, raise exception so clean up pin state
-
-'''
-we could try and approximate flow rate
-for both the reservoirs to monitor when the filtration needs to be swapped?
-approx derivative with backwards differencing?
-I've only seen pressure drop as an indicator, not flow rate tho
-'''
+# note that in the case of program crash, raise exception to clean up pin state
 
 def error(err_string):
     raise Exception(err_string)
-
-# potentially useful function for pump control
-def pump_pwm(level, pump):  # input is range of percents, 0 to 100
-    pump.value = float(level / 100)
-
 
 # testing parameters
 testing = True  # to show state
@@ -96,9 +90,7 @@ s_thold = 25  # in cm
 shrub = shrubber(pump, pHsens, ECsens, buttons, sonar, LCD)
 
 # will need to alter inital starting method since we prob won't have a keyboard for input
-# shrub.state used t otrack what state it is in
-# shrub.go can be used as a parameter to change between certain methods
-# might be able to condense that to just a parameter in event handler
+# shrub.state used to track what state it is in
 while True: 
     # TODO update this. can we make this into a group of states?
     UV_test1 = None
@@ -130,7 +122,7 @@ while True:
                 if testing2:
                     shrub.test_print()
 
-        # TODO update this
+        # TODO update this to incorporate menu system
         if shrub.state == "IDLE":
             shrub.forward(speed=0)
             if start_button:  # some trigger to start the system

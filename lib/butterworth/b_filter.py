@@ -8,6 +8,7 @@
 # Written by Gustavo Garay, Summer Selness, Ryan Sands (sandsryanj@gmail.com)
 #   v0.80 06-Nov-2021 Following discretization process of curiores
 #   v0.99 28-Nov-2021 First draft implementation of filter
+#   v1.00 15-Feb-2022 Working version to take in a single value at a time. Only tested w/ 2nd order
 
 import numpy as np
 from scipy import signal
@@ -33,13 +34,14 @@ class LowPassFilter(object):
             a[k+1] = rfac*a[k] 
 
         # Adjust for cutoff frequency
-        self.b = np.zeros(self.n + 1)
+        B = np.zeros(self.n + 1)
         for k in range(self.n + 1):
-            self.b[self.n - k] = a[k] / pow(self.wc, k)
+            B[self.n - k] = a[k] / pow(self.wc, k)
+            return B
         # coefficients stored in b 
     
-    def __discretization(self):
-        denom = self.b
+    def __discretization(self, B):
+        denom = B
         lowPass = signal.TransferFunction(1, denom)
         dt = 1.0/self.sf
         discreteLowPass = lowPass.to_discrete(dt, method='gbt', alpha=0.5)
@@ -48,8 +50,7 @@ class LowPassFilter(object):
     
     def recalc(self, sf):  # new coeffs w/ new cutoff
         self.sf = sf
-        self.__fil_coeff()
-        self.__discretization()
+        self.__discretization(self.__fil_coeff())
         print("Coefficients calculated!")
 
     def filter(self, s_val):  # pass in a single sensor val each time
