@@ -12,6 +12,7 @@ from lib.butterworth import b_filter as BF
 from lib.DFR import DFRobot_EC as EC
 from lib.DFR import DFRobot_PH as PH
 import time
+import csv
 import warnings
 
 class timer():
@@ -96,7 +97,6 @@ class hydro():
         if self.test:
             print(self.state)
             self.test_print()
-
 
     def active(self, pwr=30):
         self.pump_pwm(pwr, self.pumpM)  # TODO fine tune values so they match flow rates 
@@ -204,22 +204,27 @@ class menu():
         self.shrub = shrub
 
         try:
-            with open('Settings.txt', 'r') as f:
-                ap_line, ip_line, pH_line, EC_line, s_line = f.readlines()
-                self.ap = int(ap_line.split(str='=')[1])
-                self.ip = int(ap_line.split(str='=')[1])
-                self.pHH = int(ap_line.split(str='=')[1])
-                self.pHL = int(ap_line.split(str='=')[1])
-                self.ECH = int(ap_line.split(str='=')[1])
-                self.ECL = int(ap_line.split(str='=')[1])
-                self.sT = int(ap_line.split(str='=')[1])
+            with open('Settings.csv', 'r') as f:
+                settings = csv.reader(f)
+                self.ap = int(settings[0][1])
+                self.ip = int(settings[1][1])
+                self.pHH = int(settings[2][2])
+                self.pHL = int(settings[2][1])
+                self.ECH = int(settings[3][2])
+                self.ECL = int(settings[3][1])
+                self.sT = int(settings[4][1])
         except IOError:
             print("Settings.txt does not exist. Creating file with default settings.")
-            with open(r"Settings.txt", 'w') as f:
-                settings = [f"Active Pump Timer = {self.ap}\n", f"Inactive Pump Timer = {self.ip}\n",
-                f"pH High Threshold = {self.pHH}\n", f"pH Low Threshold = {self.pHL}\n", 
-                f"EC High Threshold = {self.ECH}\n", f"EC Low Threshold = {self.ECL}\n", f"Water from top = {self.sT}\n"]
-                f.writelines(settings)
+            with open(r"Settings.csv", 'w') as f:
+                rows = [ ['Active Pump Timer', self.ap], 
+                    ['Inactive Pump Timer', self.ip], 
+                    ['pH High Threshold', self.pHH], 
+                    ['pH Low Threshold', self.pHL], 
+                    ['EC High Threshold', self.ECH], 
+                    ['EC Low Threshold', self.ECL],
+                    ['Water from top', self.sT] ] 
+                settings = csv.writer(f)
+                settings.writerows(rows)
 
     def write2settings(self):
         pass
