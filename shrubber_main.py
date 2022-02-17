@@ -35,20 +35,21 @@ LCD = "filler"
 
 i2c = busio.I2C(board.SCL, board.SDA)
 ads = ADS.ADS1015(i2c)
-chan = AnalogIn(ads, ADS.P0)  # signal at pin 0
+pHsens = AnalogIn(ads, ADS.P0)  # signal at pin 0
+ECsens = AnalogIn(ads, ADS.P1)  # signal at pin 1
 #print(chan.value, chan.voltage)
-'''
+
 sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'], temperature=20)  # example code, 20 C
 
 # gives cm, default sample size is 11 readings
-raw_measurement = sonarM.raw_distance()  # can lower it by `sample_wait` and filter it with low pass
+raw_measurement = sonar.raw_distance()  # can lower it by `sample_wait` and filter it with low pass
 # could also used `sonarM.basic_distance(...)`
 # can then use the height to calc water volume
 
 # alternatively if we know initial hole depth we can use this method instead
 hole_depth1 = 100  # cm
-liquid_depth1 = sonarM.depth(raw_measurement, hole_depth1)
-'''
+liquid_depth1 = sonar.depth(raw_measurement, hole_depth1)
+
 
 # example PWM use via GPIO Zero
 led = GZ.PWMLED(2)
@@ -112,7 +113,7 @@ while True:
                     break
                 elif UV_test1 == "Y":
                     duration = float(input("How long?\n"))
-                    state_machine.pump_test(pump, duration)
+                    shrubber.state_machine.pump_test(pump, duration)
 
     # loop to run once diagnosis is done
     while not testing2:

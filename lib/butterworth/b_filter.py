@@ -15,7 +15,9 @@ from scipy import signal
 
 
 class LowPassFilter(object):
-    # second order butterworth filter
+    '''Creates a low pass filter on initialization for different sensors.
+    Use filter(sensor_value) to utilize the low pass filter.
+    recalc() will allow you to modify your instance of the filter.'''
 
     # will want to fine tune sample frequency default value depending on loop time of program
     def __init__(self, cutoff, sample_frequency=500, degree=2):
@@ -48,12 +50,16 @@ class LowPassFilter(object):
         self.num = discreteLowPass.num
         self.den = -discreteLowPass.den
     
-    def recalc(self, sf):  # new coeffs w/ new cutoff
-        self.sf = sf
+    def recalc(self, sampling_freq, cutoff):
+        '''Calculate the discretized coefficients by providing
+         a new sampling frequency and cutoff frequency'''
+        self.sf = sampling_freq
+        self.wc = 2*np.pi*cutoff  # cutoff frequency (rad/s)
         self.__discretization(self.__fil_coeff())
         print("Coefficients calculated!")
 
-    def filter(self, s_val):  # pass in a single sensor val each time
+    def filter(self, s_val):
+        '''Pass in your new sensor value to return the next filtered value.'''
         Nb = len(self.num)
         # check if we have prior values to pass into filter
         try:

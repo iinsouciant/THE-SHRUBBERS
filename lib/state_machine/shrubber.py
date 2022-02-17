@@ -8,9 +8,12 @@
 
 # Butterowrth lowpass filter
 from lib.butterworth import b_filter as BF
-import time 
+import time
+import warnings
 
 class state_machine():
+    '''Part of the Shrubber state machine that handles
+    events passed to it, and defines and run the states as needed.'''
     go = None  # indicates direction for turning
     start = "IDLE"
     test = False  # for printing state change and events
@@ -43,6 +46,7 @@ class state_machine():
         self.ECsens, self.bs, self.sonar, self.LCD)
     
     def __str__(self):
+        '''Provides formatted sensor values connected to state machine'''
         return "State: {}\nWater level: {} cm\nPressure drop: {} psi\npH: {}\nEC: {} mS".format(
             self.state, self.grab_sonar(), self.grab_press(), self.grab_pH(), self.grab_EC()
         )  # dummy function names
@@ -52,6 +56,8 @@ class state_machine():
 
     # TODO update this: pass in pause button toggle + event and it chooses next state depending on current state. 
     def evt_handler(self, evt, pause=False):
+        '''Handles the logic to choose and run the proper state
+        depending on current state and event passed to it'''
         self.last_s = self.state
         if self.test:
             print(self.state)
@@ -87,24 +93,30 @@ class state_machine():
         except TypeError:
             return True
 
-    # grab methods returns filtered value
-    def grab_pH(self):  # handle faulty pH
+    # TODO update/supplement grabs with calculations to interpret voltage
+    def grab_pH(self):
+        '''Tries to grab the pH sensor value 
+        without raising an exception halting the program'''
         try:
-            dist = self.s.basic_distance()
+            dist = self.s.voltage()
         except Exception:
             print("The sonar is not detected.")
             dist = 0
         return self.fpH.filter(dist)
 
-    def grab_EC(self):  # handle faulty EC
+    def grab_EC(self):
+        '''Tries to grab the conductivity sensor value 
+        without raising an exception halting the program'''
         try:
-            dist = self.s.basic_distance()
+            dist = self.s.voltage()
         except Exception:
             print("The sonar is not detected.")
             dist = 0
         return self.fEC.filter(dist)
 
-    def grab_sonar(self):  # to handle faulty sonar connections
+    def grab_sonar(self):
+        '''Tries to grab the sonar sensor value 
+        without raising an exception halting the program'''
         try:
             dist = self.s.basic_distance()
         except Exception:
@@ -135,10 +147,10 @@ class state_machine():
         print("Acceleration:  {0:10.2f} {1:10.2f} {2:10.2f} m/s^2".format(*lsm6.acceleration))
         print("Cliff distance:  ", self.water_height(), "cm")
         print("Cliff?         ", self.cliff_det())'''
-    
-    # potentially useful function for pump control
-    def __pump_pwm(self, level, pump):  # input is range of percents, 0 to 100
-        pump.value = float(level / 100)
+
+    def pump_pwm(self, level, pump):
+        """This method is deprecated, use GZ.PWMLED value method instead."""
+        warnings.warn("use GZ.PWMLED value method instead", DeprecationWarning)
 
     def pump_test(self, pumpM, pumpF, drive_time, mag=60):  # for testing each direction of the pumps
         self.pump_pwm(mag, pumpM)
