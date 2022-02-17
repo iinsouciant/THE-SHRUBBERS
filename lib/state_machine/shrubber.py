@@ -8,6 +8,8 @@
 
 # Butterowrth lowpass filter
 from lib.butterworth import b_filter as BF
+from lib.DFR import DFRobot_EC as EC
+from lib.DFR import DFRobot_PH as PH
 import time
 import warnings
 
@@ -25,8 +27,6 @@ class state_machine():
     def __init__(self, pump, pHsens, ECsens, buttons, sonar, LCD):
         self.state = self.start
         self.pump = pump
-        self.pHsens = pHsens
-        self.ECsens = ECsens
         self.bs = buttons
         self.AB = buttons[0]
         self.BB = buttons[1]
@@ -40,6 +40,10 @@ class state_machine():
         self.fs = BF.LowPassFilter(7)
         self.fpH = BF.LowPassFilter(5)
         self.fEC = BF.LowPassFilter(5)
+        self.pHsens = pHsens
+        self.pH = PH.DFRobot_PH()
+        self.ECsens = ECsens
+        self.EC = EC.DFRobot_EC()
 
     def __repr__(self):
         return "state_machine({}, {}, {}, {}, {}, {})".format(self.pump, self.pHsens,
