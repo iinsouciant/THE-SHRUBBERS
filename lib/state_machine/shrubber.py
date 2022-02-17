@@ -1,19 +1,21 @@
 # state_machine/shrubber.py - ME 195 Shrubbers Project Code
 # Raspberry Pi 4B/3B
 #
-# Implement a state machine to handle events passed to it
+# Implement state machines to handle events passed to it
 #
 # Written by Gustavo Garay, Summer Selness, Ryan Sands (sandsryanj@gmail.com)
-#   v0.6 06-Nov-2021 Migration of skeleton from main file
+#   v0.60 06-Nov-2021 Migration of skeleton from main file
+#   v0.65 17-Feb-2022 Drafting menu state machine to interact with hydro
 
 # Butterowrth lowpass filter
+from xml.etree.ElementPath import ops
 from lib.butterworth import b_filter as BF
 from lib.DFR import DFRobot_EC as EC
 from lib.DFR import DFRobot_PH as PH
 import time
 import warnings
 
-class state_machine():
+class hydro():
     '''Part of the Shrubber state machine that handles
     events passed to it, and defines and run the states as needed.'''
     go = None  # indicates direction for turning
@@ -59,7 +61,7 @@ class state_machine():
         raise Exception(err_string)
 
     # TODO update this: pass in pause button toggle + event and it chooses next state depending on current state. 
-    def evt_handler(self, evt, pause=False):
+    def evt_handler(self, evt, timer=False, pause=False):
         '''Handles the logic to choose and run the proper state
         depending on current state and event passed to it'''
         self.last_s = self.state
@@ -78,6 +80,19 @@ class state_machine():
         if self.test:
             print(self.state)
             self.test_print()
+
+    def __timer_event(self):
+        if (self.timer_time is not None) and time.monotonic() >= self.timer_time:
+            self.timer_time = None
+            self.evt_handler(timer=True)
+            if self.test:
+                print(self.state)
+            return True
+        else:
+            return False
+
+    def timer_set(self):
+        self.timer_time = time.monotonic() + self.TIMER_INTERVAL
 
     def active(self, pwr=30):
         self.pump_pwm(pwr, self.pumpM)  # TODO fine tune values so they match flow rates 
@@ -128,20 +143,6 @@ class state_machine():
             dist = 0
         return self.fs.filter(dist)
 
-# TODO prob make this it's own class to have multiple instances of the timer
-    def __timer_event(self):
-        if (self.timer_time is not None) and time.monotonic() >= self.timer_time:
-            self.timer_time = None
-            self.evt_handler(timer=True)
-            if self.test:
-                print(self.state)
-            return True
-        else:
-            return False
-
-    def timer_set(self):
-        self.timer_time = time.monotonic() + self.TIMER_INTERVAL
-
     # can replace this with __str__
     '''def test_print(self):  
         print("Sonar distances:{0:10.2f}L {1:10.2f}F {2:10.2f}R (cm)".format(*self.grab_sonar()))
@@ -155,6 +156,7 @@ class state_machine():
     def pump_pwm(self, level, pump):
         """This method is deprecated, use GZ.PWMLED value method instead."""
         warnings.warn("use GZ.PWMLED value method instead", DeprecationWarning)
+        pump.value(level)
 
     def pump_test(self, pumpM, pumpF, drive_time, mag=60):  # for testing each direction of the pumps
         self.pump_pwm(mag, pumpM)
@@ -163,3 +165,82 @@ class state_machine():
         self.pump_pwm(0, pumpM)
         self.pump_pwm(0, pumpF)
         time.sleep(0.1)
+
+
+class menu():
+    ''' Implement a menu state machine x levels deep to allow the user to
+    configure the shrubber state machine without blocking operations elsewhere
+    and simultaneously output information to the LCD screen.'''
+    start = "IDLE"
+    ops = ("Active pump timer", "Inactive pump timer", "pH thresholds", 
+        "EC thresholds", )
+    parent = start
+    child = ops
+    # independent timer event to time out LCD
+    TIMER_INTERVAL = 60*5
+    timer_time = None
+    ap = 120
+    ip = 240
+    pHH = 9
+    pHL = 4
+    ECH = 2
+    ECL = 0
+    sT = 10
+
+    def __init__(self, buttons, LCD, shrub):
+        self.state = self.start
+        self.bs = buttons
+        self.AB = buttons[0]
+        self.BB = buttons[1]
+        self.UB = buttons[2]
+        self.LB = buttons[3]
+        self.DB = buttons[4]
+        self.RB = buttons[5]
+        self.LCD = LCD
+        self.shrub = shrub
+
+        try:
+            with open('Settings.txt', 'r') as f:
+                ap_line, ip_line, pH_line, EC_line, s_line = f.readlines()
+                self.ap = int(ap_line.split(str='=')[1])
+                self.ip = int(ap_line.split(str='=')[1])
+                self.pHH = int(ap_line.split(str='=')[1])
+                self.pHL = int(ap_line.split(str='=')[1])
+                self.ECH = int(ap_line.split(str='=')[1])
+                self.ECL = int(ap_line.split(str='=')[1])
+                self.sT = int(ap_line.split(str='=')[1])
+        except IOError:
+            print("Settings.txt does not exist. Creating file with default settings.")
+            with open(r"Settings.txt", 'w') as f:
+                settings = [f"Active Pump Timer = {self.ap}\n", f"Inactive Pump Timer = {self.ip}\n",
+                f"pH High Threshold = {self.pHH}\n", f"pH Low Threshold = {self.pHL}\n", 
+                f"EC High Threshold = {self.ECH}\n", f"EC Low Threshold = {self.ECL}\n", f"Water from top = {self.sT}\n"]
+                f.writelines(settings)
+                
+    def __timer_event(self):
+        if (self.timer_time is not None) and time.monotonic() >= self.timer_time:
+            self.timer_time = None
+            self.evt_handler(None, timer=True)
+            if self.test:
+                print(self.state)
+            return True
+        else:
+            return False
+
+    def timer_set(self):
+        self.timer_time = time.monotonic() + self.TIMER_INTERVAL
+    
+    def evt_handler(self, evt, timer=False):
+        if timer:
+            self.parent = self.start
+            self.child = ops
+            self.LCD.idle()
+
+        if self.U_B.is_pressed or self.D_B.is_pressed or self.L_B.is_pressed or self.R_B.is_pressed \
+            or self.A_B.is_pressed or self.B_B.is_pressed:
+            if (self.child == ops) and ():
+                self.timer_set()
+                self.parent == self.start
+                self.child == ops[1]
+                # potentially blocking depending on how we implement LCD, maybe threading library to help
+                self.LCD.run(ops[1])  

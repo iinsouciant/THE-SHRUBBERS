@@ -16,6 +16,7 @@ from adafruit_ads1x15.analog_in import AnalogIn
 import numpy as np
 import math
 import time
+import threading
 
 # state machine
 from lib.state_machine import shrubber
@@ -38,46 +39,47 @@ i2c = busio.I2C(board.SCL, board.SDA)
 ads = ADS.ADS1015(i2c)
 pHsens = AnalogIn(ads, ADS.P0)  # signal at pin 0
 ECsens = AnalogIn(ads, ADS.P1)  # signal at pin 1
-#print(chan.value, chan.voltage)
 
 sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'], temperature=20)  # example code, 20 C
 
-# gives cm, default sample size is 11 readings
-raw_measurement = sonar.raw_distance()  # can lower it by `sample_wait` and filter it with low pass
-# could also used `sonarM.basic_distance(...)`
-# can then use the height to calc water volume
-
-# alternatively if we know initial hole depth we can use this method instead
-hole_depth1 = 100  # cm
-liquid_depth1 = sonar.depth(raw_measurement, hole_depth1)
-
-
-# example PWM use via GPIO Zero
-led = GZ.PWMLED(2)
-
-last_t = 0
-dt = 0.05
-dim = 0
-dm = 1
-end = False
-while end is not True:
-    if (time.monotonic() > (last_t + dt)) and (dim < 100):
-        led.value = dim/100
-        dim += dm
-        last_t = time.monotonic()
-
-    elif (time.monotonic() > (last_t + dt)) and (dim >= 100):
-        last_t = time.monotonic()
-        print("Script terminated")
-        end = True
-
-    else:
-        a = dim  # do stuff here
-
-# note that in the case of program crash, raise exception to clean up pin state
+# creating instance of state machine
+shrub = shrubber.hydro(pump, pHsens, ECsens, buttons, sonar, LCD)
+menu = shrubber.menu(buttons, LCD, shrub)
 
 def error(err_string):
     raise Exception(err_string)
+
+
+# menu skeleton  
+# replace dict w/ reading from file so it persists between shutdowns        
+
+m_hover = 0
+d_text = ops[m_hover]
+time.sleep(0.01)  # to prevent tapping button skipping menus
+
+while True:
+    if U_B:
+        m_hover += 1
+    if D_B:
+        m_hover -= 1
+
+    if R_B or A_B:
+        change = op_dict[ops[m_hover]]
+        valid = True
+        while valid:
+            d_text = ops[m_hover] + ": " + str(change)
+            if U_B:
+                change += 1
+            if D_B:
+                change -= 1
+            if A_B:
+                op_dict[ops[m_hover]] = change
+                valid = False
+            if B_B:
+                valid = False
+
+    d_text = ops[m_hover]
+
 
 # testing parameters
 testing = True  # to show state
@@ -86,13 +88,11 @@ print_time = .5
 
 # initializing variables
 last = time.monotonic()
-s_thold = 25  # in cm
 
-# creating instance of state machine
-shrub = shrubber(pump, pHsens, ECsens, buttons, sonar, LCD)
 
 # will need to alter inital starting method since we prob won't have a keyboard for input
 # shrub.state used to track what state it is in
+# might move the logic for detecting events into evt_handler method in state machine classes
 while True: 
     # TODO update this. can we make this into a group of states?
     UV_test1 = None
@@ -135,11 +135,15 @@ while True:
             if shrub.timer_time is None:  # timer acts independently and does not use locate -> doesn't change state
                 shrub.timer_set()
             shrub.timer_event()
+        if menu.state != "IDLE":
+            if menu.timer_time is None:  # timer acts independently and does not use locate -> doesn't change state
+                menu.timer_set()
+            menu.timer_event()
         # TODO update this
         if shrub.state == "FORWARD":
             shrub.forward()
             distL, distF, distR = shrub.grab_sonar()
-            if (distR <= s_thold) and (distF <= s_thold):
+            if (distR <= menu.sT) and (distF <= menu.sT):
                 continue
             if start_button:  # only used by bluetooth
                 shrub.evt_handler(None, ignite=start_button)
@@ -148,7 +152,7 @@ while True:
         if shrub.state == "TURN":
             shrub.turn(shrub.go)
             distL, distF, distR = shrub.grab_sonar()
-            if (distF >= s_thold) and (shrub.cliff_det() is False):
+            if (distF >= menu.sT) and (shrub.cliff_det() is False):
                 shrub.evt_handler()
             elif start_button:  # only used by bluetooth
                 shrub.evt_handler(None, ignite=start_button)
