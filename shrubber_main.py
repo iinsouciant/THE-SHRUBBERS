@@ -22,9 +22,9 @@ import threading
 from lib.state_machine import shrubber
 
 # placeholder pin values
-PINS = {"res_trig": 13, 'res_echo': 14, 'A_B': 15,
-'B_B': 16, 'U_B': 17, 'L_B': 18, 'D_B': 19, 'R_B': 20,
-'pump': 23, 'display?': 26}
+PINS = {"res_trig": 17, 'res_echo': 27, 'A_B': 5,
+'B_B': 6, 'U_B': 0, 'L_B': 26, 'D_B': 19, 'R_B': 16,
+'pump': 13}
 
 pump = GZ.PWMLED(PINS['pump'])
 buttons = []  # list of button instances
@@ -32,8 +32,7 @@ for k, v in PINS.items():
     if k[1:3] == '_B':
         buttons.append(GZ.Button(v))
 
-# TODO LCD output for state machine
-LCD = "filler"
+# TODO LCD output for state machine with i2c
 
 i2c = busio.I2C(board.SCL, board.SDA)
 ads = ADS.ADS1015(i2c)
@@ -51,8 +50,8 @@ def error(err_string):
 
 
 # menu skeleton  
-# replace dict w/ reading from file so it persists between shutdowns        
-'''
+# in process of moving this to shrubber library
+
 m_hover = 0
 d_text = ops[m_hover]
 time.sleep(0.01)  # to prevent tapping button skipping menus
@@ -60,27 +59,25 @@ time.sleep(0.01)  # to prevent tapping button skipping menus
 while True:
     if A_B.is_pressed and B_B.is_pressed:
         break
-    if U_B:
-        m_hover += 1
-    if D_B:
-        m_hover -= 1
+    if U_B.is_pressed:
+        menu.evt_handler("U_B")
+    if D_B.is_pressed:
+        menu.evt_handler("D_B")
 
-    if R_B or A_B:
-        change = op_dict[ops[m_hover]]
+    if R_B.is_pressed or A_B.is_pressed:
         valid = True
         while valid:
             d_text = ops[m_hover] + ": " + str(change)
-            if U_B:
+            if U_B.is_pressed:
                 change += 1
-            if D_B:
+            if D_B.is_pressed:
                 change -= 1
-            if A_B:
+            if A_B.is_pressed:
                 op_dict[ops[m_hover]] = change
                 valid = False
-            if B_B:
+            if B_B.is_pressed:
                 valid = False
 
-    d_text = ops[m_hover]'''
 
 
 # testing parameters
@@ -94,7 +91,7 @@ last = time.monotonic()
 
 # will need to alter inital starting method since we prob won't have a keyboard for input
 # shrub.state used to track what state it is in
-# might move the logic for detecting events into evt_handler method in state machine classes
+
 while True: 
     # TODO update this. can we make this into a group of states?
     UV_test1 = None

@@ -41,8 +41,9 @@ class DFRobot_PH():
 			f=open('phdata.txt','w+')
 			f.writelines(flist)
 			f.close()
-			print(">>>PH:7.0 Calibration completed,Please enter Ctrl+C exit calibration in 5 seconds")
-			time.sleep(5.0)
+			print(">>>PH:7.0 Calibration completed")
+			time.sleep(2.0)
+			return ">>>PH:7.0 Calibration completed"
 		elif (voltage>1854 and voltage<2210):
 			print(">>>Buffer Solution:4.0")
 			f=open('phdata.txt','r+')
@@ -51,10 +52,11 @@ class DFRobot_PH():
 			f=open('phdata.txt','w+')
 			f.writelines(flist)
 			f.close()
-			print(">>>PH:4.0 Calibration completed,Please enter Ctrl+C exit calibration in 5 seconds")
-			time.sleep(5.0)
+			print(">>>PH:4.0 Calibration completed")
+			time.sleep(2.0)
+			return ">>>PH:4.0 Calibration completed"
 		else:
-			print(">>>Buffer Solution Error Try Again<<<")
+			return ">>>Buffer solution out of range. Measurement discarded<<<"
 
 	def reset(self):
 		_acidVoltage    = 2032.44

@@ -8,6 +8,7 @@
 #   v0.65 17-Feb-2022 Drafting menu state machine to interact with hydro
 
 # Butterowrth lowpass filter
+from xml.etree.ElementPath import ops
 from lib.butterworth import b_filter as BF
 from lib.DFR import DFRobot_EC as EC
 from lib.DFR import DFRobot_PH as PH
@@ -115,15 +116,25 @@ class hydro():
                 return False
         except TypeError:
             return True
+        
+    def EC_calibration(self, temp=22):
+        '''Run this once the EC sensor is fully submerged in the high or low solution.
+        This will then exit if it detects a value in an acceptable range.'''
+        return self.EC.calibration(self.ECsens.voltage(), temp)
+        
+    def pH_calibration(self, temp=22):
+        '''Run this once the EC sensor is fully submerged in the high or low solution.
+        This will then exit if it detects a value in an acceptable range.'''
+        return self.pH.calibration(self.pHsens.voltage(), temp)
 
     # TODO update/supplement grabs with calculations to interpret voltage
     def grab_pH(self):
         '''Tries to grab the pH sensor value 
         without raising an exception halting the program'''
         try:
-            dist = self.s.voltage()
+            dist = self.pHsens.voltage()
         except Exception:
-            print("The sonar is not detected.")
+            print("The pH sensor is not detected.")
             dist = 0
         return self.fpH.filter(dist)
 
@@ -131,9 +142,9 @@ class hydro():
         '''Tries to grab the conductivity sensor value 
         without raising an exception halting the program'''
         try:
-            dist = self.s.voltage()
+            dist = self.ECsens.voltage()
         except Exception:
-            print("The sonar is not detected.")
+            print("The conductivity sensor is not detected.")
             dist = 0
         return self.fEC.filter(dist)
 
@@ -177,7 +188,8 @@ class menu():
     and simultaneously output information to the LCD screen.'''
     start = "IDLE"
     ops = ("Active pump timer", "Inactive pump timer", "pH thresholds", 
-        "EC thresholds", )
+        "EC thresholds", "Gap from top", "Calibrate pH", "Calibrate EC",
+        "Toggle pump/UV")
     parent = start
     child = ops
     m1_hover = 0
@@ -191,15 +203,8 @@ class menu():
     ECL = 0
     sT = 10
 
-    def __init__(self, buttons, LCD, shrub):
+    def __init__(self, LCD, shrub):
         self.state = self.start
-        #self.bs = buttons
-        self.AB = buttons[0]
-        self.BB = buttons[1]
-        self.UB = buttons[2]
-        self.LB = buttons[3]
-        self.DB = buttons[4]
-        self.RB = buttons[5]
         self.LCD = LCD
         self.shrub = shrub
 
@@ -222,34 +227,87 @@ class menu():
                     ['pH Low Threshold', self.pHL], 
                     ['EC High Threshold', self.ECH], 
                     ['EC Low Threshold', self.ECL],
-                    ['Water from top', self.sT] ] 
+                    ['Gap from top', self.sT] ] 
                 settings = csv.writer(f)
                 settings.writerows(rows)
 
     def write2settings(self):
         pass
-    
-    def evt_handler(self, evt, timer=False):
-        if timer:
-            self.parent = self.start
-            self.child = self.ops
-            self.LCD.idle()
 
-        if (self.child == self.ops) and (self.parent == self.start):
-            if self.U_B.is_pressed or self.D_B.is_pressed or self.L_B.is_pressed or self.R_B.is_pressed \
-                or self.A_B.is_pressed or self.B_B.is_pressed:
-                self.timer_set()
-                self.parent == self.start
-                self.child == self.ops[1]
-                self.m1_hover = 0
-                # potentially blocking depending on how we implement LCD, maybe threading library to help
-                self.LCD.run(self.ops[0]) 
+    def idle(self):
+        self.parent = self.start
+        self.child = self.ops
+        self.LCD.idle()  # special lcd state to scroll sensor data non blocking
+        self.state = "IDLE"
+
+    def A_at_m1(self):
+        self.parent = ops[self.m1_hover]
+        if self.m1_hover <= 4:
+            self.state = "WRITE"
+            self.child = None
+            self.m2_hover = 0
+            with open('Settings.csv', 'r') as cfg:
+                og = csv.reader(cfg)
+                rows = [row for row in og]
+            self.LCD.display(rows[self.m1_hover])
+            # TODO show sublevel to pick low or high threshold values and once selected, allow them to increment values
         
-        if self.child in self.ops:
-            if self.B_B.is_pressed:
-                self.parent = self.start
-                self.child = self.ops
-                self.LCD.idle()
-            if self.A_B.is_pressed:
-                pass
+        # TODO test calibration menus
+        if self.m1_hover == 5:
+            self.child = "EC CONFIRM"
+            self.LCD.display("Press A once EC is fully submerged in solution")
 
+        if self.m1_hover == 6:
+            self.child = "pH CONFIRM"
+            self.LCD.display("Press A once EC is fully submerged in solution")
+
+    def evt_handler(self, *evt, timer=False):  # TODO finish logic
+        if len(evt) == 2:  # in case we want to do somethign with shortscuts?
+            evt2 = evt[1]
+            evt = evt[0]
+
+        if timer:
+            self.idle()
+            
+        if (self.child == self.ops) and (self.parent == self.start):
+            # wait for user input to start menu
+            if (evt == "U_B") or (evt == "D_B") or (evt == "L_B") or (evt == "R_B") \
+                or (evt == "A_B") or (evt == "B_B"):
+                self.timer_set()
+                self.parent = self.start
+                self.m1_hover = 0
+                self.child = self.ops[0]
+                # potentially blocking depending on how we implement LCD, maybe threading library to help
+                self.LCD.display(self.ops[0]) 
+        
+        # first level of menu showing configuration options
+        if self.child in self.ops:
+            if (evt == "B_B") or (evt == "L_B"):
+                self.idle()
+            if (evt == "A_B") or (evt == "R_B"):
+                self.A_at_m1()
+            if (evt == "U_B"):
+                self.m1_hover += 1
+                self.m1_hover %= len(ops)
+            if (evt == "D_B"):
+                self.m1_hover -= 1
+                self.m1_hover %= len(ops)
+        
+        # second level submenus to confirm calibration of sensors
+        if self.child == "EC_CONFIRM":
+            if (evt == "A_B") or (evt == "R_B"):
+                self.LCD.display(self.shrub.EC_calibration())
+                self.parent = self.start
+                self.child = self.ops[self.m1_hover]
+            if (evt == "B_B") or (evt == "L_B"):
+                self.parent = self.start
+                self.child = self.ops[self.m1_hover]
+
+        if self.child == "PH_CONFIRM":
+            if (evt == "A_B") or (evt == "R_B"):
+                self.LCD.display(self.shrub.pH_calibration())
+                self.parent = self.start
+                self.child = self.ops[self.m1_hover]
+            if (evt == "B_B") or (evt == "L_B"):
+                self.parent = self.start
+                self.child = self.ops[self.m1_hover]
