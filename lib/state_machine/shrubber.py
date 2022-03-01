@@ -33,6 +33,8 @@ class timer():
 
     def timer_set(self):
         self.timer_time = time.monotonic() + self.TIMER_INTERVAL
+    
+    # TODO for ebb and flow may want to make an alternate version for hours/min?
 
 class hydro():
     '''Part of the Shrubber state machine that handles
@@ -100,8 +102,7 @@ class hydro():
             self.test_print()
 
     def active(self, pwr=30):
-        self.pump_pwm(pwr, self.pumpM)  # TODO fine tune values so they match flow rates 
-        self.pump_pwm(pwr, self.pumpF)
+        self.pump.value(pwr)  # TODO fine tune values so they match flow rates 
 
     def water_height(self):  # in cm, good for ~9 to ~30
         hole_depth1 = 35*2.54  # 35in to cm
@@ -189,7 +190,7 @@ class menu():
     start = "IDLE"
     ops = ("Active pump timer", "Inactive pump timer", "pH thresholds", 
         "EC thresholds", "Gap from top", "Calibrate pH", "Calibrate EC",
-        "Toggle pump/UV")
+        "Toggle pump/UV", "Toggle nutrient conditioners")
     parent = start
     child = ops
     m1_hover = 0
@@ -197,6 +198,7 @@ class menu():
     # independent timer event to time out LCD
     ap = 120
     ip = 240
+    # Sensor threshold values
     pHH = 9
     pHL = 4
     ECH = 2
@@ -208,6 +210,7 @@ class menu():
         self.LCD = LCD
         self.shrub = shrub
 
+        # on boot, check to see if state machine settings exist. if not create w/ default settings
         try:
             with open('Settings.csv', 'r') as f:
                 settings = csv.reader(f)
@@ -231,13 +234,15 @@ class menu():
                 settings = csv.writer(f)
                 settings.writerows(rows)
 
+    # TODO quick way to write to correct line without having to read and store whole file?
     def write2settings(self):
         pass
 
     def idle(self):
         self.parent = self.start
         self.child = self.ops
-        self.LCD.idle()  # special lcd state to scroll sensor data non blocking
+        # special lcd state to scroll sensor data while non blocking. maybe multiprocessing? maybe just have send on timer
+        self.LCD.idle()  
         self.state = "IDLE"
 
     def A_at_m1(self):
@@ -250,10 +255,11 @@ class menu():
                 og = csv.reader(cfg)
                 rows = [row for row in og]
             self.LCD.display(rows[self.m1_hover])
-            # TODO show sublevel to pick low or high threshold values and once selected, allow them to increment values
+            # TODO show sublevel to pick low/high threshold values then allow increments. L/R to move decimal place
         
         # TODO test calibration menus
         if self.m1_hover == 5:
+            # sets logic to handle A or B input on next loop
             self.child = "EC CONFIRM"
             self.LCD.display("Press A once EC is fully submerged in solution")
 
@@ -261,14 +267,22 @@ class menu():
             self.child = "pH CONFIRM"
             self.LCD.display("Press A once EC is fully submerged in solution")
 
-    def evt_handler(self, *evt, timer=False):  # TODO finish logic
+        # TODO finish menu logic
+        if self.m1_hover == 7:
+            pass
+
+    def evt_handler(self, evt=None, timer=False):  # TODO finish logic
         if len(evt) == 2:  # in case we want to do somethign with shortscuts?
             evt2 = evt[1]
             evt = evt[0]
 
+        if evt is not None:
+            pass  # need to a way to also restart timer instance
+        # whenever there has been no user input for a while, go back to idle
         if timer:
             self.idle()
-            
+        
+        # the idle level of the menu
         if (self.child == self.ops) and (self.parent == self.start):
             # wait for user input to start menu
             if (evt == "U_B") or (evt == "D_B") or (evt == "L_B") or (evt == "R_B") \
