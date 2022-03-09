@@ -198,8 +198,9 @@ class menu():
     m1_hover = 0
     m2_hover = 0
     # independent timer event to time out LCD
+    ft = 19*60
+    dt = 6*60
     ap = 120
-    ip = 240
     # Sensor threshold values
     pHH = 9
     pHL = 4
@@ -219,48 +220,106 @@ class menu():
                 self.ft = int(settings[0][1])
                 self.dt = int(settings[1][1])
                 self.ap = int(settings[2][1])
-                self.pHH = int(settings[3][2])
-                self.pHL = int(settings[3][1])
-                self.ECH = int(settings[4][2])
-                self.ECL = int(settings[4][1])
-                self.sT = int(settings[5][1])
+                self.sT = int(settings[3][1])
+                self.pHH = int(settings[4][1])
+                self.pHL = int(settings[5][1])
+                self.ECH = int(settings[6][1])
+                self.ECL = int(settings[7][1])
         except IOError:
             print("Settings.txt does not exist. Creating file with default settings.")
             with open(r"Settings.csv", 'w') as f:
                 rows = [['Flood Timer', self.ft], 
                     ['Drain Timer', self.dt], 
                     ['Active Pump Timer', self.ap], 
+                    ['Gap from top', self.sT],
                     ['pH High Threshold', self.pHH], 
                     ['pH Low Threshold', self.pHL], 
                     ['EC High Threshold', self.ECH], 
                     ['EC Low Threshold', self.ECL],
-                    ['Gap from top', self.sT]] 
+                ] 
                 settings = csv.writer(f)
                 settings.writerows(rows)
+        
+        # list of operation settings
+        self.settings = [self.ft, self.dt, self.ap, self.sT, self.pHH, self.pHL, self.ECH, self.ECL, ]
 
-    # TODO quick way to write to correct line without having to read and store whole file?
-    def write2settings(self):
-        pass
+    # TODO quickly accept param change and write it to the settings file. figure out more efficient way
+    def saveParamChange(self):
+        if (self.parent <= 3):
+            i = self.parent
+        if (self.parent == 'pH THRESH'):
+            if (self.child == 'pH HIGH'):
+                i = 4
+            if (self.child == 'pH LOW'):
+                i = 5
+        if (self.parent == 'EC THRESH'):
+            if (self.child == 'EC HIGH'):
+                i = 6
+            if (self.child == 'EC LOW'):
+                i = 7
+
+        self.settings[i] = self.param2change
+        with open(r"Settings.csv", 'w') as f:
+            rows = [['Flood Timer', self.settings[0]], 
+                ['Drain Timer', self.settings[1]], 
+                ['Active Pump Timer', self.settings[2]], 
+                ['Gap from top', self.settings[3]],
+                ['pH High Threshold', self.settings[4]], 
+                ['pH Low Threshold', self.settings[5]], 
+                ['EC High Threshold', self.settings[6]], 
+                ['EC Low Threshold', self.settings[7]],
+            ] 
+            settings = csv.writer(f)
+            settings.writerows(rows)
+
+    def startMenu(self, hover=0):
+        self.timer_set()
+        self.parent = self.start
+        self.m1_hover = hover
+        self.m2_hover = 0
+        self.param2change = 0
+        self.child = self.ops[hover]
+        # potentially blocking depending on how we implement LCD, maybe threading library to help
+        self.LCD.display(self.ops[0]) 
 
     def idle(self):
         self.parent = self.start
         self.child = self.ops
-        # special lcd state to scroll sensor data while non blocking. maybe multiprocessing? maybe just have send on timer
+        # special lcd state to scroll sensor data while non blocking. maybe multiprocessing? maybe just send on timer
         self.LCD.idle()  
         self.state = "IDLE"
 
+    # automatically convert seconds to HH:MM:SS format for user to read
+    def timeFormat(sec):
+        m, s = divmod(sec, 60)
+        h, m = divmod(m, 60)
+        return f"{h:d}:{m:02d}:{s:02d}"
+
     def A_at_m1(self):
-        # TODO make the pump timings show in H:M:S and allow them to use left and right to choose which digit to change
         self.parent = ops[self.m1_hover]
-        if self.m1_hover <= 5:
-            self.state = "WRITE"
+        if self.m1_hover <= 3:
             self.child = None
-            self.m2_hover = 0
-            with open('Settings.csv', 'r') as cfg:
-                og = csv.reader(cfg)
-                rows = [row for row in og]
-            self.LCD.display(rows[self.m1_hover])
-            # TODO show sublevel to pick low/high threshold values then allow increments. L/R to move decimal place
+            # show setting being changed and current value
+            self.LCD.display(f"{ops[self.m1_hover]}: {self.settings[self.m1_hover]}")
+            if self.m1_hover <= 2:
+                self.m2_hover = 3  # HH:MM:SS format, default start at first min mark
+                return self.settings[self.m1_hover]
+            
+            # get allowable water height in reservoir setting and allow user to change it
+            if self.m1_hover == 3:
+                # 3 sigfigs, e.g. 123 choice of which digit to increase
+                self.m2_hover = 2
+                return self.settings[self.m1_hover]
+        
+        # TODO show sublevel to pick low/high threshold values then allow increments. L/R to move decimal place
+        if self.m1_hover == 4:
+            self.child = 'pH THRESH'
+            self.LCD.display(['pH High Threshold', 'pH Low Threshold'])
+        
+        # TODO show sublevel to pick low/high threshold values then allow increments. L/R to move decimal place
+        if self.m1_hover == 5:
+            self.child = 'EC THRESH'
+            self.LCD.display(['EC High Threshold', 'EC Low Threshold'])
         
         # TODO test calibration menus
         if self.m1_hover == 7:
@@ -276,11 +335,7 @@ class menu():
         if self.m1_hover == 8:
             pass
 
-    def evt_handler(self, evt=None, timer=False):  # TODO finish logic
-        if len(evt) == 2:  # in case we want to do somethign with shortscuts?
-            evt2 = evt[1]
-            evt = evt[0]
-
+    def evt_handler(self, evt=None, timer=False):  # TODO finish logic and include timer reset w/ each event
         if evt is not None:
             pass  # need to a way to also restart timer instance
 
@@ -293,19 +348,15 @@ class menu():
             # wait for user input to start menu
             if (evt == "U_B") or (evt == "D_B") or (evt == "L_B") or (evt == "R_B") \
                 or (evt == "A_B") or (evt == "B_B"):
-                self.timer_set()
-                self.parent = self.start
-                self.m1_hover = 0
-                self.child = self.ops[0]
-                # potentially blocking depending on how we implement LCD, maybe threading library to help
-                self.LCD.display(self.ops[0]) 
+                self.startMenu()
         
         # first level of menu showing configuration options
         if self.child in self.ops:
             if (evt == "B_B") or (evt == "L_B"):
+                # send to level above
                 self.idle()
             if (evt == "A_B") or (evt == "R_B"):
-                self.A_at_m1()
+                self.param2change = self.A_at_m1()
             if (evt == "U_B"):
                 self.m1_hover += 1
                 # resets the selected option back to 0 if it goes too high
@@ -315,21 +366,178 @@ class menu():
                 if self.m1_hover < 0:
                     self.m1_hover = len(ops) - 1
         
+        # submenu to change timings
+        if (self.parent <= 2) and (self.child is None):
+            if (evt == "A_B"):
+                # save changes to file
+                self.saveParamChange(self.param2change)
+                # send back to first level menu
+                self.startMenu()
+            if (evt == "B_B"):
+                # send to level above
+                self.parent = ops[self.m1_hover]
+                self.child = None
+            if (evt == "U_B"):
+                # decrease HH:MM:SS timer based on hover position
+                if self.m2_hover == 0:
+                    self.param2change += 10*60*60
+                if self.m2_hover == 1:
+                    self.param2change += 1*60*60
+                if self.m2_hover == 2:
+                    self.param2change += 10*60
+                if self.m2_hover == 3:
+                    self.param2change += 1*60
+                if self.m2_hover == 4:
+                    self.param2change += 10
+                if self.m2_hover == 5:
+                    self.param2change += 1
+                # max timer
+                if self.param2change > 20*60*60:
+                    self.param2change = 20*60*60
+                # TODO want some way to blink the number being hovered over
+                self.LCD.display(f"{ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+            if (evt == "D_B"):
+                # increase HH:MM:SS timer based on hover position
+                if self.m2_hover == 0:
+                    self.param2change -= 10*60*60
+                if self.m2_hover == 1:
+                    self.param2change -= 1*60*60
+                if self.m2_hover == 2:
+                    self.param2change -= 10*60
+                if self.m2_hover == 3:
+                    self.param2change -= 1*60
+                if self.m2_hover == 4:
+                    self.param2change -= 10
+                if self.m2_hover == 5:
+                    self.param2change -= 1
+                # prevent timer going negative
+                if self.param2change < 0:
+                    self.param2change = 0
+                # TODO want some way to blink the number being hovered over
+                self.LCD.display(f"{ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+            if (evt == "R_B"):
+                self.m2_hover += 1
+                self.m2_hover %= 6
+            if (evt == "L_B"):
+                self.m2_hover -= 1
+                if self.m2_hover < 0:
+                    self.m2_hover = 6 - 1
+            
+        # save water gap
+        if (self.parent == 3) and (self.child is None): 
+            if (evt == "A_B"):
+                self.saveParamChange(self.param2change)
+                # send back to first level menu
+                self.startMenu() 
+            if (evt == "B_B"):
+                # send to level above
+                self.parent = ops[self.m1_hover]
+                self.child = None
+            if (evt == "U_B"):
+                # increase the gap based on hover position
+                if self.m2_hover == 0:
+                    self.param2change += 100
+                if self.m2_hover == 1:
+                    self.param2change += 10
+                if self.m2_hover == 2:
+                    self.param2change += 1
+                # max gap
+                if self.param2change > 999:
+                    self.param2change = 999
+                # TODO want some way to blink the number being hovered over
+                self.LCD.display(f"{ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+            if (evt == "D_B"):
+                # decrease the gap based on hover position
+                if self.m2_hover == 0:
+                    self.param2change -= 100
+                if self.m2_hover == 1:
+                    self.param2change -= 10
+                if self.m2_hover == 2:
+                    self.param2change -= 1
+                # min gap
+                if self.param2change < 0:
+                    self.param2change = 0
+                # TODO want some way to blink the number being hovered over
+                self.LCD.display(f"{ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+            if (evt == "R_B"):
+                self.m2_hover += 1
+                self.m2_hover %= 3
+            if (evt == "L_B"):
+                self.m2_hover -= 1
+                if self.m2_hover < 0:
+                    self.m2_hover = 3 - 1
+
+        # sublevel to choose thresholds
+        if (self.parent == 4):
+            if (self.child == 'pH THRESH'):
+                # should show two rows for low and high threshold
+                # pressing up button should choose top option
+                if (evt == "U_B") or (evt == 'A_B'):
+                    self.parent = self.child
+                    self.child = "pH HIGH"
+                    self.param2change = self.settings[4]
+                    self.LCD.display(f"{'pH High Threshold'}: {self.timeFormat(self.param2change)}")
+                # pressing down should choose bottom option
+                if (evt == "D_B"):
+                    self.parent = self.child
+                    self.child = "pH LOW"
+                    self.param2change = self.settings[5]
+                    self.LCD.display(f"{'pH Low Threshold'}: {self.timeFormat(self.param2change)}")
+                if (evt == "B_B"):
+                    self.startMenu(self.m1_hover)
+
+        # second level to change pH threshold values
+        if (self.parent == 'pH THRESH'):
+            if (self.child == 'pH HIGH'):
+                if (evt == "A_B"):
+                    self.saveParamChange(self.param2change)
+                    # send back to first level menu
+                    self.startMenu() 
+                if (evt == "B_B"):
+                    # send to level above
+                    self.parent = 4
+                    self.child = 'pH THRESH'
+                if (evt == "U_B"):
+                    # increase the gap based on hover position
+                    if self.m2_hover == 0:
+                        self.param2change += 1
+                    # max pH
+                    if self.param2change > 14:
+                        self.param2change = 14
+                    # TODO want some way to blink the number being hovered over
+                    self.LCD.display(f"{'pH High Threshold'}: {self.timeFormat(self.param2change)}")
+                if (evt == "D_B"):
+                    # decrease the gap based on hover position
+                    if self.m2_hover == 0:
+                        self.param2change -= 100
+                    if self.m2_hover == 1:
+                        self.param2change -= 10
+                    if self.m2_hover == 2:
+                        self.param2change -= 1
+                    # min gap
+                    if self.param2change < 0:
+                        self.param2change = 0
+                    # TODO want some way to blink the number being hovered over
+                    self.LCD.display(f"{ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                if (evt == "R_B"):
+                    self.m2_hover += 1
+                    self.m2_hover %= 3
+                if (evt == "L_B"):
+                    self.m2_hover -= 1
+                    if self.m2_hover < 0:
+                        self.m2_hover = 3 - 1
+
         # second level submenus to confirm calibration of sensors
         if self.child == "EC_CONFIRM":
             if (evt == "A_B") or (evt == "R_B"):
                 self.LCD.display(self.shrub.EC_calibration())
-                self.parent = self.start
-                self.child = self.ops[self.m1_hover]
+                self.startMenu()
             if (evt == "B_B") or (evt == "L_B"):
-                self.parent = self.start
-                self.child = self.ops[self.m1_hover]
+                self.startMenu(self.m1_hover)
 
         if self.child == "PH_CONFIRM":
             if (evt == "A_B") or (evt == "R_B"):
                 self.LCD.display(self.shrub.pH_calibration())
-                self.parent = self.start
-                self.child = self.ops[self.m1_hover]
+                self.startMenu()
             if (evt == "B_B") or (evt == "L_B"):
-                self.parent = self.start
-                self.child = self.ops[self.m1_hover]
+                self.startMenu(self.m1_hover)
