@@ -342,9 +342,13 @@ class menu():
             self.LCD.display("Press A once EC is fully submerged in solution")
             return None
 
-        # TODO finish menu logic for toggle pump/uv and peristaltic
+        # TODO finish menu logic for toggle pump/uv
         if self.m1_hover == 8:
-            pass
+            raise Exception("TODO toggle pump/UV")
+
+        # TODO finish menu logic for toggle peristaltic
+        if self.m1_hover == 9:
+            raise Exception("TODO toggle conditioning pumps")
 
     def evt_handler(self, evt=None, timer=False):  # TODO test menu. see if i can segment this to reduce loop time?
         # should restart timer for setting the menu state to idle
