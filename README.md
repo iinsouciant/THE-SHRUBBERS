@@ -12,7 +12,7 @@ This system will will utilize pumps for water flow and aeration and use a pH, co
 
 ### MCU
 
-Raspberry Pi 3B (1 GB RAM) utilizes the main file to monitor sensor data and interface with the user.
+Raspberry Pi 4B (2(?) GB RAM) utilizes the main file to monitor sensor data and interface with the user.
 ![imagename](./git-instructions/images/block%20diagram.png)
 
 ### Sensors
@@ -43,9 +43,11 @@ All but the sonar sensor use analog signals, therefore we need to get an ADC for
 - [ADS 1X15](https://github.com/adafruit/Adafruit_CircuitPython_ADS1x15 "ADC Library page")
 
 ```
-sudo apt update
+sudo apt full-upgrade
 sudo apt install python3-gpiozero
 sudo pip3 install Adafruit-Blinka
 sudo pip3 install adafruit-circuitpython-ads1x15
 sudo pip3 install scipy
+pip install numpy
+pip install rpi-lcd
 ```
