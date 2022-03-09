@@ -394,7 +394,7 @@ class menu():
                 self.parent = ops[self.m1_hover]
                 self.child = None
             if (evt == "U_B"):
-                # decrease HH:MM:SS timer based on hover position
+                # increase HH:MM:SS timer based on hover position
                 if self.m2_hover == 0:
                     self.param2change += 10*60*60
                 if self.m2_hover == 1:
@@ -413,7 +413,7 @@ class menu():
                 # TODO want some way to blink the number being hovered over
                 self.LCD.display(f"{ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
             if (evt == "D_B"):
-                # increase HH:MM:SS timer based on hover position
+                # decrease HH:MM:SS timer based on hover position
                 if self.m2_hover == 0:
                     self.param2change -= 10*60*60
                 if self.m2_hover == 1:
@@ -435,6 +435,7 @@ class menu():
                 self.m2_hover += 1
                 self.m2_hover %= 6
             if (evt == "L_B"):
+                # change hover position. loop if too far left
                 self.m2_hover -= 1
                 if self.m2_hover < 0:
                     self.m2_hover = 6 - 1
@@ -599,6 +600,7 @@ class menu():
         # second level submenus to confirm calibration of sensors
         if self.child == "EC_CONFIRM":
             if (evt == "A_B") or (evt == "R_B"):
+                # TODO test
                 self.LCD.display(self.shrub.EC_calibration())
                 self.startMenu()
             if (evt == "B_B") or (evt == "L_B"):
@@ -606,6 +608,7 @@ class menu():
 
         if self.child == "PH_CONFIRM":
             if (evt == "A_B") or (evt == "R_B"):
+                # TODO test
                 self.LCD.display(self.shrub.pH_calibration())
                 self.startMenu()
             if (evt == "B_B") or (evt == "L_B"):
