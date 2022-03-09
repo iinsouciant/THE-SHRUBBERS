@@ -22,11 +22,16 @@ import time
 from lib.state_machine import shrubber
 
 # placeholder pin values
-PINS = {"res_trig": 17, 'res_echo': 27, 'A_B': 5,
-'B_B': 6, 'U_B': 0, 'L_B': 26, 'D_B': 19, 'R_B': 16,
-'pump': 13}
+PINS = {"res_trig": 'GPIO23', 'res_echo': 'GPIO24', 'A_B': 'GPIO18',
+'B_B': 'GPIO27', 'U_B': 'GPIO17', 'L_B': 'GPIO22', 'D_B': 'GPIO25', 'R_B': 'GPIO5',
+'pumpM': 'GPIO13', 'pumpA': 'GPIO12', 'pumpB': 'GPIO16', 'pumpN': 'GPIO26', }
 
-pump = GZ.PWMLED(PINS['pump'])
+pumpM = GZ.PWMLED(PINS['pumpM'])
+pumpA = GZ.LED(PINS['pumpA'])
+pumpB = GZ.LED(PINS['pumpB'])
+pumpN = GZ.LED(PINS['pumpN'])
+condP = [pumpA, pumpB, pumpN]
+
 buttons = []  # list of button instances
 for k, v in PINS.items():
     if k[1:3] == '_B':
@@ -64,31 +69,28 @@ class LCDdummy():
     
 LCD = LCDdummy()
 # creating instance of state machine
-shrub = shrubber.hydro(pump, pHsens, ECsens, buttons, sonar, LCD)
+shrub = shrubber.hydro(pumpM, pHsens, ECsens, buttons, sonar, LCD)
 menu = shrubber.menu(buttons, LCD, shrub)
 
 # testing parameters
 testing = True  # to run test procedure on startup
+test2 = True  # show sensor value periodically in normal operation
 print_time = .5
 
 # initializing variables
 last = time.monotonic()
 
-
 # will need to alter inital starting method for no keyboard/mouse
 # shrub.state used to track what state pump/uv is in
-
 while True: 
     # TODO update this. can we make this into a group of states?
     UV_test1 = None
     while testing:  # for running test procedure with some input
-        shrub.test_print()
-        time.sleep(print_time)
         if shrub.test_q != "SKIP":
             shrub.test_q = input("Test pumps? \nY or N ")
             shrub.test_q = shrub.test_q.upper()
             if (shrub.test_q == "END"):
-                testing2 = False
+                testing = False
                 break
             if UV_test1 != "SKIP":
                 UV_test0 = input("Test UV? \nY or N ")
@@ -99,46 +101,33 @@ while True:
                     break
                 elif UV_test1 == "Y":
                     duration = float(input("How long?\n"))
-                    shrubber.state_machine.pump_test(pump, duration)
+                    shrub.pump_test(duration)
 
     # loop to run once diagnosis is done
-    while not testing2:
-        if testing:
-            if time.monotonic() - last > print_time:
-                last = time.monotonic() 
-                if testing2:
-                    shrub.test_print()
+    while not testing:
+        # print sensor values to terminal to check operation
+        if time.monotonic() - last > print_time:
+            last = time.monotonic() 
+            if test2:
+                print(shrub)
+        
+        # detect user input
+        if buttons[0].is_pressed:
+            menu.evt_handler(evt='A_B')
+        if buttons[1].is_pressed:
+            menu.evt_handler(evt='B_B')
+        if buttons[2].is_pressed:
+            menu.evt_handler(evt='U_B')
+        if buttons[3].is_pressed:
+            menu.evt_handler(evt='L_B')
+        if buttons[4].is_pressed:
+            menu.evt_handler(evt='D_B')
+        if buttons[5].is_pressed:
+            menu.evt_handler(evt='R_B')
+        
+        # wait for lack of user input to set menu to idle
+        if menu.idle_timer.timer_event():
+            menu.evt_handler(timer=True)
 
-        # TODO update this to incorporate menu system
-        if shrub.state == "IDLE":
-            shrub.forward(speed=0)
-            if start_button:  # some trigger to start the system
-                shrub.evt_handler(None, ignite=start_button)
-            start_button = False
-        # TODO update this
-        if shrub.state != "IDLE":
-            if shrub.timer_time is None:  # timer acts independently and does not use locate -> doesn't change state
-                shrub.timer_set()
-            shrub.timer_event()
-        if menu.state != "IDLE":
-            if menu.timer_time is None:  # timer acts independently and does not use locate -> doesn't change state
-                menu.timer_set()
-            menu.timer_event()
-        # TODO update this
-        if shrub.state == "FORWARD":
-            shrub.forward()
-            distL, distF, distR = shrub.grab_sonar()
-            if (distR <= menu.sT) and (distF <= menu.sT):
-                continue
-            if start_button:  # only used by bluetooth
-                shrub.evt_handler(None, ignite=start_button)
-                start_button = False
-        # TODO update this
-        if shrub.state == "TURN":
-            shrub.turn(shrub.go)
-            distL, distF, distR = shrub.grab_sonar()
-            if (distF >= menu.sT) and (shrub.cliff_det() is False):
-                shrub.evt_handler()
-            elif start_button:  # only used by bluetooth
-                shrub.evt_handler(None, ignite=start_button)
-                start_button = False
+        if shrub.timer.timer_event():
+            shrub.evt_handler(timer=True)

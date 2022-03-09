@@ -25,10 +25,9 @@ class timer():
     def __init__(self, interval):
         self.TIMER_INTERVAL = interval
 
-    def __timer_event(self):
+    def timer_event(self):
         if (self.timer_time is not None) and time.monotonic() >= self.timer_time:
             self.timer_time = None
-            self.evt_handler(None, timer=True)
             return True
         else:
             return False
@@ -39,6 +38,7 @@ class timer():
     # TODO for ebb and flow may want to make an alternate version for hours/min?
 
 # TODO split hydro for main pump and conditioning
+# TODO make alternating valve method for draining
 class hydro():
     '''Part of the Shrubber state machine that handles
     events passed to it, and defines and run the states as needed.'''
@@ -46,11 +46,18 @@ class hydro():
     start = "IDLE"
     test = False  # for printing state change and events
     test_q = "Y"
-    # independent timer event
-    active_timer = timer(0.1)
-    active_timer.timer_set()
+    # pump active and inactive times
+    ptimes = [15, 45]
+    pt = 0
+    # independent timer event for pump/UV. start on
+    ptimer = timer(ptimes[pt])
+    ptimer.timer_set()
+    # valve open time
+    vtime = 60*3
+    vt1 = 0
+    vt2 = 0
 
-    def __init__(self, pump, pHsens, ECsens, buttons, sonar, LCD):
+    def __init__(self, pump, pHsens, ECsens, buttons, sonar, LCD, valves, filters=[7, 5, 5]):
         self.state = self.start
         self.pump = pump
         self.bs = buttons
@@ -62,29 +69,31 @@ class hydro():
         self.RB = buttons[5]
         self.s = sonar
         self.LCD = LCD
-        self.fs = BF.LowPassFilter(7)
-        self.fpH = BF.LowPassFilter(5)
-        self.fEC = BF.LowPassFilter(5)
+        self.fs = BF.LowPassFilter(filters[0])
+        self.fpH = BF.LowPassFilter(filters[1])
+        self.fEC = BF.LowPassFilter(filters[2])
         self.pHsens = pHsens
         self.pH = PH.DFRobot_PH()
         self.ECsens = ECsens
         self.EC = EC.DFRobot_EC()
+        self.topValve = valves[0]
+        self.botValve = valves[1]
 
     def __repr__(self):
         return "state_machine({}, {}, {}, {}, {}, {})".format(self.pump, self.pHsens,
         self.ECsens, self.bs, self.sonar, self.LCD)
     
-    def __str__(self):
+    def __str__(self):  # TODO check if we need to update this
         '''Provides formatted sensor values connected to state machine'''
-        return "State: {}\nWater level: {} cm\nPressure drop: {} psi\npH: {}\nEC: {} mS".format(
-            self.state, self.grab_sonar(), self.grab_press(), self.grab_pH(), self.grab_EC()
+        return "State: {}\nWater level: {} cm\npH: {}\nEC: {} mS".format(
+            self.state, self.water_height(), self.grab_pH(), self.grab_EC()
         )  # dummy function names
 
     def __error(err_string):
         raise Exception(err_string)
 
     # TODO update this: pass in pause button toggle + event and it chooses next state depending on current state. 
-    def evt_handler(self, evt, timer=False, pause=False):
+    def evt_handler(self, evt=None, ptime=False, vtime=False, pause=False):
         '''Handles the logic to choose and run the proper state
         depending on current state and event passed to it'''
         self.last_s = self.state
@@ -99,10 +108,36 @@ class hydro():
         elif (self.state == "MAX") and (evt == "nut"):
             self.state = "IDK"
 
-        self.active_timer.timer_set()  # resets timer
-        if self.test:
-            print(self.state)
-            self.test_print()
+        # TODO test
+        if ptime:
+            self.pt += 1
+            self.pt %= 2
+            if self.t == 0:
+                print("Pump/UV is on. WIP")
+                self.active()
+            if self.pt == 1:
+                print("Pump/UV is idle. WIP")
+                self.pump.value = 0
+            self.ptimer = timer(self.ptimes[self.pt])
+            self.ptimer.timer_set()
+
+        # TODO valve events/timing so they alternate
+        if vtime:
+            print('Open one valve. set timer to then open other valve. change which goes first next time')
+            # have it called once to open first valve, second time to open second valve, third time to close both
+            if self.vt1 == 0:
+                if self.vt2 == 0:
+                    self.topValve.on
+                if self.vt2 == 1:
+                    self.botValve.on
+            if self.vt1 == 1:
+                if self.vt2 == 0:
+                    self.botValve.on
+                if self.vt2 == 1:
+                    self.topValve.on
+            # TODO finish
+            pass
+
 
     def active(self, pwr=30):
         self.pump.value(pwr)  # TODO set default value to match 1 GPM 
@@ -163,26 +198,22 @@ class hydro():
         return self.fs.filter(dist)
 
     # can replace this with __str__
-    '''def test_print(self):  
-        print("Sonar distances:{0:10.2f}L {1:10.2f}F {2:10.2f}R (cm)".format(*self.grab_sonar()))
-        encs = [self.encL.position, self.encR.position]
-        print('Encoders:      {0:10.2f}L {1:10.2f}R pulses'.format(*encs))
-        print('Magnetometer:  {0:10.2f}X {1:10.2f}Y {2:10.2f}Z uT'.format(*lis3.magnetic))
-        print("Acceleration:  {0:10.2f} {1:10.2f} {2:10.2f} m/s^2".format(*lsm6.acceleration))
-        print("Cliff distance:  ", self.water_height(), "cm")
-        print("Cliff?         ", self.cliff_det())'''
+    def test_print(self):
+        warnings.warn("This mehod is deprocated, use print(shrub) instead", DeprecationWarning)
+        print("State: {}\nWater level: {} cm\npH: {}\nEC: {} mS".format(
+            self.state, self.grab_sonar(), self.grab_pH(), self.grab_EC()
+        )
+        )  # dummy function names
 
-    def pump_pwm(self, level, pump):
+    def pump_pwm(level, pump):
         """This method is deprecated, use GZ.PWMLED value method instead."""
         warnings.warn("use GZ.PWMLED value method instead", DeprecationWarning)
         pump.value(level)
 
-    def pump_test(self, pumpM, pumpF, drive_time, mag=60):  # for testing each direction of the pumps
-        self.pump_pwm(mag, pumpM)
-        self.pump_pwm(mag, pumpF)
+    def pump_test(self, drive_time, mag=60):  # for testing each direction of the pumps
+        self.pump.value = mag/100
         time.sleep(drive_time)
-        self.pump_pwm(0, pumpM)
-        self.pump_pwm(0, pumpF)
+        self.pump.value = 0
         time.sleep(0.1)
 
 
@@ -208,6 +239,9 @@ class menu():
     ECH = 2
     ECL = 0
     sT = 10
+    # independent timer event
+    idle_timer = timer(5*60)
+    idle_timer.timer_set()
 
     def __init__(self, LCD, shrub):
         self.state = self.start
@@ -276,9 +310,14 @@ class menu():
             settings = csv.writer(f)
             settings.writerows(rows)
 
+        # calc time pump needs to be off to let plants be submerged and drained
+        inactive_timer = self.settings[0]+self.settings[1]
+        # save change to shrub state machine
+        self.shrub.times[self.settings[2], inactive_timer]
+
     def startMenu(self, hover=0):
         '''send the menu back to the first level menu'''
-        self.timer_set()
+        self.idle_timer.timer_set()
         self.parent = self.start
         self.m1_hover = hover
         self.m2_hover = 0
@@ -291,9 +330,9 @@ class menu():
         '''send the state machine to the idle state showing sensor values'''
         self.parent = self.start
         self.child = self.ops
+        self.state = "IDLE"
         # special lcd state to scroll sensor data while non blocking. maybe multiprocessing? maybe just send on timer
         self.LCD.idle()  
-        self.state = "IDLE"
 
     def timeFormat(sec):
         '''automatically convert seconds to HH:MM:SS format for user to read'''
@@ -354,7 +393,7 @@ class menu():
     def evt_handler(self, evt=None, timer=False):  # TODO test menu. see if i can segment this to reduce loop time?
         # should restart timer for setting the menu state to idle
         if evt is not None:
-            self.timer_set()
+            self.idle_timer.timer_set()
 
         # whenever there has been no user input for a while, go back to idle
         if timer:
