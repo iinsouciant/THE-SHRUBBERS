@@ -8,7 +8,8 @@ _cmdReceivedBufferIndex = 0
 _voltage                = 0.0
 _temperature            = 25.0
 
-class DFRobot_EC():  # maybe update this to work with LCD
+class DFRobot_EC():  
+	# maybe update this to work with LCD/file reading
 	def begin(self):
 		global _kvalueLow
 		global _kvalueHigh
@@ -21,6 +22,8 @@ class DFRobot_EC():  # maybe update this to work with LCD
 				kvalueHighLine = kvalueHighLine.strip('kvalueHigh=')
 				_kvalueHigh    = float(kvalueHighLine)
 		except IOError:
+			# problematic behavior for state machine, want to avoid any stops to system on initialization
+			# TODO make way to automate asking for calibration/file creation
 			print("ecdata.txt ERROR ! Please run DFRobot_EC_Reset")
 			sys.exit(1)
 

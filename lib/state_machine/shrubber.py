@@ -36,6 +36,7 @@ class timer():
     
     # TODO for ebb and flow may want to make an alternate version for hours/min?
 
+# TODO split hydro for main pump and conditioning
 class hydro():
     '''Part of the Shrubber state machine that handles
     events passed to it, and defines and run the states as needed.'''
@@ -188,9 +189,10 @@ class menu():
     configure the shrubber state machine without blocking operations elsewhere
     and simultaneously output information to the LCD screen.'''
     start = "IDLE"
-    ops = ("Active pump timer", "Inactive pump timer", "pH thresholds", 
-        "EC thresholds", "Gap from top", "Calibrate pH", "Calibrate EC",
-        "Toggle pump/UV", "Toggle nutrient conditioners")
+    ops = ("Flood timer", "Drain timer", "Active pump timer",
+        "pH thresholds", "EC thresholds", "Gap from top", 
+        "Calibrate pH", "Calibrate EC", "Toggle pump/UV", 
+        "Toggle nutrient conditioners")
     parent = start
     child = ops
     m1_hover = 0
@@ -214,23 +216,25 @@ class menu():
         try:
             with open('Settings.csv', 'r') as f:
                 settings = csv.reader(f)
-                self.ap = int(settings[0][1])
-                self.ip = int(settings[1][1])
-                self.pHH = int(settings[2][2])
-                self.pHL = int(settings[2][1])
-                self.ECH = int(settings[3][2])
-                self.ECL = int(settings[3][1])
-                self.sT = int(settings[4][1])
+                self.ft = int(settings[0][1])
+                self.dt = int(settings[1][1])
+                self.ap = int(settings[2][1])
+                self.pHH = int(settings[3][2])
+                self.pHL = int(settings[3][1])
+                self.ECH = int(settings[4][2])
+                self.ECL = int(settings[4][1])
+                self.sT = int(settings[5][1])
         except IOError:
             print("Settings.txt does not exist. Creating file with default settings.")
             with open(r"Settings.csv", 'w') as f:
-                rows = [ ['Active Pump Timer', self.ap], 
-                    ['Inactive Pump Timer', self.ip], 
+                rows = [['Flood Timer', self.ft], 
+                    ['Drain Timer', self.dt], 
+                    ['Active Pump Timer', self.ap], 
                     ['pH High Threshold', self.pHH], 
                     ['pH Low Threshold', self.pHL], 
                     ['EC High Threshold', self.ECH], 
                     ['EC Low Threshold', self.ECL],
-                    ['Gap from top', self.sT] ] 
+                    ['Gap from top', self.sT]] 
                 settings = csv.writer(f)
                 settings.writerows(rows)
 
@@ -246,8 +250,9 @@ class menu():
         self.state = "IDLE"
 
     def A_at_m1(self):
+        # TODO make the pump timings show in H:M:S and allow them to use left and right to choose which digit to change
         self.parent = ops[self.m1_hover]
-        if self.m1_hover <= 4:
+        if self.m1_hover <= 5:
             self.state = "WRITE"
             self.child = None
             self.m2_hover = 0
@@ -258,7 +263,7 @@ class menu():
             # TODO show sublevel to pick low/high threshold values then allow increments. L/R to move decimal place
         
         # TODO test calibration menus
-        if self.m1_hover == 5:
+        if self.m1_hover == 7:
             # sets logic to handle A or B input on next loop
             self.child = "EC CONFIRM"
             self.LCD.display("Press A once EC is fully submerged in solution")
@@ -267,8 +272,8 @@ class menu():
             self.child = "pH CONFIRM"
             self.LCD.display("Press A once EC is fully submerged in solution")
 
-        # TODO finish menu logic
-        if self.m1_hover == 7:
+        # TODO finish menu logic for toggle pump/uv and peristaltic
+        if self.m1_hover == 8:
             pass
 
     def evt_handler(self, evt=None, timer=False):  # TODO finish logic
@@ -278,6 +283,7 @@ class menu():
 
         if evt is not None:
             pass  # need to a way to also restart timer instance
+
         # whenever there has been no user input for a while, go back to idle
         if timer:
             self.idle()
@@ -302,10 +308,12 @@ class menu():
                 self.A_at_m1()
             if (evt == "U_B"):
                 self.m1_hover += 1
+                # resets the selected option back to 0 if it goes too high
                 self.m1_hover %= len(ops)
             if (evt == "D_B"):
                 self.m1_hover -= 1
-                self.m1_hover %= len(ops)
+                if self.m1_hover < 0:
+                    self.m1_hover = len(ops) - 1
         
         # second level submenus to confirm calibration of sensors
         if self.child == "EC_CONFIRM":
