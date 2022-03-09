@@ -5,6 +5,7 @@
 #   v0.50 30-Oct-2021 Finding code examples to use for this project
 #   v0.60 06-Nov-2021 Copying over class and logic for state machine with some edits. not working version
 
+# TODO import only stuff we need from library
 import gpiozero as GZ
 from lib.hcsr04sensor import sensor as hcsr04
 
@@ -16,7 +17,6 @@ from adafruit_ads1x15.analog_in import AnalogIn
 import numpy as np
 import math
 import time
-import threading
 
 # state machine
 from lib.state_machine import shrubber
@@ -41,61 +41,47 @@ ECsens = AnalogIn(ads, ADS.P1)  # signal at pin 1
 
 sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'], temperature=20)  # example code, 20 C
 
+class LCDdummy():
+    '''Dummy LCD class to handle methods before incorporating real LCD library. Use for testing/troubleshooting only.'''
+    def __init__(self):
+        print("LCD test instance created.")
+    
+    def display(self, stuff):
+        '''Handle string, list, tuple, int, and float inputs to put them on LCD'''
+        if (type(stuff) is list) or (type(stuff) is tuple):
+            for ele in stuff:
+                print(ele)
+        elif type(stuff) is str:
+            print(stuff)
+        elif (type(stuff) is int) or (type(stuff) is float):
+            stuff = str(stuff)
+            print(stuff)
+        else:
+            raise Exception("Not a valid input to display")
+    
+    def idle(self):
+        print("Idle Mode: Want to user timer and cache system to continually show new sensor data")
+    
+LCD = LCDdummy()
 # creating instance of state machine
 shrub = shrubber.hydro(pump, pHsens, ECsens, buttons, sonar, LCD)
 menu = shrubber.menu(buttons, LCD, shrub)
 
-def error(err_string):
-    raise Exception(err_string)
-
-
-# menu skeleton  
-# in process of moving this to shrubber library
-
-m_hover = 0
-d_text = ops[m_hover]
-time.sleep(0.01)  # to prevent tapping button skipping menus
-
-while True:
-    if A_B.is_pressed and B_B.is_pressed:
-        break
-    if U_B.is_pressed:
-        menu.evt_handler("U_B")
-    if D_B.is_pressed:
-        menu.evt_handler("D_B")
-
-    if R_B.is_pressed or A_B.is_pressed:
-        valid = True
-        while valid:
-            d_text = ops[m_hover] + ": " + str(change)
-            if U_B.is_pressed:
-                change += 1
-            if D_B.is_pressed:
-                change -= 1
-            if A_B.is_pressed:
-                op_dict[ops[m_hover]] = change
-                valid = False
-            if B_B.is_pressed:
-                valid = False
-
-
-
 # testing parameters
-testing = True  # to show state
-testing2 = True  # to determine if we run beginning test q's
+testing = True  # to run test procedure on startup
 print_time = .5
 
 # initializing variables
 last = time.monotonic()
 
 
-# will need to alter inital starting method since we prob won't have a keyboard for input
-# shrub.state used to track what state it is in
+# will need to alter inital starting method for no keyboard/mouse
+# shrub.state used to track what state pump/uv is in
 
 while True: 
     # TODO update this. can we make this into a group of states?
     UV_test1 = None
-    while testing2:  # for running test procedure with some input
+    while testing:  # for running test procedure with some input
         shrub.test_print()
         time.sleep(print_time)
         if shrub.test_q != "SKIP":

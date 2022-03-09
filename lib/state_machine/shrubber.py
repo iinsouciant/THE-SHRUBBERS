@@ -7,11 +7,13 @@
 #   v0.60 06-Nov-2021 Migration of skeleton from main file
 #   v0.65 17-Feb-2022 Drafting menu state machine to interact with hydro
 
-# Butterowrth lowpass filter
+# not sure what this is
 from xml.etree.ElementPath import ops
+# Butterowrth lowpass filter
 from lib.butterworth import b_filter as BF
 from lib.DFR import DFRobot_EC as EC
 from lib.DFR import DFRobot_PH as PH
+# TODO import only stuff we need from library
 import time
 import csv
 import warnings
@@ -197,7 +199,6 @@ class menu():
     child = ops
     m1_hover = 0
     m2_hover = 0
-    # independent timer event to time out LCD
     ft = 19*60
     dt = 6*60
     ap = 120
