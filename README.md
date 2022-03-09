@@ -47,4 +47,5 @@ sudo apt update
 sudo apt install python3-gpiozero
 sudo pip3 install Adafruit-Blinka
 sudo pip3 install adafruit-circuitpython-ads1x15
+sudo pip3 install scipy
 ```
