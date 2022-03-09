@@ -1,4 +1,4 @@
-# butterworth/filter.py - ME 195 Shrubbers Project Code
+# butterworth/b_filter.py - ME 195 Shrubbers Project Code
 # Raspberry Pi 4B/3B
 #
 # Implement a Butterworth Low Pass Filter to interpret a semi noisy signal
@@ -17,7 +17,7 @@ from scipy import signal
 class LowPassFilter(object):
     '''Creates a low pass filter on initialization for different sensors.
     Use filter(sensor_value) to utilize the low pass filter.
-    recalc() will allow you to modify your instance of the filter.'''
+    recalc() will allow you to modify your instance of the filter. '''
 
     # will want to fine tune sample frequency default value depending on loop time of program
     def __init__(self, cutoff, sample_frequency=500, degree=2):

@@ -8,7 +8,8 @@ _cmdReceivedBufferIndex = 0
 _voltage                = 0.0
 _temperature            = 25.0
 
-class DFRobot_EC():  # maybe update this to work with LCD
+class DFRobot_EC():  
+	# maybe update this to work with LCD/file reading
 	def begin(self):
 		global _kvalueLow
 		global _kvalueHigh
@@ -20,7 +21,9 @@ class DFRobot_EC():  # maybe update this to work with LCD
 				kvalueHighLine = f.readline()
 				kvalueHighLine = kvalueHighLine.strip('kvalueHigh=')
 				_kvalueHigh    = float(kvalueHighLine)
-		except:
+		except IOError:
+			# problematic behavior for state machine, want to avoid any stops to system on initialization
+			# TODO make way to automate asking for calibration/file creation
 			print("ecdata.txt ERROR ! Please run DFRobot_EC_Reset")
 			sys.exit(1)
 
@@ -51,8 +54,9 @@ class DFRobot_EC():  # maybe update this to work with LCD
 			f=open('ecdata.txt','w+')
 			f.writelines(flist)
 			f.close()
-			print(">>>EC:1.413us/cm Calibration completed,Please enter Ctrl+C exit calibration in 5 seconds")
-			time.sleep(5.0)
+			print(">>>EC:1.413us/cm Calibration completed")
+			time.sleep(2.0)  # potentially an issue
+			return "1.413us/cm calibration completed"
 		elif (rawEC>9 and rawEC<16.8):
 			compECsolution = 12.88*(1.0+0.0185*(temperature-25.0))
 			KValueTemp = 820.0*200.0*compECsolution/1000.0/voltage
@@ -63,11 +67,12 @@ class DFRobot_EC():  # maybe update this to work with LCD
 			f=open('ecdata.txt','w+')
 			f.writelines(flist)
 			f.close()
-			print(">>>EC:12.88ms/cm Calibration completed,Please enter Ctrl+C exit calibration in 5 seconds")
-			time.sleep(5.0)
+			print(">>>EC:12.88ms/cm Calibration completed")
+			time.sleep(2.0)  # potentially an issue
+			return "12.88ms/cm calibration completed"
 		else:
-			print(">>>Buffer Solution Error Try Again<<<")
-
+			return ">>>Buffer solution out of range. Measurement discarded<<<"
+			
 	def reset(self):
 		_kvalueLow              = 1.0
 		_kvalueHigh             = 1.0
