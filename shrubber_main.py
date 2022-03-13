@@ -73,7 +73,7 @@ class LCDdummy():
 LCD = LCDdummy()
 # creating instance of state machine
 shrub = shrubber.hydro(pumpM, pHsens, ECsens, buttons, sonar, LCD, valves)
-menu = shrubber.menu(buttons, LCD, shrub)
+menu = shrubber.menu(LCD, shrub)
 
 # testing parameters
 testing = True  # to run test procedure on startup
