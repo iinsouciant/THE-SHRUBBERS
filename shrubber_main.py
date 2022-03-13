@@ -38,7 +38,7 @@ for k, v in PINS.items():
     if k[1:3] == '_B':
         buttons.append(GZ.Button(v))
 
-valves = [GZ.LED('valve1'), GZ.LED('valve2')]
+valves = [GZ.LED(PINS['valve1']), GZ.LED(PINS['valve2'])]
 
 # TODO LCD output for state machine with i2c
 
