@@ -24,7 +24,8 @@ from lib.state_machine import shrubber
 # placeholder pin values
 PINS = {"res_trig": 'GPIO23', 'res_echo': 'GPIO24', 'A_B': 'GPIO18',
 'B_B': 'GPIO27', 'U_B': 'GPIO17', 'L_B': 'GPIO22', 'D_B': 'GPIO25', 'R_B': 'GPIO5',
-'pumpM': 'GPIO13', 'pumpA': 'GPIO12', 'pumpB': 'GPIO16', 'pumpN': 'GPIO26', }
+'pumpM': 'GPIO13', 'pumpA': 'GPIO12', 'pumpB': 'GPIO16', 'pumpN': 'GPIO26',
+'valve1': 'GPIO20', 'valve2': 'GPIO21'}
 
 pumpM = GZ.PWMLED(PINS['pumpM'])
 pumpA = GZ.LED(PINS['pumpA'])
@@ -36,6 +37,8 @@ buttons = []  # list of button instances
 for k, v in PINS.items():
     if k[1:3] == '_B':
         buttons.append(GZ.Button(v))
+
+valves = [GZ.LED('valve1'), GZ.LED('valve2')]
 
 # TODO LCD output for state machine with i2c
 
@@ -69,7 +72,7 @@ class LCDdummy():
     
 LCD = LCDdummy()
 # creating instance of state machine
-shrub = shrubber.hydro(pumpM, pHsens, ECsens, buttons, sonar, LCD)
+shrub = shrubber.hydro(pumpM, pHsens, ECsens, buttons, sonar, LCD, valves)
 menu = shrubber.menu(buttons, LCD, shrub)
 
 # testing parameters

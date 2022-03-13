@@ -24,7 +24,7 @@ class LowPassFilter(object):
         self.wc = 2*np.pi*cutoff  # cutoff frequency (rad/s)
         self.sf = sample_frequency
         self.n = degree
-        self.recalc(self.sf)
+        self.recalc(self.sf, cutoff)
 
     def __fil_coeff(self):
         # Compute the Butterworth filter coefficents
