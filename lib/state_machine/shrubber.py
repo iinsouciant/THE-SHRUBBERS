@@ -321,7 +321,7 @@ class menu():
     def startMenu(self, hover=0):
         '''send the menu back to the first level menu'''
         self.idle_timer.timer_set()
-        self.parent = self.start
+        self.parent = self.ops
         self.m1_hover = hover
         self.m2_hover = 0
         self.param2change = 0
@@ -393,7 +393,11 @@ class menu():
         if self.m1_hover == 9:
             raise Exception("TODO toggle conditioning pumps")
 
-    def evt_handler(self, evt=None, timer=False):  # TODO test menu. see if i can segment this to reduce loop time?
+    def evt_handler(self, evt=None, timer=False, test=True):  # TODO test menu. see if i can segment this to reduce loop time?
+        if test:
+            print(f"child: {self.child}")
+            print(f'parent: {self.parent}')
+            print('event: '+evt)
         # should restart timer for setting the menu state to idle
         if evt is not None:
             self.idle_timer.timer_set()
@@ -410,7 +414,7 @@ class menu():
                 self.startMenu()
         
         # first level of menu showing configuration options
-        if self.child in self.ops:
+        elif self.child in self.ops:
             if (evt == "B_B") or (evt == "L_B"):
                 # send to level above
                 self.idle()
@@ -426,7 +430,8 @@ class menu():
                     self.m1_hover = len(self.ops) - 1
         
         # submenu to change timings
-        if self.child not in self.ops:
+        elif self.child not in self.ops:
+            if type(self.parent) is str:
             if (self.parent <= 2) and (self.child is None):
                 if (evt == "A_B"):
                     # save changes to file

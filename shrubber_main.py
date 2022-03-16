@@ -78,7 +78,7 @@ menu = shrubber.menu(LCD, shrub)
 # testing parameters
 testing = False  # to run test procedure on startup
 test2 = True  # show sensor value periodically in normal operation
-print_time = 2
+print_time = 7
 
 # initializing variables
 last = time.monotonic()
