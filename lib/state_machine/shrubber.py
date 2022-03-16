@@ -138,9 +138,8 @@ class hydro():
             # TODO finish
             pass
 
-
     def active(self, pwr=30):
-        self.pump.value(pwr)  # TODO set default value to match 1 GPM 
+        self.pump.value(pwr/100)  # TODO set default value to match 1 GPM 
 
     def water_height(self):  # in cm, good for ~9 to ~30
         hole_depth1 = 35*2.54  # 35in to cm
@@ -207,7 +206,7 @@ class hydro():
 
     def pump_pwm(level, pump):
         """This method is deprecated, use GZ.PWMLED value method instead."""
-        warnings.warn("use GZ.PWMLED value method instead", DeprecationWarning)
+        warnings.warn("use GZ.PWMLED value method and pass in float instead", DeprecationWarning)
         pump.value(level)
 
     def pump_test(self, drive_time, mag=60):  # for testing each direction of the pumps
