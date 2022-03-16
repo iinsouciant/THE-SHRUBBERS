@@ -112,7 +112,7 @@ class hydro():
         if ptime:
             self.pt += 1
             self.pt %= 2
-            if self.t == 0:
+            if self.pt == 0:
                 print("Pump/UV is on. WIP")
                 self.active()
             if self.pt == 1:
@@ -426,7 +426,7 @@ class menu():
                     self.m1_hover = len(self.ops) - 1
         
         # submenu to change timings
-        if (self.parent <= 2) and (self.child is None):
+        elif (self.parent <= 2) and (self.child is None):
             if (evt == "A_B"):
                 # save changes to file
                 self.saveParamChange(self.param2change)
