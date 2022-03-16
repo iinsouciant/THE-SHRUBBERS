@@ -321,11 +321,12 @@ class menu():
     def startMenu(self, hover=0):
         '''send the menu back to the first level menu'''
         self.idle_timer.timer_set()
-        self.parent = self.ops
+        self.parent = self.start
         self.m1_hover = hover
         self.m2_hover = 0
         self.param2change = 0
         self.child = self.ops[hover]
+        self.state = "START MENU"
         # potentially blocking depending on how we implement LCD, maybe threading library to help
         self.LCD.display(self.ops[0]) 
 
@@ -345,7 +346,7 @@ class menu():
 
     def A_at_m1(self):
         '''handle the menu change when the user selects an operation'''
-        self.parent = self.ops[self.m1_hover]
+        self.parent = self.m1_hover
         # for  flood timer, drain active pump timer, 
         if self.m1_hover <= 3:
             self.child = None
@@ -572,7 +573,7 @@ class menu():
                             self.LCD.display(f"EC Low Threshold: {self.timeFormat(self.param2change)}")
                         if (evt == "B_B"):
                             self.startMenu(self.m1_hover)
-                            
+
             # second level to change pH threshold values
             if (self.parent == 'pH THRESH'):
                 if (self.child == 'pH HIGH'):

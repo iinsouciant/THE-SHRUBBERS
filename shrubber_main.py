@@ -28,9 +28,9 @@ PINS = {"res_trig": 'GPIO23', 'res_echo': 'GPIO24', 'A_B': 'GPIO18',
 'valve1': 'GPIO20', 'valve2': 'GPIO21'}
 
 pumpM = GZ.PWMLED(PINS['pumpM'])
-pumpA = GZ.LED(PINS['pumpA'])
-pumpB = GZ.LED(PINS['pumpB'])
-pumpN = GZ.LED(PINS['pumpN'])
+pumpA = GZ.PWMLED(PINS['pumpA'])
+pumpB = GZ.PWMLED(PINS['pumpB'])
+pumpN = GZ.PWMLED(PINS['pumpN'])
 condP = [pumpA, pumpB, pumpN]
 
 buttons = []  # list of button instances
