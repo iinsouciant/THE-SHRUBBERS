@@ -7,9 +7,7 @@
 #   v0.60 06-Nov-2021 Migration of skeleton from main file
 #   v0.65 17-Feb-2022 Drafting menu state machine to interact with hydro
 
-# not sure what this is
-from xml.etree.ElementPath import ops
-# Butterowrth lowpass filter
+# Butterworth lowpass filter
 from lib.butterworth import b_filter as BF
 from lib.DFR import DFRobot_EC as EC
 from lib.DFR import DFRobot_PH as PH
@@ -47,7 +45,7 @@ class hydro():
     test = False  # for printing state change and events
     test_q = "Y"
     # pump active and inactive times
-    ptimes = [15, 45]
+    ptimes = [120, 1500]
     pt = 0
     # independent timer event for pump/UV. start on
     ptimer = timer(ptimes[pt])
@@ -139,7 +137,7 @@ class hydro():
             pass
 
     def active(self, pwr=30):
-        self.pump.value(pwr/100)  # TODO set default value to match 1 GPM 
+        self.pump.value = pwr/100  # TODO set default value to match 1 GPM 
 
     def water_height(self):  # in cm, good for ~9 to ~30
         hole_depth1 = 35*2.54  # 35in to cm
@@ -207,7 +205,7 @@ class hydro():
     def pump_pwm(level, pump):
         """This method is deprecated, use GZ.PWMLED value method instead."""
         warnings.warn("use GZ.PWMLED value method and pass in float instead", DeprecationWarning)
-        pump.value(level)
+        pump.value = level
 
     def pump_test(self, drive_time, mag=60):  # for testing each direction of the pumps
         self.pump.value = mag/100
@@ -279,6 +277,10 @@ class menu():
         
         # list of operation settings
         self.settings = [self.ft, self.dt, self.ap, self.sT, self.pHH, self.pHL, self.ECH, self.ECL, ]
+        # calc time pump needs to be off to let plants be submerged and drained
+        inactive_timer = self.settings[0]+self.settings[1]
+        # save change to shrub state machine
+        self.shrub.ptimes = [self.settings[2], inactive_timer]
 
     # TODO figure out more efficient way to save?
     def saveParamChange(self):
@@ -315,7 +317,7 @@ class menu():
         # calc time pump needs to be off to let plants be submerged and drained
         inactive_timer = self.settings[0]+self.settings[1]
         # save change to shrub state machine
-        self.shrub.times[self.settings[2], inactive_timer]
+        self.shrub.ptimes = [self.settings[2], inactive_timer]
 
     def startMenu(self, hover=0):
         '''send the menu back to the first level menu'''
@@ -324,7 +326,7 @@ class menu():
         self.m1_hover = hover
         self.m2_hover = 0
         self.param2change = 0
-        self.child = self.ops[hover]
+        self.child = self.ops
         self.state = "START MENU"
         # potentially blocking depending on how we implement LCD, maybe threading library to help
         self.LCD.display(self.ops[0]) 
@@ -350,7 +352,7 @@ class menu():
         if self.m1_hover <= 3:
             self.child = None
             # show setting being changed and current value
-            self.LCD.display(f"{self.ops[self.m1_hover]}: {self.settings[self.m1_hover]}")
+            self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.settings[self.m1_hover])}")
             if self.m1_hover <= 2:
                 self.m2_hover = 3  # HH:MM:SS format, default start at first min mark
                 return self.settings[self.m1_hover]
@@ -418,13 +420,13 @@ class menu():
             if (evt == "B_B") or (evt == "L_B"):
                 # send to level above
                 self.idle()
-            if (evt == "A_B") or (evt == "R_B"):
+            elif (evt == "A_B") or (evt == "R_B"):
                 self.param2change = self.A_at_m1()
-            if (evt == "U_B"):
+            elif (evt == "U_B"):
                 self.m1_hover += 1
                 # resets the selected option back to 0 if it goes too high
                 self.m1_hover %= len(self.ops)
-            if (evt == "D_B"):
+            elif (evt == "D_B"):
                 self.m1_hover -= 1
                 if self.m1_hover < 0:
                     self.m1_hover = len(self.ops) - 1
@@ -436,7 +438,7 @@ class menu():
                 if (self.parent <= 2) and (self.child is None):
                     if (evt == "A_B"):
                         # save changes to file
-                        self.saveParamChange(self.param2change)
+                        self.saveParamChange()
                         # send back to first level menu
                         self.startMenu()
                     if (evt == "B_B"):
@@ -493,7 +495,7 @@ class menu():
                 # save water gap
                 if (self.parent == 3) and (self.child is None): 
                     if (evt == "A_B"):
-                        self.saveParamChange(self.param2change)
+                        self.saveParamChange()
                         # send back to first level menu
                         self.startMenu() 
                     if (evt == "B_B"):
@@ -577,7 +579,7 @@ class menu():
             if (self.parent == 'pH THRESH'):
                 if (self.child == 'pH HIGH'):
                     if (evt == "A_B"):
-                        self.saveParamChange(self.param2change)
+                        self.saveParamChange()
                         # send back to first level menu
                         self.startMenu() 
                     if (evt == "B_B"):
@@ -606,7 +608,7 @@ class menu():
             if (self.parent == 'EC THRESH'):
                 if (self.child == 'EC HIGH'):
                     if (evt == "A_B"):
-                        self.saveParamChange(self.param2change)
+                        self.saveParamChange()
                         # send back to first level menu
                         self.startMenu() 
                     if (evt == "B_B"):
