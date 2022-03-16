@@ -76,9 +76,9 @@ shrub = shrubber.hydro(pumpM, pHsens, ECsens, buttons, sonar, LCD, valves)
 menu = shrubber.menu(LCD, shrub)
 
 # testing parameters
-testing = True  # to run test procedure on startup
+testing = False  # to run test procedure on startup
 test2 = True  # show sensor value periodically in normal operation
-print_time = .5
+print_time = 2
 
 # initializing variables
 last = time.monotonic()
@@ -101,12 +101,17 @@ while True:
                 if UV_test1 == "SKIP":
                     continue  # TODO UV test function
                 if (UV_test1 == "END"):
+                    testing = False
                     break
                 elif UV_test1 == "Y":
                     duration = float(input("How long?\n"))
                     shrub.pump_test(duration)
+        else:
+            testing = False
+            break
 
     # loop to run once diagnosis is done
+    print("Now expecting user input")
     while not testing:
         # print sensor values to terminal to check operation
         if time.monotonic() - last > print_time:
@@ -132,5 +137,6 @@ while True:
         if menu.idle_timer.timer_event():
             menu.evt_handler(timer=True)
 
-        if shrub.timer.timer_event():
-            shrub.evt_handler(timer=True)
+        # TODO update this to work with valve and pump timer
+        if shrub.ptimer.timer_event():
+            shrub.evt_handler(ptime=True)

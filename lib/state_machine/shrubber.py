@@ -252,16 +252,19 @@ class menu():
         try:
             with open('Settings.csv', 'r') as f:
                 settings = csv.reader(f)
-                self.ft = int(settings[0][1])
-                self.dt = int(settings[1][1])
-                self.ap = int(settings[2][1])
-                self.sT = int(settings[3][1])
-                self.pHH = int(settings[4][1])
-                self.pHL = int(settings[5][1])
-                self.ECH = int(settings[6][1])
-                self.ECL = int(settings[7][1])
-        except IOError:
-            print("Settings.txt does not exist. Creating file with default settings.")
+                rows = [row for row in settings if True]
+                self.ft = int(rows[0][1])
+                self.dt = int(rows[1][1])
+                self.ap = int(rows[2][1])
+                self.sT = int(rows[3][1])
+                self.pHH = int(rows[4][1])
+                self.pHL = int(rows[5][1])
+                self.ECH = int(rows[6][1])
+                self.ECL = int(rows[7][1])
+                print("Settings loaded")
+        except (IOError) as e:
+            if e is IOError:
+                print("Settings.txt does not exist. Creating file with default settings.")
             with open(r"Settings.csv", 'w') as f:
                 rows = [['Flood Timer', self.ft], 
                     ['Drain Timer', self.dt], 
@@ -342,12 +345,12 @@ class menu():
 
     def A_at_m1(self):
         '''handle the menu change when the user selects an operation'''
-        self.parent = ops[self.m1_hover]
+        self.parent = self.ops[self.m1_hover]
         # for  flood timer, drain active pump timer, 
         if self.m1_hover <= 3:
             self.child = None
             # show setting being changed and current value
-            self.LCD.display(f"{ops[self.m1_hover]}: {self.settings[self.m1_hover]}")
+            self.LCD.display(f"{self.ops[self.m1_hover]}: {self.settings[self.m1_hover]}")
             if self.m1_hover <= 2:
                 self.m2_hover = 3  # HH:MM:SS format, default start at first min mark
                 return self.settings[self.m1_hover]
@@ -416,11 +419,11 @@ class menu():
             if (evt == "U_B"):
                 self.m1_hover += 1
                 # resets the selected option back to 0 if it goes too high
-                self.m1_hover %= len(ops)
+                self.m1_hover %= len(self.ops)
             if (evt == "D_B"):
                 self.m1_hover -= 1
                 if self.m1_hover < 0:
-                    self.m1_hover = len(ops) - 1
+                    self.m1_hover = len(self.ops) - 1
         
         # submenu to change timings
         if (self.parent <= 2) and (self.child is None):
@@ -431,7 +434,7 @@ class menu():
                 self.startMenu()
             if (evt == "B_B"):
                 # send to level above
-                self.parent = ops[self.m1_hover]
+                self.parent = self.ops[self.m1_hover]
                 self.child = None
             if (evt == "U_B"):
                 # increase HH:MM:SS timer based on hover position
@@ -451,7 +454,7 @@ class menu():
                 if self.param2change > 20*60*60:
                     self.param2change = 20*60*60
                 # TODO want some way to blink the number being hovered over
-                self.LCD.display(f"{ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
             if (evt == "D_B"):
                 # decrease HH:MM:SS timer based on hover position
                 if self.m2_hover == 0:
@@ -469,7 +472,7 @@ class menu():
                 # prevent timer going negative
                 if self.param2change < 0:
                     self.param2change = 0
-                self.LCD.display(f"{ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
             if (evt == "R_B"):
                 # change hover position. loop if too far right
                 self.m2_hover += 1
@@ -488,7 +491,7 @@ class menu():
                 self.startMenu() 
             if (evt == "B_B"):
                 # send to level above
-                self.parent = ops[self.m1_hover]
+                self.parent = self.ops[self.m1_hover]
                 self.child = None
             if (evt == "U_B"):
                 # increase the gap based on hover position
@@ -501,7 +504,7 @@ class menu():
                 # max gap
                 if self.param2change > 999:
                     self.param2change = 999
-                self.LCD.display(f"{ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
             if (evt == "D_B"):
                 # decrease the gap based on hover position
                 if self.m2_hover == 0:
@@ -513,7 +516,7 @@ class menu():
                 # min gap
                 if self.param2change < 0:
                     self.param2change = 0
-                self.LCD.display(f"{ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
             if (evt == "R_B"):
                 # change hover position. loop if too far right
                 self.m2_hover += 1
@@ -570,7 +573,7 @@ class menu():
                     # min gap
                     if self.param2change < 0:
                         self.param2change = 0
-                    self.LCD.display(f"{ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                    self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
 
         # sublevel to choose EC thresholds
         if (self.parent == 5):
@@ -614,7 +617,7 @@ class menu():
                 # max EC
                 if self.param2change > 10.0:
                     self.param2change = 10.0
-                self.LCD.display(f"{ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
             if (evt == "D_B"):
                 # decrease the EC based on hover position. want it to be to two decimal places X.XX
                 if self.m2_hover == 0:
@@ -626,7 +629,7 @@ class menu():
                 # min EC
                 if self.param2change < 0:
                     self.param2change = 0
-                self.LCD.display(f"{ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
             if (evt == "R_B"):
                 # change hover position. loop if too far right
                 self.m2_hover += 1
