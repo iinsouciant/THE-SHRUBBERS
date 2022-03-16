@@ -106,12 +106,13 @@ while True:
                 elif UV_test1 == "Y":
                     duration = float(input("How long?\n"))
                     shrub.pump_test(duration)
-        else:
+        elif (shrub.test_q == UV_test1):
             testing = False
             break
 
     # loop to run once diagnosis is done
     print("Now expecting user input")
+    LCD.idle()
     while not testing:
         # print sensor values to terminal to check operation
         if time.monotonic() - last > print_time:
