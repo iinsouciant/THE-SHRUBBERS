@@ -431,127 +431,148 @@ class menu():
         
         # submenu to change timings
         elif self.child not in self.ops:
-            if type(self.parent) is str:
-            if (self.parent <= 2) and (self.child is None):
-                if (evt == "A_B"):
-                    # save changes to file
-                    self.saveParamChange(self.param2change)
-                    # send back to first level menu
-                    self.startMenu()
-                if (evt == "B_B"):
-                    # send to level above
-                    self.parent = self.ops[self.m1_hover]
-                    self.child = None
-                if (evt == "U_B"):
-                    # increase HH:MM:SS timer based on hover position
-                    if self.m2_hover == 0:
-                        self.param2change += 10*60*60
-                    if self.m2_hover == 1:
-                        self.param2change += 1*60*60
-                    if self.m2_hover == 2:
-                        self.param2change += 10*60
-                    if self.m2_hover == 3:
-                        self.param2change += 1*60
-                    if self.m2_hover == 4:
-                        self.param2change += 10
-                    if self.m2_hover == 5:
-                        self.param2change += 1
-                    # max timer
-                    if self.param2change > 20*60*60:
-                        self.param2change = 20*60*60
-                    # TODO want some way to blink the number being hovered over
-                    self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
-                if (evt == "D_B"):
-                    # decrease HH:MM:SS timer based on hover position
-                    if self.m2_hover == 0:
-                        self.param2change -= 10*60*60
-                    if self.m2_hover == 1:
-                        self.param2change -= 1*60*60
-                    if self.m2_hover == 2:
-                        self.param2change -= 10*60
-                    if self.m2_hover == 3:
-                        self.param2change -= 1*60
-                    if self.m2_hover == 4:
-                        self.param2change -= 10
-                    if self.m2_hover == 5:
-                        self.param2change -= 1
-                    # prevent timer going negative
-                    if self.param2change < 0:
-                        self.param2change = 0
-                    self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
-                if (evt == "R_B"):
-                    # change hover position. loop if too far right
-                    self.m2_hover += 1
-                    self.m2_hover %= 6
-                if (evt == "L_B"):
-                    # change hover position. loop if too far left
-                    self.m2_hover -= 1
-                    if self.m2_hover < 0:
-                        self.m2_hover = 6 - 1
-                
-            # save water gap
-            if (self.parent == 3) and (self.child is None): 
-                if (evt == "A_B"):
-                    self.saveParamChange(self.param2change)
-                    # send back to first level menu
-                    self.startMenu() 
-                if (evt == "B_B"):
-                    # send to level above
-                    self.parent = self.ops[self.m1_hover]
-                    self.child = None
-                if (evt == "U_B"):
-                    # increase the gap based on hover position
-                    if self.m2_hover == 0:
-                        self.param2change += 100
-                    if self.m2_hover == 1:
-                        self.param2change += 10
-                    if self.m2_hover == 2:
-                        self.param2change += 1
-                    # max gap
-                    if self.param2change > 999:
-                        self.param2change = 999
-                    self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
-                if (evt == "D_B"):
-                    # decrease the gap based on hover position
-                    if self.m2_hover == 0:
-                        self.param2change -= 100
-                    if self.m2_hover == 1:
-                        self.param2change -= 10
-                    if self.m2_hover == 2:
-                        self.param2change -= 1
-                    # min gap
-                    if self.param2change < 0:
-                        self.param2change = 0
-                    self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
-                if (evt == "R_B"):
-                    # change hover position. loop if too far right
-                    self.m2_hover += 1
-                    self.m2_hover %= 3
-                if (evt == "L_B"):
-                    self.m2_hover -= 1
-                    if self.m2_hover < 0:
-                        self.m2_hover = 3 - 1
-
-            # sublevel to choose pH thresholds
-            if (self.parent == 4):
-                if (self.child == 'pH THRESH'):
-                    self.m2_hover = 0
-                    # should show two rows for low and high threshold
-                    # pressing up button should choose top option
-                    if (evt == "U_B") or (evt == 'A_B'):
-                        self.parent = self.child
-                        self.child = "pH HIGH"
-                        self.param2change = self.settings[4]
-                        self.LCD.display(f"pH High Threshold: {self.timeFormat(self.param2change)}")
-                    # pressing down should choose bottom option
-                    if (evt == "D_B"):
-                        self.parent = self.child
-                        self.child = "pH LOW"
-                        self.param2change = self.settings[5]
-                        self.LCD.display(f"pH Low Threshold: {self.timeFormat(self.param2change)}")
+            # need to make sure once it goes to first submenu, it doesn't raise error here
+            if type(self.parent) is int:
+                if (self.parent <= 2) and (self.child is None):
+                    if (evt == "A_B"):
+                        # save changes to file
+                        self.saveParamChange(self.param2change)
+                        # send back to first level menu
+                        self.startMenu()
                     if (evt == "B_B"):
-                        self.startMenu(self.m1_hover)
+                        # send to level above
+                        self.parent = self.ops[self.m1_hover]
+                        self.child = None
+                    if (evt == "U_B"):
+                        # increase HH:MM:SS timer based on hover position
+                        if self.m2_hover == 0:
+                            self.param2change += 10*60*60
+                        if self.m2_hover == 1:
+                            self.param2change += 1*60*60
+                        if self.m2_hover == 2:
+                            self.param2change += 10*60
+                        if self.m2_hover == 3:
+                            self.param2change += 1*60
+                        if self.m2_hover == 4:
+                            self.param2change += 10
+                        if self.m2_hover == 5:
+                            self.param2change += 1
+                        # max timer
+                        if self.param2change > 20*60*60:
+                            self.param2change = 20*60*60
+                        # TODO want some way to blink the number being hovered over
+                        self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                    if (evt == "D_B"):
+                        # decrease HH:MM:SS timer based on hover position
+                        if self.m2_hover == 0:
+                            self.param2change -= 10*60*60
+                        if self.m2_hover == 1:
+                            self.param2change -= 1*60*60
+                        if self.m2_hover == 2:
+                            self.param2change -= 10*60
+                        if self.m2_hover == 3:
+                            self.param2change -= 1*60
+                        if self.m2_hover == 4:
+                            self.param2change -= 10
+                        if self.m2_hover == 5:
+                            self.param2change -= 1
+                        # prevent timer going negative
+                        if self.param2change < 0:
+                            self.param2change = 0
+                        self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                    if (evt == "R_B"):
+                        # change hover position. loop if too far right
+                        self.m2_hover += 1
+                        self.m2_hover %= 6
+                    if (evt == "L_B"):
+                        # change hover position. loop if too far left
+                        self.m2_hover -= 1
+                        if self.m2_hover < 0:
+                            self.m2_hover = 6 - 1
+                    
+                # save water gap
+                if (self.parent == 3) and (self.child is None): 
+                    if (evt == "A_B"):
+                        self.saveParamChange(self.param2change)
+                        # send back to first level menu
+                        self.startMenu() 
+                    if (evt == "B_B"):
+                        # send to level above
+                        self.parent = self.ops[self.m1_hover]
+                        self.child = None
+                    if (evt == "U_B"):
+                        # increase the gap based on hover position
+                        if self.m2_hover == 0:
+                            self.param2change += 100
+                        if self.m2_hover == 1:
+                            self.param2change += 10
+                        if self.m2_hover == 2:
+                            self.param2change += 1
+                        # max gap
+                        if self.param2change > 999:
+                            self.param2change = 999
+                        self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                    if (evt == "D_B"):
+                        # decrease the gap based on hover position
+                        if self.m2_hover == 0:
+                            self.param2change -= 100
+                        if self.m2_hover == 1:
+                            self.param2change -= 10
+                        if self.m2_hover == 2:
+                            self.param2change -= 1
+                        # min gap
+                        if self.param2change < 0:
+                            self.param2change = 0
+                        self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                    if (evt == "R_B"):
+                        # change hover position. loop if too far right
+                        self.m2_hover += 1
+                        self.m2_hover %= 3
+                    if (evt == "L_B"):
+                        self.m2_hover -= 1
+                        if self.m2_hover < 0:
+                            self.m2_hover = 3 - 1
 
+                # sublevel to choose pH thresholds
+                if (self.parent == 4):
+                    if (self.child == 'pH THRESH'):
+                        self.m2_hover = 0
+                        # should show two rows for low and high threshold
+                        # pressing up button should choose top option
+                        if (evt == "U_B") or (evt == 'A_B'):
+                            self.parent = self.child
+                            self.child = "pH HIGH"
+                            self.param2change = self.settings[4]
+                            self.LCD.display(f"pH High Threshold: {self.timeFormat(self.param2change)}")
+                        # pressing down should choose bottom option
+                        if (evt == "D_B"):
+                            self.parent = self.child
+                            self.child = "pH LOW"
+                            self.param2change = self.settings[5]
+                            self.LCD.display(f"pH Low Threshold: {self.timeFormat(self.param2change)}")
+                        if (evt == "B_B"):
+                            self.startMenu(self.m1_hover)
+
+                # sublevel to choose EC thresholds
+                if (self.parent == 5):
+                    if (self.child == 'EC THRESH'):
+                        self.m2_hover = 0
+                        # should show two rows for low and high threshold
+                        # pressing up button should choose top option
+                        if (evt == "U_B"):
+                            self.parent = self.child
+                            self.child = "EC HIGH"
+                            self.param2change = self.settings[6]
+                            self.LCD.display(f"EC High Threshold: {self.timeFormat(self.param2change)}")
+                        # pressing down should choose bottom option
+                        if (evt == "D_B"):
+                            self.parent = self.child
+                            self.child = "pH LOW"
+                            self.param2change = self.settings[7]
+                            self.LCD.display(f"EC Low Threshold: {self.timeFormat(self.param2change)}")
+                        if (evt == "B_B"):
+                            self.startMenu(self.m1_hover)
+                            
             # second level to change pH threshold values
             if (self.parent == 'pH THRESH'):
                 if (self.child == 'pH HIGH'):
@@ -580,26 +601,6 @@ class menu():
                         if self.param2change < 0:
                             self.param2change = 0
                         self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
-
-            # sublevel to choose EC thresholds
-            if (self.parent == 5):
-                if (self.child == 'EC THRESH'):
-                    self.m2_hover = 0
-                    # should show two rows for low and high threshold
-                    # pressing up button should choose top option
-                    if (evt == "U_B"):
-                        self.parent = self.child
-                        self.child = "EC HIGH"
-                        self.param2change = self.settings[6]
-                        self.LCD.display(f"EC High Threshold: {self.timeFormat(self.param2change)}")
-                    # pressing down should choose bottom option
-                    if (evt == "D_B"):
-                        self.parent = self.child
-                        self.child = "pH LOW"
-                        self.param2change = self.settings[7]
-                        self.LCD.display(f"EC Low Threshold: {self.timeFormat(self.param2change)}")
-                    if (evt == "B_B"):
-                        self.startMenu(self.m1_hover)
 
             # second level to change pH threshold values
             if (self.parent == 'EC THRESH'):
