@@ -8,6 +8,10 @@
 # TODO import only stuff we need from library
 import gpiozero as GZ
 from lib.hcsr04sensor import sensor as hcsr04
+from lib.lcd.lcd import LCD
+from lib.lcd.i2c_pcf8574_interface import I2CPCF8574Interface
+
+from lib.lcd.lcd import CursorMode
 
 import board
 import busio
