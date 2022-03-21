@@ -16,28 +16,28 @@ apt autoremove
 CONFIG="/boot/config.txt"
 if grep -Fq "hdmi_force_hotplug" $CONFIG
 then
-    sed -i "hdmi_force_hotplug/c\hdmi_force_hotplug=1"
+    sed -i "hdmi_force_hotplug/c\hdmi_force_hotplug=1" $CONFIG
 else
     echo "hdmi_force_hotplug=1" >> $CONFIG
 fi
 
 if grep -Fq "hdmi_ignore_edid" $CONFIG
 then
-    sed -i "hdmi_ignore_edid/c\hdmi_ignore_edid=0xa5000080"
+    sed -i "hdmi_ignore_edid/c\hdmi_ignore_edid=0xa5000080" $CONFIG
 else
     echo "hdmi_ignore_edid=0xa5000080" >> $CONFIG
 fi
 
 if grep -Fq "hdmi_group" $CONFIG
 then
-    sed -i "hdmi_group/c\hdmi_group=2"
+    sed -i "hdmi_group/c\hdmi_group=2" $CONFIG
 else
     echo "hdmi_group=2" >> $CONFIG
 fi
 
 if grep -Fq "hdmi_mode" $CONFIG
 then
-    sed -i "hdmi_mode/c\hdmi_mode=16"
+    sed -i "hdmi_mode/c\hdmi_mode=16" $CONFIG
 else
     echo "hdmi_mode=16" >> $CONFIG
 fi
