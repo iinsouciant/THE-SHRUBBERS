@@ -10,8 +10,8 @@
 #   v0.99 28-Nov-2021 First draft implementation of filter
 #   v1.00 15-Feb-2022 Working version to take in a single value at a time. Only tested w/ 2nd order
 
-import numpy as np
-from scipy import signal
+from numpy import pi, zeros, cos, sin, linspace
+from scipy.signal import TransferFunction
 
 
 class LowPassFilter(object):
@@ -21,22 +21,22 @@ class LowPassFilter(object):
 
     # will want to fine tune sample frequency default value depending on loop time of program
     def __init__(self, cutoff, sample_frequency=500, degree=2):
-        self.wc = 2*np.pi*cutoff  # cutoff frequency (rad/s)
+        self.wc = 2*pi*cutoff  # cutoff frequency (rad/s)
         self.sf = sample_frequency
         self.n = degree
         self.recalc(self.sf, cutoff)
 
     def __fil_coeff(self):
         # Compute the Butterworth filter coefficents
-        a = np.zeros(self.n + 1)
-        gamma = np.pi / (2.0 * self.n)
+        a = zeros(self.n + 1)
+        gamma = pi / (2.0 * self.n)
         a[0] = 1  # first coeff always 1
         for k in range(self.n):
-            rfac = np.cos(k * gamma) / np.sin((k+1) * gamma)
+            rfac = cos(k * gamma) / sin((k+1) * gamma)
             a[k+1] = rfac*a[k] 
 
         # Adjust for cutoff frequency
-        B = np.zeros(self.n + 1)
+        B = zeros(self.n + 1)
         for k in range(self.n + 1):
             B[self.n - k] = a[k] / pow(self.wc, k)
             return B
@@ -44,7 +44,7 @@ class LowPassFilter(object):
     
     def __discretization(self, B):
         denom = B
-        lowPass = signal.TransferFunction(1, denom)
+        lowPass = TransferFunction(1, denom)
         dt = 1.0/self.sf
         discreteLowPass = lowPass.to_discrete(dt, method='gbt', alpha=0.5)
         self.num = discreteLowPass.num
@@ -54,7 +54,7 @@ class LowPassFilter(object):
         '''Calculate the discretized coefficients by providing
          a new sampling frequency and cutoff frequency'''
         self.sf = sampling_freq
-        self.wc = 2*np.pi*cutoff  # cutoff frequency (rad/s)
+        self.wc = 2*pi*cutoff  # cutoff frequency (rad/s)
         self.__discretization(self.__fil_coeff())
         print("Coefficients calculated!")
 
@@ -97,10 +97,10 @@ if __name__ == "__main__":
     tlims = [0, 1]        # in seconds
     signalFreq = [2, 50]  # Cycles / second
     signalMag = [1, 0.2]  # magnitude of each sine
-    t = np.linspace(tlims[0], tlims[1], (tlims[1]-tlims[0])*samplingFreq)
-    y = signalMag[0]*np.sin(2*math.pi*signalFreq[0]*t) + signalMag[1]*np.sin(2*math.pi*signalFreq[1]*t)
+    t = linspace(tlims[0], tlims[1], (tlims[1]-tlims[0])*samplingFreq)
+    y = signalMag[0]*sin(2*math.pi*signalFreq[0]*t) + signalMag[1]*sin(2*math.pi*signalFreq[1]*t)
     test = LowPassFilter(5, samplingFreq)
-    yf = np.zeros(len(t))
+    yf = zeros(len(t))
     for i in range(len(t)):
         if i == 0:
             print("First calc starting!")

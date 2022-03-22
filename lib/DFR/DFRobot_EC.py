@@ -1,4 +1,4 @@
-import time
+from time import sleep
 import sys
 
 _kvalue                 = 1.0
@@ -55,7 +55,7 @@ class DFRobot_EC():
 			f.writelines(flist)
 			f.close()
 			print(">>>EC:1.413us/cm Calibration completed")
-			time.sleep(2.0)  # potentially an issue
+			sleep(2.0)  # potentially an issue
 			return "1.413us/cm calibration completed"
 		elif (rawEC>9 and rawEC<16.8):
 			compECsolution = 12.88*(1.0+0.0185*(temperature-25.0))
@@ -68,7 +68,7 @@ class DFRobot_EC():
 			f.writelines(flist)
 			f.close()
 			print(">>>EC:12.88ms/cm Calibration completed")
-			time.sleep(2.0)  # potentially an issue
+			sleep(2.0)  # potentially an issue
 			return "12.88ms/cm calibration completed"
 		else:
 			return ">>>Buffer solution out of range. Measurement discarded<<<"

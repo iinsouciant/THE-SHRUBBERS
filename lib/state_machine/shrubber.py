@@ -12,7 +12,7 @@ from lib.butterworth import b_filter as BF
 from lib.DFR import DFRobot_EC as EC
 from lib.DFR import DFRobot_PH as PH
 # TODO import only stuff we need from library
-import time
+from time import sleep, monotonic
 import csv
 import warnings
 
@@ -24,14 +24,14 @@ class timer():
         self.TIMER_INTERVAL = interval
 
     def timer_event(self):
-        if (self.timer_time is not None) and time.monotonic() >= self.timer_time:
+        if (self.timer_time is not None) and monotonic() >= self.timer_time:
             self.timer_time = None
             return True
         else:
             return False
 
     def timer_set(self):
-        self.timer_time = time.monotonic() + self.TIMER_INTERVAL
+        self.timer_time = monotonic() + self.TIMER_INTERVAL
     
     # TODO for ebb and flow may want to make an alternate version for hours/min?
 
@@ -209,9 +209,9 @@ class hydro():
 
     def pump_test(self, drive_time, mag=60):  # for testing each direction of the pumps
         self.pump.value = mag/100
-        time.sleep(drive_time)
+        sleep(drive_time)
         self.pump.value = 0
-        time.sleep(0.1)
+        sleep(0.1)
 
 
 class menu():
@@ -665,3 +665,6 @@ class menu():
                     self.startMenu()
                 if (evt == "B_B") or (evt == "L_B"):
                     self.startMenu(self.m1_hover)
+
+if __name__ == "__main__":
+    print("Incorrect file run. Run shrubber_main.py to initialize sensors, actuators, etc.")

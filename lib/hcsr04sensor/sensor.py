@@ -5,8 +5,8 @@ sensor and a Raspberry Pi.  Imperial and Metric measurements are available"""
 # MIT License
 from __future__ import division
 
-import time
-import math
+from time import sleep, time
+from math import pi, sqrt, acos, asin
 import warnings
 import RPi.GPIO as GPIO
 
@@ -28,7 +28,7 @@ class Measurement(object):
         self.temperature = temperature
         self.unit = unit
         self.gpio_mode = gpio_mode
-        self.pi = math.pi
+        self.pi = pi
 
     def raw_distance(self, sample_size=11, sample_wait=0.1):
         """Return an error corrected unrounded distance, in cm, of an object 
@@ -63,7 +63,7 @@ class Measurement(object):
         else:
             raise ValueError("Wrong Unit Type. Unit Must be imperial or metric")
 
-        speed_of_sound = 331.3 * math.sqrt(1 + (self.temperature / 273.15))
+        speed_of_sound = 331.3 * sqrt(1 + (self.temperature / 273.15))
         sample = []
         # setup input/output pins
         GPIO.setwarnings(False)
@@ -73,19 +73,19 @@ class Measurement(object):
 
         for distance_reading in range(sample_size):
             GPIO.output(self.trig_pin, GPIO.LOW)
-            time.sleep(sample_wait)
+            sleep(sample_wait)
             GPIO.output(self.trig_pin, True)
-            time.sleep(0.00001)
+            sleep(0.00001)
             GPIO.output(self.trig_pin, False)
             echo_status_counter = 1
             while GPIO.input(self.echo_pin) == 0:
                 if echo_status_counter < 1000:
-                    sonar_signal_off = time.time()
+                    sonar_signal_off = time()
                     echo_status_counter += 1
                 else:
                     raise SystemError("Echo pulse was not received")
             while GPIO.input(self.echo_pin) == 1:
-                sonar_signal_on = time.time()
+                sonar_signal_on = time()
             time_passed = sonar_signal_on - sonar_signal_off
             distance_cm = time_passed * ((speed_of_sound * 100) / 2)
             sample.append(distance_cm)
@@ -121,8 +121,8 @@ class Measurement(object):
             )
 
         volume = length * (
-            (radius * radius * math.acos((radius - depth) / radius))
-            - (radius - depth) * math.sqrt((2 * depth * radius) - (depth * depth))
+            (radius * radius * acos((radius - depth) / radius))
+            - (radius - depth) * sqrt((2 * depth * radius) - (depth * depth))
         )
         if self.unit == "metric":
             return volume / 1000
@@ -159,8 +159,8 @@ class Measurement(object):
             * (
                 (self.pi * (s_min_a ** 2)) / 2
                 + (depth - s_min_a)
-                * math.sqrt((s_min_a ** 2) - ((depth - s_min_a) ** 2))
-                + (s_min_a ** 2) * math.asin(depth / s_min_a - 1)
+                * sqrt((s_min_a ** 2) - ((depth - s_min_a) ** 2))
+                + (s_min_a ** 2) * asin(depth / s_min_a - 1)
             )
         )
 
@@ -183,23 +183,23 @@ class Measurement(object):
         """Return an unformatted distance in cm's as read directly from
         RPi.GPIO."""
 
-        speed_of_sound = 331.3 * math.sqrt(1 + (celsius / 273.15))
+        speed_of_sound = 331.3 * sqrt(1 + (celsius / 273.15))
         GPIO.setup(trig_pin, GPIO.OUT)
         GPIO.setup(echo_pin, GPIO.IN)
         GPIO.output(trig_pin, GPIO.LOW)
-        time.sleep(0.1)
+        sleep(0.1)
         GPIO.output(trig_pin, True)
-        time.sleep(0.00001)
+        sleep(0.00001)
         GPIO.output(trig_pin, False)
         echo_status_counter = 1
         while GPIO.input(echo_pin) == 0:
             if echo_status_counter < 1000:
-                sonar_signal_off = time.time()
+                sonar_signal_off = time()
                 echo_status_counter += 1
             else:
                 raise SystemError("Echo pulse was not received")
         while GPIO.input(echo_pin) == 1:
-            sonar_signal_on = time.time()
+            sonar_signal_on = time()
 
         time_passed = sonar_signal_on - sonar_signal_off
         return time_passed * ((speed_of_sound * 100) / 2)
