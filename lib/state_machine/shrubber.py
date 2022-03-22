@@ -55,7 +55,7 @@ class hydro():
     vt1 = 0
     vt2 = 0
 
-    def __init__(self, pump, pHsens, ECsens, buttons, sonar, LCD, valves, filters=[7, 5, 5]):
+    def __init__(self, pump, pHsens, ECsens, buttons, sonar, LCD, valves, temp, filters=[7, 5, 5, 5]):
         self.state = self.start
         self.pump = pump
         self.bs = buttons
@@ -70,6 +70,7 @@ class hydro():
         self.fs = BF.LowPassFilter(filters[0])
         self.fpH = BF.LowPassFilter(filters[1])
         self.fEC = BF.LowPassFilter(filters[2])
+        self.fTemp = BF.LowPassFilter(filters[3])
         self.pHsens = pHsens
         self.pH = PH.DFRobot_PH()
         self.ECsens = ECsens
@@ -83,8 +84,8 @@ class hydro():
     
     def __str__(self):  # TODO check if we need to update this
         '''Provides formatted sensor values connected to state machine'''
-        return "State: {}\nWater level: {} cm\npH: {}\nEC: {} mS".format(
-            self.state, self.water_height(), self.grab_pH(), self.grab_EC()
+        return "State: {}\nWater level: {} cm\npH: {}\nEC: {} mS\nTemp: {} C".format(
+            self.state, self.water_height(), self.grab_pH(), self.grab_EC(), self.grab_temp()
         )  # dummy function names
 
     def __error(err_string):
@@ -152,7 +153,8 @@ class hydro():
                 return False
         except TypeError:
             return True
-        
+    
+    # TODO rework these or calls to these w/ temp sensor lib
     def EC_calibration(self, temp=22):
         '''Run this once the EC sensor is fully submerged in the high or low solution.
         This will then exit if it detects a value in an acceptable range.'''
@@ -193,6 +195,17 @@ class hydro():
             print("The sonar is not detected.")
             dist = 0
         return self.fs.filter(dist)
+    
+    def grab_temp(self):
+        '''Tries to grab the temperature sensor value 
+        without raising an exception halting the program'''
+        try:
+            # TODO get temp sensor library and replace
+            dist = self.s.basic_distance()
+        except Exception:
+            print("The temperature sensor is not detected.")
+            dist = 0
+        return self.fTemp.filter(dist)
 
     # can replace this with __str__
     def test_print(self):
@@ -239,6 +252,8 @@ class menu():
     # independent timer event
     idle_timer = timer(5*60)
     idle_timer.timer_set()
+    idle_printer = timer(8)
+    _idle_n = 0
 
     def __init__(self, LCD, shrub):
         self.state = self.start
@@ -329,7 +344,7 @@ class menu():
         self.child = self.ops
         self.state = "START MENU"
         self.LCD.clear()
-        self.LCD.set_cursor_pos(1, 1)
+        self.LCD.set_cursor_pos(0, 0)
         self.LCD.print(self.ops[0]) 
 
     def idle(self):
@@ -337,8 +352,50 @@ class menu():
         self.parent = self.start
         self.child = self.ops
         self.state = "IDLE"
-        # special lcd state to scroll sensor data while non blocking. maybe multiprocessing? maybe just send on timer
-        self.LCD.idle()  
+        self.idle_printer.timer_set()
+    
+    def idle_print(self):
+        try:
+            c = self.b
+        except Exception as e:
+            c = ""
+        try:
+            self.b = self.a
+        except Exception as e:
+            self.b = ""
+        self.LCD.clear()
+        self._idle_n += 1
+        self._idle_n %= 4 # for each sensor
+        n = self._idle_n
+        self.idle_printer.timer_set()
+        self.LCD.set_cursor_pos(0,0)
+        if n == 0:
+            self.a = f"Water level: {self.shrub.water_height()} cm"
+        if n == 1:
+            self.a = f"pH level: {self.shrub.grab_pH():.1f}"
+        if n == 2:
+            self.a = f"Conductivity level: {self.shrub.grab_EC():.2f} mS"
+        if n == 3:
+            self.a = f"Water temp: {self.shrub.grab_temp():.2f}"
+        
+        # to create scrolling effect
+        self.LCD.print(self.a)
+        [row, col] = self.LCD.cursor_pos()
+        # check if cursor wrapped around
+        if col == 0:
+            self.LCD.set_cursor_pos(int(row),0)
+        else:
+             self.LCD.set_cursor_pos(int(row)+1,0)
+        self.LCD.print(self.b)
+        [row, col] = self.LCD.cursor_pos()
+        row = int(row)
+        col = int(col)
+        # check if cursor wrapped around
+        if col != 0:
+            row += 1
+        if row <= 3:
+            self.LCD.set_cursor_pos(row,0)
+            self.LCD.print(c)
 
     def timeFormat(sec):
         '''automatically convert seconds to HH:MM:SS format for user to read'''
@@ -403,10 +460,14 @@ class menu():
         if test:
             print(f"child: {self.child}")
             print(f'parent: {self.parent}')
-            print('event: '+evt)
+            try:
+                print('event:',evt)
+            except TypeError:
+                print('event: None')
         # should restart timer for setting the menu state to idle
         if evt is not None:
             self.idle_timer.timer_set()
+            self.state = 'ACTIVE'
 
         # whenever there has been no user input for a while, go back to idle
         if timer:
