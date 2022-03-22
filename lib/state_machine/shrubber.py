@@ -328,8 +328,9 @@ class menu():
         self.param2change = 0
         self.child = self.ops
         self.state = "START MENU"
-        # potentially blocking depending on how we implement LCD, maybe threading library to help
-        self.LCD.display(self.ops[0]) 
+        self.LCD.clear()
+        self.LCD.set_cursor_pos(1, 1)
+        self.LCD.print(self.ops[0]) 
 
     def idle(self):
         '''send the state machine to the idle state showing sensor values'''
@@ -345,6 +346,8 @@ class menu():
         h, m = divmod(m, 60)
         return f"{h:d}:{m:02d}:{s:02d}"
 
+    # TODO make sure the menus with multiple options show operations on dif lines
+    # TODO enable line cursor mode for changing param values, else turn cursor off?
     def A_at_m1(self):
         '''handle the menu change when the user selects an operation'''
         self.parent = self.m1_hover
@@ -352,7 +355,7 @@ class menu():
         if self.m1_hover <= 3:
             self.child = None
             # show setting being changed and current value
-            self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.settings[self.m1_hover])}")
+            self.LCD.print(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.settings[self.m1_hover])}")
             if self.m1_hover <= 2:
                 self.m2_hover = 3  # HH:MM:SS format, default start at first min mark
                 return self.settings[self.m1_hover]
@@ -366,25 +369,25 @@ class menu():
         # show sublevel to pick low/high threshold values
         if self.m1_hover == 4:
             self.child = 'pH THRESH'
-            self.LCD.display(['pH High Threshold', 'pH Low Threshold'])
+            self.LCD.print(['pH High Threshold', 'pH Low Threshold'])
             return None
         
         # show sublevel to pick low/high threshold values
         if self.m1_hover == 5:
             self.child = 'EC THRESH'
-            self.LCD.display(['EC High Threshold', 'EC Low Threshold'])
+            self.LCD.print(['EC High Threshold', 'EC Low Threshold'])
             return None
         
         # TODO test calibration menus
         if self.m1_hover == 7:
             # sets logic to handle A or B input on next loop
             self.child = "EC CONFIRM"
-            self.LCD.display("Press A once EC is fully submerged in solution")
+            self.LCD.print("Press A once EC is fully submerged in solution")
             return None
 
         if self.m1_hover == 6:
             self.child = "pH CONFIRM"
-            self.LCD.display("Press A once EC is fully submerged in solution")
+            self.LCD.print("Press A once EC is fully submerged in solution")
             return None
 
         # TODO finish menu logic for toggle pump/uv
@@ -394,8 +397,9 @@ class menu():
         # TODO finish menu logic for toggle peristaltic
         if self.m1_hover == 9:
             raise Exception("TODO toggle conditioning pumps")
-
-    def evt_handler(self, evt=None, timer=False, test=True):  # TODO test menu. see if i can segment this to reduce loop time?
+            
+    # TODO test menu. see if i can segment this to reduce loop time?
+    def evt_handler(self, evt=None, timer=False, test=True):
         if test:
             print(f"child: {self.child}")
             print(f'parent: {self.parent}')
@@ -463,7 +467,7 @@ class menu():
                         if self.param2change > 20*60*60:
                             self.param2change = 20*60*60
                         # TODO want some way to blink the number being hovered over
-                        self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                        self.LCD.print(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
                     if (evt == "D_B"):
                         # decrease HH:MM:SS timer based on hover position
                         if self.m2_hover == 0:
@@ -481,7 +485,7 @@ class menu():
                         # prevent timer going negative
                         if self.param2change < 0:
                             self.param2change = 0
-                        self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                        self.LCD.print(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
                     if (evt == "R_B"):
                         # change hover position. loop if too far right
                         self.m2_hover += 1
@@ -513,7 +517,7 @@ class menu():
                         # max gap
                         if self.param2change > 999:
                             self.param2change = 999
-                        self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                        self.LCD.print(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
                     if (evt == "D_B"):
                         # decrease the gap based on hover position
                         if self.m2_hover == 0:
@@ -525,7 +529,7 @@ class menu():
                         # min gap
                         if self.param2change < 0:
                             self.param2change = 0
-                        self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                        self.LCD.print(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
                     if (evt == "R_B"):
                         # change hover position. loop if too far right
                         self.m2_hover += 1
@@ -545,13 +549,13 @@ class menu():
                             self.parent = self.child
                             self.child = "pH HIGH"
                             self.param2change = self.settings[4]
-                            self.LCD.display(f"pH High Threshold: {self.timeFormat(self.param2change)}")
+                            self.LCD.print(f"pH High Threshold: {self.timeFormat(self.param2change)}")
                         # pressing down should choose bottom option
                         if (evt == "D_B"):
                             self.parent = self.child
                             self.child = "pH LOW"
                             self.param2change = self.settings[5]
-                            self.LCD.display(f"pH Low Threshold: {self.timeFormat(self.param2change)}")
+                            self.LCD.print(f"pH Low Threshold: {self.timeFormat(self.param2change)}")
                         if (evt == "B_B"):
                             self.startMenu(self.m1_hover)
 
@@ -565,13 +569,13 @@ class menu():
                             self.parent = self.child
                             self.child = "EC HIGH"
                             self.param2change = self.settings[6]
-                            self.LCD.display(f"EC High Threshold: {self.timeFormat(self.param2change)}")
+                            self.LCD.print(f"EC High Threshold: {self.timeFormat(self.param2change)}")
                         # pressing down should choose bottom option
                         if (evt == "D_B"):
                             self.parent = self.child
                             self.child = "pH LOW"
                             self.param2change = self.settings[7]
-                            self.LCD.display(f"EC Low Threshold: {self.timeFormat(self.param2change)}")
+                            self.LCD.print(f"EC Low Threshold: {self.timeFormat(self.param2change)}")
                         if (evt == "B_B"):
                             self.startMenu(self.m1_hover)
 
@@ -586,7 +590,7 @@ class menu():
                         # send to level above
                         self.parent = 4
                         self.child = 'pH THRESH'
-                        self.LCD.display(['pH High Threshold', 'pH Low Threshold'])
+                        self.LCD.print(['pH High Threshold', 'pH Low Threshold'])
                     if (evt == "U_B"):
                         # increase the pH based on hover position
                         if self.m2_hover == 0:
@@ -594,7 +598,7 @@ class menu():
                         # max pH
                         if self.param2change > 14:
                             self.param2change = 14
-                        self.LCD.display(f"pH High Threshold: {self.timeFormat(self.param2change)}")
+                        self.LCD.print(f"pH High Threshold: {self.timeFormat(self.param2change)}")
                     if (evt == "D_B"):
                         # decrease the pH based on hover position
                         if self.m2_hover == 0:
@@ -602,7 +606,7 @@ class menu():
                         # min gap
                         if self.param2change < 0:
                             self.param2change = 0
-                        self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                        self.LCD.print(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
 
             # second level to change pH threshold values
             if (self.parent == 'EC THRESH'):
@@ -615,7 +619,7 @@ class menu():
                         # send to level above
                         self.parent = 5
                         self.child = 'EC THRESH'
-                        self.LCD.display(['EC High Threshold', 'EC Low Threshold'])
+                        self.LCD.print(['EC High Threshold', 'EC Low Threshold'])
                     # increase the EC based on hover position. want it to be to two decimal places X.XX
                     if self.m2_hover == 0:
                         self.param2change += 1
@@ -626,7 +630,7 @@ class menu():
                     # max EC
                     if self.param2change > 10.0:
                         self.param2change = 10.0
-                    self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                    self.LCD.print(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
                 if (evt == "D_B"):
                     # decrease the EC based on hover position. want it to be to two decimal places X.XX
                     if self.m2_hover == 0:
@@ -638,7 +642,7 @@ class menu():
                     # min EC
                     if self.param2change < 0:
                         self.param2change = 0
-                    self.LCD.display(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                    self.LCD.print(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
                 if (evt == "R_B"):
                     # change hover position. loop if too far right
                     self.m2_hover += 1
@@ -653,7 +657,7 @@ class menu():
             if self.child == "EC_CONFIRM":
                 if (evt == "A_B") or (evt == "R_B"):
                     # TODO test
-                    self.LCD.display(self.shrub.EC_calibration())
+                    self.LCD.print(self.shrub.EC_calibration())
                     self.startMenu()
                 if (evt == "B_B") or (evt == "L_B"):
                     self.startMenu(self.m1_hover)
@@ -661,10 +665,31 @@ class menu():
             if self.child == "PH_CONFIRM":
                 if (evt == "A_B") or (evt == "R_B"):
                     # TODO test
-                    self.LCD.display(self.shrub.pH_calibration())
+                    self.LCD.print(self.shrub.pH_calibration())
                     self.startMenu()
                 if (evt == "B_B") or (evt == "L_B"):
                     self.startMenu(self.m1_hover)
 
+class LCDdummy():
+    '''Dummy LCD class to handle methods before incorporating real LCD library. Use for testing/troubleshooting only.'''
+    def __init__(self):
+        print("LCD test instance created.")
+    
+    def display(self, stuff):
+        '''Handle string, list, tuple, int, and float inputs to put them on LCD'''
+        if (type(stuff) is list) or (type(stuff) is tuple):
+            for ele in stuff:
+                print(ele)
+        elif type(stuff) is str:
+            print(stuff)
+        elif (type(stuff) is int) or (type(stuff) is float):
+            stuff = str(stuff)
+            print(stuff)
+        else:
+            raise Exception("Not a valid input to display")
+    
+    def idle(self):
+        print("Idle Mode: Want to user timer and cache system to continually show new sensor data")
+    
 if __name__ == "__main__":
     print("Incorrect file run. Run shrubber_main.py to initialize sensors, actuators, etc.")

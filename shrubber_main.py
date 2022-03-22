@@ -44,37 +44,20 @@ for k, v in PINS.items():
 
 valves = [GZ.LED(PINS['valve1']), GZ.LED(PINS['valve2'])]
 
-# TODO LCD output for state machine with i2c
 
 i2c = busio.I2C(board.SCL, board.SDA)
+
+with i2c:
+    print("I2C addresses found:",
+        [hex(device_address) for device_address in i2c.scan()])
+
 ads = ADS.ADS1015(i2c)
-pHsens = AnalogIn(ads, ADS.P0)  # signal at pin 0
+pHsens = AnalogIn(ads, ADS.P0)  # signal at pin 0 of ADC
 ECsens = AnalogIn(ads, ADS.P1)  # signal at pin 1
+LCD = LCD(I2CPCF8574Interface(board.I2C(), 0x27), num_rows=4, num_cols=20)
 
 sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'], temperature=20)  # example code, 20 C
 
-class LCDdummy():
-    '''Dummy LCD class to handle methods before incorporating real LCD library. Use for testing/troubleshooting only.'''
-    def __init__(self):
-        print("LCD test instance created.")
-    
-    def display(self, stuff):
-        '''Handle string, list, tuple, int, and float inputs to put them on LCD'''
-        if (type(stuff) is list) or (type(stuff) is tuple):
-            for ele in stuff:
-                print(ele)
-        elif type(stuff) is str:
-            print(stuff)
-        elif (type(stuff) is int) or (type(stuff) is float):
-            stuff = str(stuff)
-            print(stuff)
-        else:
-            raise Exception("Not a valid input to display")
-    
-    def idle(self):
-        print("Idle Mode: Want to user timer and cache system to continually show new sensor data")
-    
-LCD = LCDdummy()
 # creating instance of state machine
 shrub = shrubber.hydro(pumpM, pHsens, ECsens, buttons, sonar, LCD, valves)
 menu = shrubber.menu(LCD, shrub)
