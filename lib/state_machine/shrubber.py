@@ -55,7 +55,7 @@ class hydro():
     vt1 = 0
     vt2 = 0
 
-    def __init__(self, pump, pHsens, ECsens, buttons, sonar, LCD, valves, filters=[7, 5, 5]):
+    def __init__(self, pump, pHsens, ECsens, buttons, sonar, LCD, valves, temp, filters=[7, 5, 5, 5]):
         self.state = self.start
         self.pump = pump
         self.bs = buttons
@@ -70,6 +70,7 @@ class hydro():
         self.fs = BF.LowPassFilter(filters[0])
         self.fpH = BF.LowPassFilter(filters[1])
         self.fEC = BF.LowPassFilter(filters[2])
+        self.fTemp = BF.LowPassFilter(filters[3])
         self.pHsens = pHsens
         self.pH = PH.DFRobot_PH()
         self.ECsens = ECsens
@@ -83,8 +84,8 @@ class hydro():
     
     def __str__(self):  # TODO check if we need to update this
         '''Provides formatted sensor values connected to state machine'''
-        return "State: {}\nWater level: {} cm\npH: {}\nEC: {} mS".format(
-            self.state, self.water_height(), self.grab_pH(), self.grab_EC()
+        return "State: {}\nWater level: {} cm\npH: {}\nEC: {} mS\nTemp: {} C".format(
+            self.state, self.water_height(), self.grab_pH(), self.grab_EC(), self.grab_temp()
         )  # dummy function names
 
     def __error(err_string):
@@ -152,7 +153,8 @@ class hydro():
                 return False
         except TypeError:
             return True
-        
+    
+    # TODO rework these or calls to these w/ temp sensor lib
     def EC_calibration(self, temp=22):
         '''Run this once the EC sensor is fully submerged in the high or low solution.
         This will then exit if it detects a value in an acceptable range.'''
@@ -193,6 +195,17 @@ class hydro():
             print("The sonar is not detected.")
             dist = 0
         return self.fs.filter(dist)
+    
+    def grab_temp(self):
+        '''Tries to grab the temperature sensor value 
+        without raising an exception halting the program'''
+        try:
+            # TODO get temp sensor library and replace
+            dist = self.s.basic_distance()
+        except Exception:
+            print("The temperature sensor is not detected.")
+            dist = 0
+        return self.fTemp.filter(dist)
 
     # can replace this with __str__
     def test_print(self):
@@ -239,6 +252,8 @@ class menu():
     # independent timer event
     idle_timer = timer(5*60)
     idle_timer.timer_set()
+    idle_printer = timer(8)
+    _idle_n = 0
 
     def __init__(self, LCD, shrub):
         self.state = self.start
@@ -318,6 +333,10 @@ class menu():
         inactive_timer = self.settings[0]+self.settings[1]
         # save change to shrub state machine
         self.shrub.ptimes = [self.settings[2], inactive_timer]
+        self.LCD.clear()
+        self.LCD.print("Settings saved!")
+        # blocking code here, may want to replace
+        sleep(1)
 
     def startMenu(self, hover=0):
         '''send the menu back to the first level menu'''
@@ -329,7 +348,6 @@ class menu():
         self.child = self.ops
         self.state = "START MENU"
         self.LCD.clear()
-        self.LCD.set_cursor_pos(1, 1)
         self.LCD.print(self.ops[0]) 
 
     def idle(self):
@@ -337,57 +355,110 @@ class menu():
         self.parent = self.start
         self.child = self.ops
         self.state = "IDLE"
-        # special lcd state to scroll sensor data while non blocking. maybe multiprocessing? maybe just send on timer
-        self.LCD.idle()  
+        self.idle_printer.timer_set()
+    
+    def idle_print(self):
+        try:
+            c = self._b
+        except Exception as e:
+            c = ""
+        try:
+            self._b = self._a
+        except Exception as e:
+            self._b = ""
+        self.LCD.clear()
+        self._idle_n += 1
+        self._idle_n %= 4  # for each sensor
+        n = self._idle_n
+        self.idle_printer.timer_set()
+        if n == 0:
+            self._a = f"Water level: {self.shrub.water_height()} cm"
+        if n == 1:
+            self._a = f"pH level: {self.shrub.grab_pH():.1f}"
+        if n == 2:
+            self._a = f"Conductivity level: {self.shrub.grab_EC():.2f} mS"
+        if n == 3:
+            self._a = f"Water temp: {self.shrub.grab_temp():.2f}"
+        
+        # to create scrolling effect
+        self.LCD.print(self._a)
+        [row, col] = self.LCD.cursor_pos()
+        # check if cursor wrapped around
+        if col == 0:
+            self.LCD.set_cursor_pos(int(row), 0)
+        else:
+            self.LCD.set_cursor_pos(int(row)+1, 0)
+        self.LCD.print(self._b)
+        [row, col] = self.LCD.cursor_pos()
+        row = int(row)
+        col = int(col)
+        # check if cursor wrapped around
+        if col != 0:
+            row += 1
+        if row <= 3:
+            self.LCD.set_cursor_pos(row, 0)
+            self.LCD.print(c)
 
     def timeFormat(sec):
         '''automatically convert seconds to HH:MM:SS format for user to read'''
         m, s = divmod(sec, 60)
         h, m = divmod(m, 60)
-        return f"{h:d}:{m:02d}:{s:02d}"
+        return f"{h:02d}:{m:02d}:{s:02d}"
 
     # TODO make sure the menus with multiple options show operations on dif lines
     # TODO enable line cursor mode for changing param values, else turn cursor off?
     def A_at_m1(self):
         '''handle the menu change when the user selects an operation'''
         self.parent = self.m1_hover
+        self.LCD.clear()
         # for  flood timer, drain active pump timer, 
         if self.m1_hover <= 3:
             self.child = None
+
             # show setting being changed and current value
-            self.LCD.print(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.settings[self.m1_hover])}")
+            self.LCD.print(self.ops[self.m1_hover])
+            [row, col] = self.LCD.cursor_pos()
+            # check if cursor wrapped around
+            if col == 0:
+                self.LCD.set_cursor_pos(int(row), 0)
+            else:
+                self.LCD.set_cursor_pos(int(row)+1, 0)
+
             if self.m1_hover <= 2:
-                self.m2_hover = 3  # HH:MM:SS format, default start at first min mark
+                self.LCD.print(f"{self.timeFormat(self.settings[self.m1_hover])}")
+                self.m2_hover = 4  # HH:MM:SS format, default start at first min mark
+
                 return self.settings[self.m1_hover]
             
             # get allowable water height in reservoir setting and allow user to change it
             if self.m1_hover == 3:
                 # 3 sigfigs, e.g. 123 choice of which digit to increase
                 self.m2_hover = 2
+                self.LCD.print(f"{self.settings[self.m1_hover]}")
                 return self.settings[self.m1_hover]
         
         # show sublevel to pick low/high threshold values
         if self.m1_hover == 4:
             self.child = 'pH THRESH'
-            self.LCD.print(['pH High Threshold', 'pH Low Threshold'])
+            self.LCD.print('pH High Threshold\npH Low Threshold')
             return None
         
         # show sublevel to pick low/high threshold values
         if self.m1_hover == 5:
             self.child = 'EC THRESH'
-            self.LCD.print(['EC High Threshold', 'EC Low Threshold'])
+            self.LCD.print('EC High Threshold\nEC Low Threshold')
             return None
         
         # TODO test calibration menus
         if self.m1_hover == 7:
             # sets logic to handle A or B input on next loop
             self.child = "EC CONFIRM"
-            self.LCD.print("Press A once EC is fully submerged in solution")
+            self.LCD.print("Press A once the EC sensor is fully submerged in solution")
             return None
 
         if self.m1_hover == 6:
             self.child = "pH CONFIRM"
-            self.LCD.print("Press A once EC is fully submerged in solution")
+            self.LCD.print("Press A once the pH sensor is fully submerged in solution")
             return None
 
         # TODO finish menu logic for toggle pump/uv
@@ -403,10 +474,14 @@ class menu():
         if test:
             print(f"child: {self.child}")
             print(f'parent: {self.parent}')
-            print('event: '+evt)
+            try:
+                print('event:', evt)
+            except Exception as e:
+                print('event: None', e)
         # should restart timer for setting the menu state to idle
         if evt is not None:
             self.idle_timer.timer_set()
+            self.state = 'ACTIVE'
 
         # whenever there has been no user input for a while, go back to idle
         if timer:
@@ -430,14 +505,39 @@ class menu():
                 self.m1_hover += 1
                 # resets the selected option back to 0 if it goes too high
                 self.m1_hover %= len(self.ops)
+
+                self.LCD.clear()
+                self.LCD.print(self.ops[self.m1_hover])
+                # show next operation beneath it
+                [row, col] = self.LCD.cursor_pos()
+                # check if cursor wrapped around
+                if col == 0:
+                    self.LCD.set_cursor_pos(int(row), 0)
+                else:
+                    self.LCD.set_cursor_pos(int(row)+1, 0)
+                self.LCD.print(self.ops[self.m1_hover+1])
             elif (evt == "D_B"):
                 self.m1_hover -= 1
                 if self.m1_hover < 0:
                     self.m1_hover = len(self.ops) - 1
+                
+                self.LCD.clear()
+                self.LCD.print(self.ops[self.m1_hover])
+                [row, col] = self.LCD.cursor_pos()
+                # check if cursor wrapped around
+                if col == 0:
+                    self.LCD.set_cursor_pos(int(row), 0)
+                else:
+                    self.LCD.set_cursor_pos(int(row)+1, 0)
+                # in case it's the last operation hovered over
+                try:
+                    self.LCD.print(self.ops[self.m1_hover+1])
+                except IndexError:
+                    self.LCD.print(self.ops[0])
         
         # submenu to change timings
         elif self.child not in self.ops:
-            # need to make sure once it goes to first submenu, it doesn't raise error here
+            # need to make sure once it goes to first submenu, it doesn't raise error
             if type(self.parent) is int:
                 if (self.parent <= 2) and (self.child is None):
                     if (evt == "A_B"):
@@ -455,46 +555,47 @@ class menu():
                             self.param2change += 10*60*60
                         if self.m2_hover == 1:
                             self.param2change += 1*60*60
-                        if self.m2_hover == 2:
-                            self.param2change += 10*60
                         if self.m2_hover == 3:
-                            self.param2change += 1*60
+                            self.param2change += 10*60
                         if self.m2_hover == 4:
+                            self.param2change += 1*60
+                        if self.m2_hover == 6:
                             self.param2change += 10
-                        if self.m2_hover == 5:
+                        if self.m2_hover == 7:
                             self.param2change += 1
                         # max timer
                         if self.param2change > 20*60*60:
                             self.param2change = 20*60*60
-                        # TODO want some way to blink the number being hovered over
-                        self.LCD.print(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                        self.LCD.clear()
+                        self.LCD.print(f"{self.ops[self.m1_hover]}:\n{self.timeFormat(self.param2change)}")
                     if (evt == "D_B"):
                         # decrease HH:MM:SS timer based on hover position
                         if self.m2_hover == 0:
                             self.param2change -= 10*60*60
                         if self.m2_hover == 1:
                             self.param2change -= 1*60*60
-                        if self.m2_hover == 2:
-                            self.param2change -= 10*60
                         if self.m2_hover == 3:
-                            self.param2change -= 1*60
+                            self.param2change -= 10*60
                         if self.m2_hover == 4:
+                            self.param2change -= 1*60
+                        if self.m2_hover == 6:
                             self.param2change -= 10
-                        if self.m2_hover == 5:
+                        if self.m2_hover == 7:
                             self.param2change -= 1
                         # prevent timer going negative
                         if self.param2change < 0:
                             self.param2change = 0
+                        self.LCD.clear()
                         self.LCD.print(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
                     if (evt == "R_B"):
                         # change hover position. loop if too far right
                         self.m2_hover += 1
-                        self.m2_hover %= 6
+                        self.m2_hover %= 8
                     if (evt == "L_B"):
                         # change hover position. loop if too far left
                         self.m2_hover -= 1
                         if self.m2_hover < 0:
-                            self.m2_hover = 6 - 1
+                            self.m2_hover = 8 - 1
                     
                 # save water gap
                 if (self.parent == 3) and (self.child is None): 
@@ -517,6 +618,7 @@ class menu():
                         # max gap
                         if self.param2change > 999:
                             self.param2change = 999
+                        self.LCD.clear()
                         self.LCD.print(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
                     if (evt == "D_B"):
                         # decrease the gap based on hover position
@@ -529,6 +631,7 @@ class menu():
                         # min gap
                         if self.param2change < 0:
                             self.param2change = 0
+                        self.LCD.clear()
                         self.LCD.print(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
                     if (evt == "R_B"):
                         # change hover position. loop if too far right
@@ -549,13 +652,13 @@ class menu():
                             self.parent = self.child
                             self.child = "pH HIGH"
                             self.param2change = self.settings[4]
-                            self.LCD.print(f"pH High Threshold: {self.timeFormat(self.param2change)}")
+                            self.LCD.print(f"pH High Threshold:\n{self.timeFormat(self.param2change)}")
                         # pressing down should choose bottom option
                         if (evt == "D_B"):
                             self.parent = self.child
                             self.child = "pH LOW"
                             self.param2change = self.settings[5]
-                            self.LCD.print(f"pH Low Threshold: {self.timeFormat(self.param2change)}")
+                            self.LCD.print(f"pH Low Threshold:\n{self.timeFormat(self.param2change)}")
                         if (evt == "B_B"):
                             self.startMenu(self.m1_hover)
 
@@ -590,7 +693,8 @@ class menu():
                         # send to level above
                         self.parent = 4
                         self.child = 'pH THRESH'
-                        self.LCD.print(['pH High Threshold', 'pH Low Threshold'])
+                        self.LCD.clear()
+                        self.LCD.print('pH High Threshold\npH Low Threshold')
                     if (evt == "U_B"):
                         # increase the pH based on hover position
                         if self.m2_hover == 0:
@@ -598,7 +702,8 @@ class menu():
                         # max pH
                         if self.param2change > 14:
                             self.param2change = 14
-                        self.LCD.print(f"pH High Threshold: {self.timeFormat(self.param2change)}")
+                        self.LCD.clear()
+                        self.LCD.print(f"pH High Threshold:\n{self.timeFormat(self.param2change)}")
                     if (evt == "D_B"):
                         # decrease the pH based on hover position
                         if self.m2_hover == 0:
@@ -606,7 +711,8 @@ class menu():
                         # min gap
                         if self.param2change < 0:
                             self.param2change = 0
-                        self.LCD.print(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                        self.LCD.clear()
+                        self.LCD.print(f"{self.ops[self.m1_hover]}:\n{self.timeFormat(self.param2change)}")
 
             # second level to change pH threshold values
             if (self.parent == 'EC THRESH'):
@@ -623,41 +729,44 @@ class menu():
                     # increase the EC based on hover position. want it to be to two decimal places X.XX
                     if self.m2_hover == 0:
                         self.param2change += 1
-                    if self.m2_hover == 1:
-                        self.param2change += .1
                     if self.m2_hover == 2:
+                        self.param2change += .1
+                    if self.m2_hover == 3:
                         self.param2change += .01
                     # max EC
                     if self.param2change > 10.0:
                         self.param2change = 10.0
-                    self.LCD.print(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                    self.LCD.clear()
+                    self.LCD.print(f"{self.ops[self.m1_hover]}:\n{self.timeFormat(self.param2change)}")
                 if (evt == "D_B"):
                     # decrease the EC based on hover position. want it to be to two decimal places X.XX
                     if self.m2_hover == 0:
                         self.param2change -= 1
-                    if self.m2_hover == 1:
-                        self.param2change -= .1
                     if self.m2_hover == 2:
+                        self.param2change -= .1
+                    if self.m2_hover == 3:
                         self.param2change -= .01
                     # min EC
                     if self.param2change < 0:
                         self.param2change = 0
-                    self.LCD.print(f"{self.ops[self.m1_hover]}: {self.timeFormat(self.param2change)}")
+                    self.LCD.clear()
+                    self.LCD.print(f"{self.ops[self.m1_hover]}:\n{self.timeFormat(self.param2change)}")
                 if (evt == "R_B"):
                     # change hover position. loop if too far right
                     self.m2_hover += 1
-                    self.m2_hover %= 3
+                    self.m2_hover %= 4
                 if (evt == "L_B"):
                     # change hover position. loop if too far left
                     self.m2_hover -= 1
                     if self.m2_hover < 0:
-                        self.m2_hover = 3 - 1
+                        self.m2_hover = 4 - 1
 
             # second level submenus to confirm calibration of sensors
             if self.child == "EC_CONFIRM":
                 if (evt == "A_B") or (evt == "R_B"):
                     # TODO test
                     self.LCD.print(self.shrub.EC_calibration())
+                    sleep(2)  # blocking code, potentially an issue
                     self.startMenu()
                 if (evt == "B_B") or (evt == "L_B"):
                     self.startMenu(self.m1_hover)
@@ -666,6 +775,7 @@ class menu():
                 if (evt == "A_B") or (evt == "R_B"):
                     # TODO test
                     self.LCD.print(self.shrub.pH_calibration())
+                    sleep(2)  # blocking code, potentially an issue
                     self.startMenu()
                 if (evt == "B_B") or (evt == "L_B"):
                     self.startMenu(self.m1_hover)

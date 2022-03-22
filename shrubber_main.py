@@ -35,7 +35,7 @@ pumpM = GZ.PWMLED(PINS['pumpM'])
 pumpA = GZ.LED(PINS['pumpA'])
 pumpB = GZ.LED(PINS['pumpB'])
 pumpN = GZ.LED(PINS['pumpN'])
-condP = [pumpA, pumpB, pumpN]
+condP = [pumpA, pumpB, pumpN]           
 
 buttons = []  # list of button instances
 for k, v in PINS.items():
@@ -44,22 +44,30 @@ for k, v in PINS.items():
 
 valves = [GZ.LED(PINS['valve1']), GZ.LED(PINS['valve2'])]
 
-
 i2c = busio.I2C(board.SCL, board.SDA)
 
 with i2c:
     print("I2C addresses found:",
         [hex(device_address) for device_address in i2c.scan()])
 
-ads = ADS.ADS1015(i2c)
-pHsens = AnalogIn(ads, ADS.P0)  # signal at pin 0 of ADC
-ECsens = AnalogIn(ads, ADS.P1)  # signal at pin 1
+try:
+    ads = ADS.ADS1015(i2c)
+    pHsens = AnalogIn(ads, ADS.P0)  # signal at pin 0
+    ECsens = AnalogIn(ads, ADS.P1)  # signal at pin 1
+    tempSens = AnalogIn(ads, ADS.P2)  # signal at pin 2
+except (OSError, ValueError, AttributeError) as e:
+    print("Error connecting to ADC. Check connection and ADDR pin:", e)
+    ads = "dummy"
+    pHsens = "dummy"
+    ECsens = "dummy"
+    tempSens = "dummy"
+
 LCD = LCD(I2CPCF8574Interface(board.I2C(), 0x27), num_rows=4, num_cols=20)
 
 sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'], temperature=20)  # example code, 20 C
 
 # creating instance of state machine
-shrub = shrubber.hydro(pumpM, pHsens, ECsens, buttons, sonar, LCD, valves)
+shrub = shrubber.hydro(pumpM, pHsens, ECsens, buttons, sonar, LCD, valves, tempSens)
 menu = shrubber.menu(LCD, shrub)
 
 # testing parameters
@@ -99,7 +107,9 @@ while True:
 
     # loop to run once diagnosis is done
     print("Now expecting user input")
-    LCD.idle()
+    menu.idle()
+    button_timer = shrubber.timer(.5)
+    button_timer.timer_set()
     while not testing:
         # print sensor values to terminal to check operation
         if time.monotonic() - last > print_time:
@@ -107,26 +117,27 @@ while True:
             if test2:
                 print(shrub)
         
-        # test to see if this prevents multiple actions from one press
-        buttons[0].when_pressed = menu.evt_handler(evt='A_B')
-        buttons[1].when_pressed = menu.evt_handler(evt='B_B')
-        buttons[2].when_pressed = menu.evt_handler(evt='U_B')
-        buttons[3].when_pressed = menu.evt_handler(evt='L_B')
-        buttons[4].when_pressed = menu.evt_handler(evt='D_B')
-        buttons[5].when_pressed = menu.evt_handler(evt='R_B')
-        # detect user input
-        #if buttons[0].when_pressed:
-        #    menu.evt_handler(evt='A_B')
-        #if buttons[1].is_pressed:
-        #    menu.evt_handler(evt='B_B')
-        #if buttons[2].is_pressed:
-        #    menu.evt_handler(evt='U_B')
-        #if buttons[3].is_pressed:
-        #    menu.evt_handler(evt='L_B')
-        #if buttons[4].is_pressed:
-        #    menu.evt_handler(evt='D_B')
-        #if buttons[5].is_pressed:
-        #    menu.evt_handler(evt='R_B')
+        # prevent repeat presses
+        if button_timer.timer_event():
+            # detect user input
+            if buttons[0].is_pressed:
+                menu.evt_handler(evt='A_B')
+                button_timer.timer_set()
+            if buttons[1].is_pressed:
+                menu.evt_handler(evt='B_B')
+                button_timer.timer_set()
+            if buttons[2].is_pressed:
+                menu.evt_handler(evt='U_B')
+                button_timer.timer_set()
+            if buttons[3].is_pressed:
+                menu.evt_handler(evt='L_B')
+                button_timer.timer_set()
+            if buttons[4].is_pressed:
+                menu.evt_handler(evt='D_B')
+                button_timer.timer_set()
+            if buttons[5].is_pressed:
+                menu.evt_handler(evt='R_B')
+                button_timer.timer_set()
         
         # wait for lack of user input to set menu to idle
         if menu.idle_timer.timer_event():
@@ -135,3 +146,19 @@ while True:
         # TODO update this to work with valve and pump timer
         if shrub.ptimer.timer_event():
             shrub.evt_handler(ptime=True)
+            
+        if menu.state == "IDLE" and menu.idle_printer.timer_event():
+            menu.idle_print()
+
+        # Show cursor position as a line when changing params
+        if type(menu.parent) is int:
+            if menu.parent <= 3:
+                LCD.set_cursor_mode(CursorMode.LINE)
+                menu.LCD.set_cursor_pos(1, menu.m2_hover)
+        elif (menu.parent == 'pH THRESH') or (menu.parent == 'EC THRESH'):
+            LCD.set_cursor_mode(CursorMode.LINE)
+            menu.LCD.set_cursor_pos(1, menu.m2_hover)
+
+        else:
+            LCD.set_cursor_mode(CursorMode.HIDE)
+                

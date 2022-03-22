@@ -47,28 +47,26 @@ class DFRobot_EC():
 			compECsolution = 1.413*(1.0+0.0185*(temperature-25.0))
 			KValueTemp = 820.0*200.0*compECsolution/1000.0/voltage
 			round(KValueTemp, 2)
-			print(">>>Buffer Solution:1.413us/cm")
+			#print(">>>Buffer Solution:1.413us/cm")
 			f=open('ecdata.txt','r+')
 			flist=f.readlines()
 			flist[0]='kvalueLow='+ str(KValueTemp) + '\n'
 			f=open('ecdata.txt','w+')
 			f.writelines(flist)
 			f.close()
-			print(">>>EC:1.413us/cm Calibration completed")
-			sleep(2.0)  # potentially an issue
+			#print(">>>EC:1.413us/cm Calibration completed")
 			return "1.413us/cm calibration completed"
 		elif (rawEC>9 and rawEC<16.8):
 			compECsolution = 12.88*(1.0+0.0185*(temperature-25.0))
 			KValueTemp = 820.0*200.0*compECsolution/1000.0/voltage
-			print(">>>Buffer Solution:12.88ms/cm")
+			#print(">>>Buffer Solution:12.88ms/cm")
 			f=open('ecdata.txt','r+')
 			flist=f.readlines()
 			flist[1]='kvalueHigh='+ str(KValueTemp) + '\n'
 			f=open('ecdata.txt','w+')
 			f.writelines(flist)
 			f.close()
-			print(">>>EC:12.88ms/cm Calibration completed")
-			sleep(2.0)  # potentially an issue
+			#print(">>>EC:12.88ms/cm Calibration completed")
 			return "12.88ms/cm calibration completed"
 		else:
 			return ">>>Buffer solution out of range. Measurement discarded<<<"
