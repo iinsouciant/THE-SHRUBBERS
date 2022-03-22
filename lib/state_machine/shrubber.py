@@ -356,13 +356,13 @@ class menu():
     
     def idle_print(self):
         try:
-            c = self.b
+            c = self._b
         except Exception as e:
             c = ""
         try:
-            self.b = self.a
+            self._b = self._a
         except Exception as e:
-            self.b = ""
+            self._b = ""
         self.LCD.clear()
         self._idle_n += 1
         self._idle_n %= 4 # for each sensor
@@ -370,23 +370,23 @@ class menu():
         self.idle_printer.timer_set()
         self.LCD.set_cursor_pos(0,0)
         if n == 0:
-            self.a = f"Water level: {self.shrub.water_height()} cm"
+            self._a = f"Water level: {self.shrub.water_height()} cm"
         if n == 1:
-            self.a = f"pH level: {self.shrub.grab_pH():.1f}"
+            self._a = f"pH level: {self.shrub.grab_pH():.1f}"
         if n == 2:
-            self.a = f"Conductivity level: {self.shrub.grab_EC():.2f} mS"
+            self._a = f"Conductivity level: {self.shrub.grab_EC():.2f} mS"
         if n == 3:
-            self.a = f"Water temp: {self.shrub.grab_temp():.2f}"
+            self._a = f"Water temp: {self.shrub.grab_temp():.2f}"
         
         # to create scrolling effect
-        self.LCD.print(self.a)
+        self.LCD.print(self._a)
         [row, col] = self.LCD.cursor_pos()
         # check if cursor wrapped around
         if col == 0:
             self.LCD.set_cursor_pos(int(row),0)
         else:
              self.LCD.set_cursor_pos(int(row)+1,0)
-        self.LCD.print(self.b)
+        self.LCD.print(self._b)
         [row, col] = self.LCD.cursor_pos()
         row = int(row)
         col = int(col)
@@ -462,8 +462,8 @@ class menu():
             print(f'parent: {self.parent}')
             try:
                 print('event:',evt)
-            except TypeError:
-                print('event: None')
+            except Exception as e:
+                print('event: None',e)
         # should restart timer for setting the menu state to idle
         if evt is not None:
             self.idle_timer.timer_set()
