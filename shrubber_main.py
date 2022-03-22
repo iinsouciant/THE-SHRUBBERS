@@ -124,19 +124,26 @@ while True:
             if test2:
                 print(shrub)
         
+        # test to see if this prevents multiple actions from one press
+        buttons[0].when_pressed = menu.evt_handler(evt='A_B')
+        buttons[1].when_pressed = menu.evt_handler(evt='B_B')
+        buttons[2].when_pressed = menu.evt_handler(evt='U_B')
+        buttons[3].when_pressed = menu.evt_handler(evt='L_B')
+        buttons[4].when_pressed = menu.evt_handler(evt='D_B')
+        buttons[5].when_pressed = menu.evt_handler(evt='R_B')
         # detect user input
-        if buttons[0].is_pressed:
-            menu.evt_handler(evt='A_B')
-        if buttons[1].is_pressed:
-            menu.evt_handler(evt='B_B')
-        if buttons[2].is_pressed:
-            menu.evt_handler(evt='U_B')
-        if buttons[3].is_pressed:
-            menu.evt_handler(evt='L_B')
-        if buttons[4].is_pressed:
-            menu.evt_handler(evt='D_B')
-        if buttons[5].is_pressed:
-            menu.evt_handler(evt='R_B')
+        #if buttons[0].when_pressed:
+        #    menu.evt_handler(evt='A_B')
+        #if buttons[1].is_pressed:
+        #    menu.evt_handler(evt='B_B')
+        #if buttons[2].is_pressed:
+        #    menu.evt_handler(evt='U_B')
+        #if buttons[3].is_pressed:
+        #    menu.evt_handler(evt='L_B')
+        #if buttons[4].is_pressed:
+        #    menu.evt_handler(evt='D_B')
+        #if buttons[5].is_pressed:
+        #    menu.evt_handler(evt='R_B')
         
         # wait for lack of user input to set menu to idle
         if menu.idle_timer.timer_event():
