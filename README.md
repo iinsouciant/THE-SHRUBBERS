@@ -42,12 +42,7 @@ All but the sonar sensor use analog signals, therefore we need to get an ADC for
 - [Adafruit Blinka](https://github.com/adafruit/Adafruit_Blinka "Blinka GitHub page")
 - [ADS 1X15](https://github.com/adafruit/Adafruit_CircuitPython_ADS1x15 "ADC Library page")
 
+In console, navigate to the download location of the repository and run the package installer shell script for libraries not included in the repository itself. Note: the ones included in the repository are either created by us or modified versions of other libraries. Additionally, the `pkg_script.sh` file assumes you do not have CircuitPython installed on your Raspberry Pi prior to this and will attempt to install is after the other packages.
 ```
-sudo apt full-upgrade
-sudo apt install python3-gpiozero
-sudo pip3 install Adafruit-Blinka
-sudo pip3 install adafruit-circuitpython-ads1x15
-sudo pip3 install scipy
-pip install numpy
-pip install rpi-lcd
+sudo sh pkg_script.sh
 ```
