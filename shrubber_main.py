@@ -84,6 +84,7 @@ print_time = 7
 
 # initializing variables
 last = time.monotonic()
+button_timer = shrubber.timer(.5)
 
 # will need to alter inital starting method for no keyboard/mouse
 # shrub.state used to track what state pump/uv is in
@@ -115,7 +116,6 @@ while True:
     # loop to run once diagnosis is done
     print("Now expecting user input")
     menu.idle()
-    button_timer = shrubber.timer(.5)
     button_timer.timer_set()
     while not done:
         if button_timer.event_no_reset():
