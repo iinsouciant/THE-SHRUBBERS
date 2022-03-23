@@ -30,6 +30,13 @@ class timer():
         else:
             return False
 
+    def event_no_reset(self):
+        if (self.timer_time is not None) and monotonic() >= self.timer_time:
+            # self.timer_time = None
+            return True
+        else:
+            return False
+
     def timer_set(self):
         self.timer_time = monotonic() + self.TIMER_INTERVAL
     
@@ -479,7 +486,8 @@ class menu():
             except Exception as e:
                 print('event: None', e)
         # should restart timer for setting the menu state to idle
-        if evt is not None:
+        evtTry = type(evt) is not NoneType
+        if :
             self.idle_timer.timer_set()
             self.state = 'ACTIVE'
 
