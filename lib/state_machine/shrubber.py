@@ -278,10 +278,10 @@ class menu():
                 self.dt = int(rows[1][1])
                 self.ap = int(rows[2][1])
                 self.sT = int(rows[3][1])
-                self.pHH = int(rows[4][1])
-                self.pHL = int(rows[5][1])
-                self.ECH = int(rows[6][1])
-                self.ECL = int(rows[7][1])
+                self.pHH = float(rows[4][1])
+                self.pHL = float(rows[5][1])
+                self.ECH = float(rows[6][1])
+                self.ECL = float(rows[7][1])
                 print("Settings loaded")
         except (IOError) as e:
             if e is IOError:
@@ -339,8 +339,8 @@ class menu():
                 ['EC High Threshold', self.settings[6]], 
                 ['EC Low Threshold', self.settings[7]],
             ] 
-            settings = csv.writer(f)
-            settings.writerows(rows)
+            new_settings = csv.writer(f)
+            new_settings.writerows(rows)
 
         # calc time pump needs to be off to let plants be submerged and drained
         inactive_timer = self.settings[0]+self.settings[1]
@@ -618,7 +618,7 @@ class menu():
                             self.m2_hover = 8 - 1
                     
                 # save water gap
-                if (self.parent == 3) and (self.child is None): 
+                elif (self.parent == 3) and (self.child is None): 
                     if (evt == "A_B"):
                         self.saveParamChange()
                         # send back to first level menu
@@ -670,7 +670,7 @@ class menu():
                             self.m2_hover = 3 - 1
 
                 # sublevel to choose pH thresholds
-                if (self.parent == 4):
+                elif (self.parent == 4):
                     if (self.child == 'pH THRESH'):
                         self.m2_hover = 0
                         # should show two rows for low and high threshold
@@ -680,19 +680,20 @@ class menu():
                             self.child = "pH HIGH"
                             self.param2change = self.settings[4]
                             self.LCD.clear()
-                            self.LCD.print(f"pH High Threshold:\n{self.timeFormat(self.param2change)}")
+                            self.LCD.print(f"pH High Threshold:\n{self.param2change}")
+                            #self.LCD.print(f"pH High Threshold:\n{self.settings[4]}")
                         # pressing down should choose bottom option
                         if (evt == "D_B"):
                             self.parent = self.child
                             self.child = "pH LOW"
                             self.param2change = self.settings[5]
                             self.LCD.clear()
-                            self.LCD.print(f"pH Low Threshold:\n{self.timeFormat(self.param2change)}")
+                            self.LCD.print(f"pH Low Threshold:\n{self.param2change}")
                         if (evt == "B_B"):
                             self.startMenu(self.m1_hover)
 
                 # sublevel to choose EC thresholds
-                if (self.parent == 5):
+                elif (self.parent == 5):
                     if (self.child == 'EC THRESH'):
                         self.m2_hover = 0
                         # should show two rows for low and high threshold
@@ -714,7 +715,7 @@ class menu():
                             self.startMenu(self.m1_hover)
 
             # second level to change pH threshold values
-            if (self.parent == 'pH THRESH'):
+            elif (self.parent == 'pH THRESH'):
                 if (self.child == 'pH HIGH'):
                     if (evt == "A_B"):
                         self.saveParamChange()
@@ -731,20 +732,33 @@ class menu():
                         # increase the pH based on hover position
                         if self.m2_hover == 0:
                             self.param2change += 1
+                        if self.m2_hover == 2:
+                            self.param2change += .1
                         # max pH
-                        if self.param2change > 14:
-                            self.param2change = 14
+                        if self.param2change > 9.9:
+                            self.param2change = 9.9
                         self.LCD.clear()
                         self.LCD.print(f"pH High Threshold:\n{self.param2change}")
                     if (evt == "D_B"):
                         # decrease the pH based on hover position
                         if self.m2_hover == 0:
                             self.param2change -= 1
+                        if self.m2_hover == 2:
+                            self.param2change -= .1
                         # min gap
                         if self.param2change < 0:
                             self.param2change = 0
                         self.LCD.clear()
                         self.LCD.print(f"pH High Threshold:\n{self.param2change}")
+                    if (evt == 'R_B'):
+                        # change hover position. loop if too far right
+                        self.m2_hover += 1
+                        self.m2_hover %= 3
+                    if (evt == "L_B"):
+                        # change hover position. loop if too far left
+                        self.m2_hover -= 1
+                        if self.m2_hover < 0:
+                            self.m2_hover = 3 - 1
                 if (self.child == 'pH LOW'):
                     if (evt == "A_B"):
                         self.saveParamChange()
@@ -761,23 +775,36 @@ class menu():
                         # increase the pH based on hover position
                         if self.m2_hover == 0:
                             self.param2change += 1
+                        if self.m2_hover == 2:
+                            self.param2change += .1
                         # max pH
-                        if self.param2change > 14:
-                            self.param2change = 14
+                        if self.param2change > 9.9:
+                            self.param2change = 9.9
                         self.LCD.clear()
                         self.LCD.print(f"pH Low Threshold:\n{self.param2change}")
                     if (evt == "D_B"):
                         # decrease the pH based on hover position
                         if self.m2_hover == 0:
-                            self.param2change -= 1
-                        # min gap
-                        if self.param2change < 0:
-                            self.param2change = 0
+                            self.param2change += 1
+                        if self.m2_hover == 2:
+                            self.param2change += .1
+                        # max pH
+                        if self.param2change > 9.9:
+                            self.param2change = 9.9
                         self.LCD.clear()
                         self.LCD.print(f"pH Low Threshold:\n{self.param2change}")
+                    if (evt == 'R_B'):
+                        # change hover position. loop if too far right
+                        self.m2_hover += 1
+                        self.m2_hover %= 3
+                    if (evt == "L_B"):
+                        # change hover position. loop if too far left
+                        self.m2_hover -= 1
+                        if self.m2_hover < 0:
+                            self.m2_hover = 3 - 1
 
             # second level to change pH threshold values
-            if (self.parent == 'EC THRESH'):
+            elif (self.parent == 'EC THRESH'):
                 if (self.child == 'EC HIGH'):
                     if (evt == "A_B"):
                         self.saveParamChange()
@@ -815,6 +842,7 @@ class menu():
                         if self.param2change < 0:
                             self.param2change = 0
                         self.LCD.clear()
+                        print(f"unformatted:{self.param2change}\n{self.param2change:.2f}")
                         self.LCD.print(f"EC High Threshold:\n{self.param2change:.2f}")
                     if (evt == "R_B"):
                         # change hover position. loop if too far right
@@ -848,6 +876,7 @@ class menu():
                         if self.param2change > 10.0:
                             self.param2change = 10.0
                         self.LCD.clear()
+                        print(f"{self.param2change:.2f}")
                         self.LCD.print(f"EC Low Threshold:\n{self.param2change:.2f}")
                     if (evt == "D_B"):
                         # decrease the EC based on hover position. want it to be to two decimal places X.XX
@@ -861,6 +890,7 @@ class menu():
                         if self.param2change < 0:
                             self.param2change = 0
                         self.LCD.clear()
+                        print(f"{self.param2change:.2f}")
                         self.LCD.print(f"EC Low Threshold:\n{self.param2change:.2f}")
                     if (evt == "R_B"):
                         # change hover position. loop if too far right
@@ -875,7 +905,7 @@ class menu():
             # second level submenus to confirm calibration of sensors
             if self.child == "EC_CONFIRM":
                 if (evt == "A_B") or (evt == "R_B"):
-                    # TODO test
+                    # TODO 
                     self.LCD.print(self.shrub.EC_calibration())
                     sleep(2)  # blocking code, potentially an issue
                     self.startMenu()
@@ -884,7 +914,7 @@ class menu():
 
             if self.child == "PH_CONFIRM":
                 if (evt == "A_B") or (evt == "R_B"):
-                    # TODO test
+                    # TODO freezes after this with parent 6 child pH confirm
                     self.LCD.print(self.shrub.pH_calibration())
                     sleep(2)  # blocking code, potentially an issue
                     self.startMenu()
