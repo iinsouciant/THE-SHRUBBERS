@@ -25,6 +25,13 @@ import time
 # state machine
 from lib.state_machine import shrubber
 
+
+import pygame
+pygame.init()
+screen = pygame.display.set_mode((400,400))
+
+done = False
+
 # placeholder pin values
 PINS = {"res_trig": 'GPIO23', 'res_echo': 'GPIO24', 'A_B': 'GPIO18',
 'B_B': 'GPIO27', 'U_B': 'GPIO17', 'L_B': 'GPIO22', 'D_B': 'GPIO25', 'R_B': 'GPIO5',
@@ -110,15 +117,44 @@ while True:
     print("Now expecting user input")
     menu.idle()
     button_timer.timer_set()
-    while not testing:
+
+    # simulate butto npresses w/ keyboard input
+    while (not done) and (not testing):
+        if button_timer.event_no_reset():
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    done = True
+                    testing = True
+                    break
+                elif event.type == pygame.KEYDOWN:
+                    print("key is pressed")
+                    if event.key == pygame.K_w:
+                        menu.evt_handler(evt='U_B')
+                        button_timer.timer_set()
+                    if event.key == pygame.K_s:
+                        menu.evt_handler(evt='D_B')
+                        button_timer.timer_set()
+                    if event.key == pygame.K_d:
+                        menu.evt_handler(evt='R_B')
+                        button_timer.timer_set()
+                    if event.key == pygame.K_a:
+                        menu.evt_handler(evt='L_B')
+                        button_timer.timer_set()
+                    if event.key == pygame.K_q:
+                        menu.evt_handler(evt='A_B')
+                        button_timer.timer_set()
+                    if event.key == pygame.K_e:
+                        menu.evt_handler(evt='B_B')
+                        button_timer.timer_set()
+    #while not testing:
         # print sensor values to terminal to check operation
         if time.monotonic() - last > print_time:
             last = time.monotonic() 
             if test2:
-                print(shrub)
+                print(f"menu state: {menu.state}")
         
         # prevent repeat presses
-        if button_timer.timer_event():
+        if button_timer.event_no_reset():
             # detect user input
             if buttons[0].is_pressed:
                 menu.evt_handler(evt='A_B')
