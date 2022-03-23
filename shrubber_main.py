@@ -79,7 +79,7 @@ menu = shrubber.menu(LCD, shrub)
 
 # testing parameters
 testing = False  # to run test procedure on startup
-test2 = False  # show sensor value periodically in normal operation
+test2 = True  # show sensor value periodically in normal operation
 print_time = 7
 
 # initializing variables
@@ -117,11 +117,14 @@ while True:
     print("Now expecting user input")
     menu.idle()
     button_timer.timer_set()
-    while not done:
+
+    # simulate butto npresses w/ keyboard input
+    while (not done) and (not testing):
         if button_timer.event_no_reset():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     done = True
+                    testing = True
                     break
                 elif event.type == pygame.KEYDOWN:
                     print("key is pressed")
@@ -148,10 +151,10 @@ while True:
         if time.monotonic() - last > print_time:
             last = time.monotonic() 
             if test2:
-                print(shrub)
+                print(f"menu state: {menu.state}")
         
-        '''# prevent repeat presses
-        if button_timer.timer_event():
+        # prevent repeat presses
+        if button_timer.event_no_reset():
             # detect user input
             if buttons[0].is_pressed:
                 menu.evt_handler(evt='A_B')
@@ -170,7 +173,7 @@ while True:
                 button_timer.timer_set()
             if buttons[5].is_pressed:
                 menu.evt_handler(evt='R_B')
-                button_timer.timer_set()'''
+                button_timer.timer_set()
         
         # wait for lack of user input to set menu to idle
         if menu.idle_timer.timer_event():
