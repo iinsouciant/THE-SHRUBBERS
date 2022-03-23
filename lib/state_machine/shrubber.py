@@ -498,7 +498,8 @@ class menu():
             except Exception as e:
                 print('event: None', e)
         # should restart timer for setting the menu state to idle
-        if evt is not None:
+        evtTry = type(evt) is not NoneType
+        if :
             self.idle_timer.timer_set()
             self.state = 'ACTIVE'
 

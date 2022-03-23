@@ -79,7 +79,7 @@ menu = shrubber.menu(LCD, shrub)
 
 # testing parameters
 testing = False  # to run test procedure on startup
-test2 = True  # show sensor value periodically in normal operation
+test2 = False  # show sensor value periodically in normal operation
 print_time = 7
 
 # initializing variables
@@ -173,7 +173,7 @@ while True:
                 button_timer.timer_set()
             if buttons[5].is_pressed:
                 menu.evt_handler(evt='R_B')
-                button_timer.timer_set()
+                button_timer.timer_set()'''
         
         # wait for lack of user input to set menu to idle
         if menu.idle_timer.timer_event():
