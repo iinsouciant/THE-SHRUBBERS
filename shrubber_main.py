@@ -86,6 +86,7 @@ print_time = 7
 
 # initializing variables
 last = time.monotonic()
+button_timer = shrubber.timer(.5)
 
 # will need to alter inital starting method for no keyboard/mouse
 # shrub.state used to track what state pump/uv is in
@@ -116,6 +117,7 @@ while True:
 
     # loop to run once diagnosis is done
     print("Now expecting user input")
+    button_timer.timer_set()
     LCD.idle()
     while not testing:
         # print sensor values to terminal to check operation
@@ -124,26 +126,27 @@ while True:
             if test2:
                 print(shrub)
         
-        # test to see if this prevents multiple actions from one press
-        buttons[0].when_pressed = menu.evt_handler(evt='A_B')
-        buttons[1].when_pressed = menu.evt_handler(evt='B_B')
-        buttons[2].when_pressed = menu.evt_handler(evt='U_B')
-        buttons[3].when_pressed = menu.evt_handler(evt='L_B')
-        buttons[4].when_pressed = menu.evt_handler(evt='D_B')
-        buttons[5].when_pressed = menu.evt_handler(evt='R_B')
-        # detect user input
-        #if buttons[0].when_pressed:
-        #    menu.evt_handler(evt='A_B')
-        #if buttons[1].is_pressed:
-        #    menu.evt_handler(evt='B_B')
-        #if buttons[2].is_pressed:
-        #    menu.evt_handler(evt='U_B')
-        #if buttons[3].is_pressed:
-        #    menu.evt_handler(evt='L_B')
-        #if buttons[4].is_pressed:
-        #    menu.evt_handler(evt='D_B')
-        #if buttons[5].is_pressed:
-        #    menu.evt_handler(evt='R_B')
+        # prevent repeat presses
+        if button_timer.timer_event():
+            # detect user input
+            if buttons[0].is_pressed:
+                menu.evt_handler(evt='A_B')
+                button_timer.timer_set()
+            if buttons[1].is_pressed:
+                menu.evt_handler(evt='B_B')
+                button_timer.timer_set()
+            if buttons[2].is_pressed:
+                menu.evt_handler(evt='U_B')
+                button_timer.timer_set()
+            if buttons[3].is_pressed:
+                menu.evt_handler(evt='L_B')
+                button_timer.timer_set()
+            if buttons[4].is_pressed:
+                menu.evt_handler(evt='D_B')
+                button_timer.timer_set()
+            if buttons[5].is_pressed:
+                menu.evt_handler(evt='R_B')
+                button_timer.timer_set()
         
         # wait for lack of user input to set menu to idle
         if menu.idle_timer.timer_event():
