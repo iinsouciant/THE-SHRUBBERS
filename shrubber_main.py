@@ -173,7 +173,7 @@ while True:
                 button_timer.timer_set()
             if buttons[5].is_pressed:
                 menu.evt_handler(evt='R_B')
-                button_timer.timer_set()'''
+                button_timer.timer_set()
         
         # wait for lack of user input to set menu to idle
         if menu.idle_timer.timer_event():
