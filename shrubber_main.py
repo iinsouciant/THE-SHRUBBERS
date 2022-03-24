@@ -28,7 +28,7 @@ from lib.state_machine import shrubber
 # for testing w/o buttons. simulates button input
 import pygame
 pygame.init()
-screen = pygame.display.set_mode((100,100))
+screen = pygame.display.set_mode((100, 100))
 
 done = False
 
@@ -122,28 +122,28 @@ while True:
     while (not done) and (not testing):
         if button_timer.event_no_reset():
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
+                if (event.type == pygame.QUIT) or (event.key == pygame.K_ECCAPE):
                     done = True
                     testing = True
                     break
                 elif event.type == pygame.KEYDOWN:
                     print("key is pressed")
-                    if event.key == pygame.K_w:
+                    if (event.key == pygame.K_w) or (event.key == pygame.K_UP):
                         menu.evt_handler(evt='U_B')
                         button_timer.timer_set()
-                    if event.key == pygame.K_s:
+                    if event.key == pygame.K_s or (event.key == pygame.K_DOWN):
                         menu.evt_handler(evt='D_B')
                         button_timer.timer_set()
-                    if event.key == pygame.K_d:
+                    if event.key == pygame.K_d or (event.key == pygame.K_RIGHT):
                         menu.evt_handler(evt='R_B')
                         button_timer.timer_set()
-                    if event.key == pygame.K_a:
+                    if event.key == pygame.K_a or (event.key == pygame.K_LEFT):
                         menu.evt_handler(evt='L_B')
                         button_timer.timer_set()
-                    if event.key == pygame.K_q:
+                    if event.key == pygame.K_q or (event.key == pygame.K_z):
                         menu.evt_handler(evt='A_B')
                         button_timer.timer_set()
-                    if event.key == pygame.K_e:
+                    if event.key == pygame.K_e or (event.key == pygame.K_x):
                         menu.evt_handler(evt='B_B')
                         button_timer.timer_set()
     #while not testing:
@@ -200,4 +200,5 @@ while True:
                 
     if done:
         print("Something caused the state machine to break. Exiting program")
+        LCD.print("Something caused the state machine to break. Exiting program")
         break
