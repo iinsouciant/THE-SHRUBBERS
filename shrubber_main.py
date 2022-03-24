@@ -86,6 +86,7 @@ print_time = 7
 last = time.monotonic()
 button_timer = shrubber.timer(.25)
 
+
 # will need to alter inital starting method for no keyboard/mouse
 # shrub.state used to track what state pump/uv is in
 
@@ -185,6 +186,7 @@ while (not done) and (not testing):
     # wait for lack of user input to set menu to idle
     if menu.idle_timer.timer_event():
         menu.evt_handler(timer=True)
+
 
     # TODO update this to work with valve and pump timer
     if shrub.ptimer.timer_event():
