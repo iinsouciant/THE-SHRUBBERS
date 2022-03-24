@@ -43,6 +43,13 @@ class timer():
     def timer_set(self):
         '''Restarts timer from time of method call'''
         self.timer_time = monotonic() + self.TIMER_INTERVAL
+
+    def time_remaining(self):
+        '''Checks to see if the time has passed. If it not, returns float of difference. No reset if time has passed'''
+        if (self.timer_time is not None) and monotonic() >= self.timer_time:
+            return None
+        else:
+            return self.timer_time - monotonic()
     
 
 # TODO split hydro for main pump and conditioning
@@ -54,8 +61,8 @@ class hydro():
     start = "IDLE"
     test = False  # for printing state change and events
     test_q = "Y"
-    # pump active and inactive times
-    ptimes = [120, 1500]
+    # pump active, drain, and inactive times
+    ptimes = [60*20, 60*10, 60*60*4]
     pt = 0
     # independent timer event for pump/UV. start on
     ptimer = timer(ptimes[pt])
@@ -130,7 +137,7 @@ class hydro():
             self.ptimer = timer(self.ptimes[self.pt])
             self.ptimer.timer_set()
 
-        # TODO valve events/timing so they alternate
+        # TODO valve events/timing so they alternate, split timing
         if vtime:
             print('Open one valve. set timer to then open other valve. change which goes first next time')
             # have it called once to open first valve, second time to open second valve, third time to close both
@@ -147,9 +154,15 @@ class hydro():
             # TODO finish
             pass
 
+    def newTimes(self, times):
+        self.ptimes = times
+        # use self.ptimer.time_remaining() to get remaining time and add that to new timer so it doesn't skip interval
+        self.ptimer = ("hi")
+
     def active(self, pwr=30):
         self.pump.value = pwr/100  # TODO set default value to match 1 GPM 
 
+    # TODO update this
     def water_height(self):  # in cm, good for ~9 to ~30
         hole_depth1 = 35*2.54  # 35in to cm
         return self.s.depth(self.grab_sonar(), hole_depth1)
@@ -164,7 +177,7 @@ class hydro():
         except TypeError:
             return True
     
-    def EC_calibration(self, temp=22):
+    def EC_calibration(self):
         '''Run this once the EC sensor is fully submerged in the high or low solution.
         This will then exit if it detects a value in an acceptable range.'''
         return self.EC.calibration(self.grab_EC(), self.grab_temp())
@@ -351,6 +364,8 @@ class menu():
         # show message until user input
         self.child = "WAIT"
         self.parent = None
+        # TODO send these params to other state machines
+        # shrub.new_timer() or something
 
     def startMenu(self, hover=0):
         '''send the menu back to the first level menu'''
@@ -421,7 +436,6 @@ class menu():
         h, m = divmod(m, 60)
         return f"{h:02d}:{m:02d}:{s:02d}"
 
-    # TODO make sure the menus with multiple options show operations on dif lines
     def A_at_m1(self):
         '''handle the menu change when the user selects an operation'''
         self.parent = self.m1_hover
@@ -458,23 +472,21 @@ class menu():
         # show sublevel to pick low/high threshold values
         if self.m1_hover == 4:
             self.child = 'pH THRESH'
-            self.LCD.print('pH High Threshold\npH Low Threshold')
+            self.LCD.print('^ pH High Threshold\nv pH Low Threshold')
             return None
         
         # show sublevel to pick low/high threshold values
         if self.m1_hover == 5:
             self.child = 'EC THRESH'
-            self.LCD.print('EC High Threshold\nEC Low Threshold')
+            self.LCD.print('^ EC High Threshold\nv EC Low Threshold')
             return None
         
-        # TODO fix this
         if self.m1_hover == 7:
             # sets logic to handle A or B input on next loop
             self.child = "EC CONFIRM"
             self.LCD.print("Press A once the EC sensor is fully submerged in solution")
             return None
 
-        # TODO fix this
         if self.m1_hover == 6:
             self.child = "pH CONFIRM"
             self.LCD.print("Press A once the pH sensor is fully submerged in solution")
@@ -482,14 +494,16 @@ class menu():
 
         # TODO finish menu logic for toggle pump/uv
         if self.m1_hover == 8:
-            raise Exception("TODO toggle pump/UV")
+            self.LCD.print("TODO toggle pump/UV")
+            self.startMenu(hover=8)
 
         # TODO finish menu logic for toggle peristaltic
         if self.m1_hover == 9:
-            raise Exception("TODO toggle conditioning pumps")
+            self.LCD.print("TODO toggle conditioning pumps")
+            self.startMenu(hover=8)
             
-    # TODOsee if i can segment this to reduce loop time?
-    def evt_handler(self, evt=None, timer=False, test=True):
+    # TODO see if i can segment this to reduce loop time?
+    def evt_handler(self, evt=None, timer=False, test=False):
         if test:
             print(f"child: {self.child}")
             print(f'parent: {self.parent}')

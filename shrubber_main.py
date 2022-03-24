@@ -187,7 +187,6 @@ while (not done) and (not testing):
     if menu.idle_timer.timer_event():
         menu.evt_handler(timer=True)
 
-
     # TODO update this to work with valve and pump timer
     if shrub.ptimer.timer_event():
         shrub.evt_handler(ptime=True)
