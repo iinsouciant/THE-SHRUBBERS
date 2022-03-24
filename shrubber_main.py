@@ -25,10 +25,10 @@ import time
 # state machine
 from lib.state_machine import shrubber
 
-
+# for testing w/o buttons. simulates button input
 import pygame
 pygame.init()
-screen = pygame.display.set_mode((400,400))
+screen = pygame.display.set_mode((100,100))
 
 done = False
 
@@ -51,11 +51,13 @@ for k, v in PINS.items():
 
 valves = [GZ.LED(PINS['valve1']), GZ.LED(PINS['valve2'])]
 
+# initialize i2c bus to use with ADC for analog input and send communicate with LCD
 i2c = busio.I2C(board.SCL, board.SDA)
 
 with i2c:
     print("I2C addresses found:",
         [hex(device_address) for device_address in i2c.scan()])
+LCD = LCD(I2CPCF8574Interface(board.I2C(), 0x27), num_rows=4, num_cols=20)
 
 try:
     ads = ADS.ADS1015(i2c)
@@ -68,8 +70,6 @@ except (OSError, ValueError, AttributeError) as e:
     pHsens = "dummy"
     ECsens = "dummy"
     tempSens = "dummy"
-
-LCD = LCD(I2CPCF8574Interface(board.I2C(), 0x27), num_rows=4, num_cols=20)
 
 sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'], temperature=20)  # example code, 20 C
 
@@ -198,3 +198,6 @@ while True:
         else:
             LCD.set_cursor_mode(CursorMode.HIDE)
                 
+    if done:
+        print("Something caused the state machine to break. Exiting program")
+        break
