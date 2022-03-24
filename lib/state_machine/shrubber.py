@@ -90,7 +90,7 @@ class hydro():
 
     def __repr__(self):
         return "state_machine({}, {}, {}, {}, {}, {})".format(self.pump, self.pHsens,
-        self.ECsens, self.bs, self.sonar, self.LCD)
+        self.ECsens, self.bs, self.s, self.LCD)
     
     def __str__(self):  # TODO check if we need to update this
         '''Provides formatted sensor values connected to state machine'''
@@ -164,23 +164,21 @@ class hydro():
         except TypeError:
             return True
     
-    # TODO rework these or calls to these w/ temp sensor lib
     def EC_calibration(self, temp=22):
         '''Run this once the EC sensor is fully submerged in the high or low solution.
         This will then exit if it detects a value in an acceptable range.'''
-        return self.EC.calibration(self.ECsens.voltage(), temp)
+        return self.EC.calibration(self.grab_EC(), self.grab_temp())
         
-    def pH_calibration(self, temp=22):
+    def pH_calibration(self):
         '''Run this once the EC sensor is fully submerged in the high or low solution.
         This will then exit if it detects a value in an acceptable range.'''
-        return self.pH.calibration(self.pHsens.voltage(), temp)
+        return self.pH.calibration(self.grab_pH())
 
-    # TODO update/supplement grabs with calculations to interpret voltage
     def grab_pH(self):
         '''Tries to grab the pH sensor value 
         without raising an exception halting the program'''
         try:
-            dist = self.pHsens.voltage()
+            dist = PH.readPH(self.pHsens.voltage())
         except Exception:
             print("The pH sensor is not detected.")
             dist = 0
@@ -190,8 +188,8 @@ class hydro():
         '''Tries to grab the conductivity sensor value 
         without raising an exception halting the program'''
         try:
-            dist = self.ECsens.voltage()
-        except Exception:
+            dist = EC.readEC(self.ECsens.voltage(), self.grab_temp)
+        except Exception:  # todo find correct exceptions here
             print("The conductivity sensor is not detected.")
             dist = 0
         return self.fEC.filter(dist)
@@ -350,8 +348,9 @@ class menu():
         self.LCD.clear()
         self.LCD.set_cursor_mode(CursorMode.HIDE)
         self.LCD.print("Settings saved!")
-        # blocking code here, may want to replace
-        sleep(1)
+        # show message until user input
+        self.child = "WAIT"
+        self.parent = None
 
     def startMenu(self, hover=0):
         '''send the menu back to the first level menu'''
@@ -423,7 +422,6 @@ class menu():
         return f"{h:02d}:{m:02d}:{s:02d}"
 
     # TODO make sure the menus with multiple options show operations on dif lines
-    # TODO enable line cursor mode for changing param values, else turn cursor off?
     def A_at_m1(self):
         '''handle the menu change when the user selects an operation'''
         self.parent = self.m1_hover
@@ -490,7 +488,7 @@ class menu():
         if self.m1_hover == 9:
             raise Exception("TODO toggle conditioning pumps")
             
-    # TODO test menu. see if i can segment this to reduce loop time?
+    # TODOsee if i can segment this to reduce loop time?
     def evt_handler(self, evt=None, timer=False, test=True):
         if test:
             print(f"child: {self.child}")
@@ -515,6 +513,11 @@ class menu():
                 or (evt == "A_B") or (evt == "B_B"):
                 self.startMenu()
         
+        # showing message to be cleared and send user to start after user input
+        elif self.child == 'WAIT':
+            if (evt == 'A_B') or (evt == "R_B"):
+                self.startMenu()
+
         # first level of menu showing configuration options
         elif self.child in self.ops:
             if (evt == "B_B") or (evt == "L_B"):
@@ -566,8 +569,6 @@ class menu():
                     if (evt == "A_B"):
                         # save changes to file
                         self.saveParamChange()
-                        # send back to first level menu
-                        self.startMenu()
                     if (evt == "B_B"):
                         # send to level above
                         self.startMenu(hover=self.parent)
@@ -623,8 +624,6 @@ class menu():
                 elif (self.parent == 3) and (self.child is None): 
                     if (evt == "A_B"):
                         self.saveParamChange()
-                        # send back to first level menu
-                        self.startMenu() 
                     if (evt == "B_B"):
                         # send to level above
                         self.startMenu(hover=self.parent)
@@ -682,7 +681,7 @@ class menu():
                             self.child = "pH HIGH"
                             self.param2change = self.settings[4]
                             self.LCD.clear()
-                            self.LCD.print(f"pH High Threshold:\n{self.param2change}")
+                            self.LCD.print(f"pH High Threshold:\n{self.param2change:.1f}")
                             #self.LCD.print(f"pH High Threshold:\n{self.settings[4]}")
                         # pressing down should choose bottom option
                         if (evt == "D_B"):
@@ -690,7 +689,7 @@ class menu():
                             self.child = "pH LOW"
                             self.param2change = self.settings[5]
                             self.LCD.clear()
-                            self.LCD.print(f"pH Low Threshold:\n{self.param2change}")
+                            self.LCD.print(f"pH Low Threshold:\n{self.param2change:.1f}")
                         if (evt == "B_B"):
                             self.startMenu(self.m1_hover)
 
@@ -705,14 +704,14 @@ class menu():
                             self.child = "EC HIGH"
                             self.param2change = self.settings[6]
                             self.LCD.clear()
-                            self.LCD.print(f"EC High Threshold:\n{self.param2change}")
+                            self.LCD.print(f"EC High Threshold:\n{self.param2change:.2f}")
                         # pressing down should choose bottom option
                         if (evt == "D_B"):
                             self.parent = self.child
                             self.child = "EC LOW"
                             self.param2change = self.settings[7]
                             self.LCD.clear()
-                            self.LCD.print(f"EC Low Threshold:\n{self.param2change}")
+                            self.LCD.print(f"EC Low Threshold:\n{self.param2change:.2f}")
                         if (evt == "B_B"):
                             self.startMenu(self.m1_hover)
 
@@ -721,8 +720,6 @@ class menu():
                 if (self.child == 'pH HIGH'):
                     if (evt == "A_B"):
                         self.saveParamChange()
-                        # send back to first level menu
-                        self.startMenu() 
                     if (evt == "B_B"):
                         # send to level above
                         self.parent = 4
@@ -740,7 +737,7 @@ class menu():
                         if self.param2change > 9.9:
                             self.param2change = 9.9
                         self.LCD.clear()
-                        self.LCD.print(f"pH High Threshold:\n{self.param2change}")
+                        self.LCD.print(f"pH High Threshold:\n{self.param2change:.1f}")
                     if (evt == "D_B"):
                         # decrease the pH based on hover position
                         if self.m2_hover == 0:
@@ -751,7 +748,7 @@ class menu():
                         if self.param2change < 0:
                             self.param2change = 0
                         self.LCD.clear()
-                        self.LCD.print(f"pH High Threshold:\n{self.param2change}")
+                        self.LCD.print(f"pH High Threshold:\n{self.param2change:.1f}")
                     if (evt == 'R_B'):
                         # change hover position. loop if too far right
                         self.m2_hover += 1
@@ -764,8 +761,6 @@ class menu():
                 if (self.child == 'pH LOW'):
                     if (evt == "A_B"):
                         self.saveParamChange()
-                        # send back to first level menu
-                        self.startMenu() 
                     if (evt == "B_B"):
                         # send to level above
                         self.parent = 4
@@ -783,18 +778,18 @@ class menu():
                         if self.param2change > 9.9:
                             self.param2change = 9.9
                         self.LCD.clear()
-                        self.LCD.print(f"pH Low Threshold:\n{self.param2change}")
+                        self.LCD.print(f"pH Low Threshold:\n{self.param2change:.1f}")
                     if (evt == "D_B"):
                         # decrease the pH based on hover position
                         if self.m2_hover == 0:
-                            self.param2change += 1
+                            self.param2change -= 1
                         if self.m2_hover == 2:
-                            self.param2change += .1
-                        # max pH
-                        if self.param2change > 9.9:
+                            self.param2change -= .1
+                        # min pH
+                        if self.param2change < 0:
                             self.param2change = 9.9
                         self.LCD.clear()
-                        self.LCD.print(f"pH Low Threshold:\n{self.param2change}")
+                        self.LCD.print(f"pH Low Threshold:\n{self.param2change:.1f}")
                     if (evt == 'R_B'):
                         # change hover position. loop if too far right
                         self.m2_hover += 1
@@ -810,8 +805,6 @@ class menu():
                 if (self.child == 'EC HIGH'):
                     if (evt == "A_B"):
                         self.saveParamChange()
-                        # send back to first level menu
-                        self.startMenu() 
                     if (evt == "B_B"):
                         # send to level above
                         self.parent = 5
@@ -858,8 +851,6 @@ class menu():
                 if (self.child == 'EC LOW'):
                     if (evt == "A_B"):
                         self.saveParamChange()
-                        # send back to first level menu
-                        self.startMenu() 
                     if (evt == "B_B"):
                         # send to level above
                         self.parent = 5
@@ -905,22 +896,22 @@ class menu():
                             self.m2_hover = 4 - 1
 
             # second level submenus to confirm calibration of sensors
-            if self.child == "EC_CONFIRM":
+            if self.child == "EC CONFIRM":
                 if (evt == "A_B") or (evt == "R_B"):
-                    # TODO 
+                    self.LCD.clear()
                     self.LCD.print(self.shrub.EC_calibration())
-                    sleep(2)  # blocking code, potentially an issue
-                    self.startMenu()
-                if (evt == "B_B") or (evt == "L_B"):
+                    self.child = "WAIT"
+                    self.parent = None
+                elif (evt == "B_B") or (evt == "L_B"):
                     self.startMenu(self.m1_hover)
 
-            if self.child == "PH_CONFIRM":
+            if self.child == "pH CONFIRM":
                 if (evt == "A_B") or (evt == "R_B"):
-                    # TODO freezes after this with parent 6 child pH confirm
+                    self.LCD.clear()
                     self.LCD.print(self.shrub.pH_calibration())
-                    sleep(2)  # blocking code, potentially an issue
-                    self.startMenu()
-                if (evt == "B_B") or (evt == "L_B"):
+                    self.child = "WAIT"
+                    self.parent = None
+                elif (evt == "B_B") or (evt == "L_B"):
                     self.startMenu(self.m1_hover)
 
 class LCDdummy():

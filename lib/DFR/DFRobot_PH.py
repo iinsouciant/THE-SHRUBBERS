@@ -23,7 +23,7 @@ class DFRobot_PH():
 			print("phdata.txt ERROR ! Please run DFRobot_PH_Reset")
 			sys.exit(1)
 
-	def readPH(self,voltage,temperature):
+	def readPH(self,voltage,temperature=0):
 		global _acidVoltage
 		global _neutralVoltage
 		slope     = (7.0-4.0)/((_neutralVoltage-1500.0)/3.0 - (_acidVoltage-1500.0)/3.0)
@@ -33,30 +33,33 @@ class DFRobot_PH():
 		return _phValue
 
 	def calibration(self,voltage):
-		if (voltage>1322 and voltage<1678):
-			print(">>>Buffer Solution:7.0")
-			f=open('phdata.txt','r+')
-			flist=f.readlines()
-			flist[0]='neutralVoltage='+ str(voltage) + '\n'
-			f=open('phdata.txt','w+')
-			f.writelines(flist)
-			f.close()
-			print(">>>PH:7.0 Calibration completed")
-			time.sleep(2.0)
-			return ">>>PH:7.0 Calibration completed"
-		elif (voltage>1854 and voltage<2210):
-			print(">>>Buffer Solution:4.0")
-			f=open('phdata.txt','r+')
-			flist=f.readlines()
-			flist[1]='acidVoltage='+ str(voltage) + '\n'
-			f=open('phdata.txt','w+')
-			f.writelines(flist)
-			f.close()
-			print(">>>PH:4.0 Calibration completed")
-			time.sleep(2.0)
-			return ">>>PH:4.0 Calibration completed"
+		if (voltage == 0):
+			return ">>Test values passed in. Check wires & sensor initialization.<<"
 		else:
-			return ">>>Buffer solution out of range. Measurement discarded<<<"
+			if (voltage>1322 and voltage<1678):
+				print(">>>Buffer Solution:7.0")
+				f=open('phdata.txt','r+')
+				flist=f.readlines()
+				flist[0]='neutralVoltage='+ str(voltage) + '\n'
+				f=open('phdata.txt','w+')
+				f.writelines(flist)
+				f.close()
+				print(">>>PH:7.0 Calibration completed")
+				time.sleep(2.0)
+				return ">>>PH:7.0 Calibration completed"
+			elif (voltage>1854 and voltage<2210):
+				print(">>>Buffer Solution:4.0")
+				f=open('phdata.txt','r+')
+				flist=f.readlines()
+				flist[1]='acidVoltage='+ str(voltage) + '\n'
+				f=open('phdata.txt','w+')
+				f.writelines(flist)
+				f.close()
+				print(">>>PH:4.0 Calibration completed")
+				time.sleep(2.0)
+				return ">>>PH:4.0 Calibration completed"
+			else:
+				return ">>>Buffer solution out of range. Measurement discarded<<<"
 
 	def reset(self):
 		_acidVoltage    = 2032.44
