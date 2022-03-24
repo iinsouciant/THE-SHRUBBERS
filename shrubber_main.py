@@ -122,7 +122,7 @@ while True:
     while (not done) and (not testing):
         if button_timer.event_no_reset():
             for event in pygame.event.get():
-                if (event.type == pygame.QUIT) or (event.key == pygame.K_ECCAPE):
+                if (event.type == pygame.QUIT):
                     done = True
                     testing = True
                     break
@@ -146,6 +146,10 @@ while True:
                     if event.key == pygame.K_e or (event.key == pygame.K_x):
                         menu.evt_handler(evt='B_B')
                         button_timer.timer_set()
+                    if (event.key == pygame.K_ESCAPE):
+                        done = True
+                        testing = True
+
     #while not testing:
         # print sensor values to terminal to check operation
         if time.monotonic() - last > print_time:
