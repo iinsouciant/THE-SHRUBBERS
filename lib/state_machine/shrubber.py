@@ -25,6 +25,7 @@ class timer():
         self.TIMER_INTERVAL = interval
 
     def timer_event(self):
+        '''Checks to see if the time has passed. If it has, turns off timer and returns True'''
         if (self.timer_time is not None) and monotonic() >= self.timer_time:
             self.timer_time = None
             return True
@@ -32,6 +33,7 @@ class timer():
             return False
 
     def event_no_reset(self):
+        '''Checks to see if the time has passed. If it has, returns True. Must be manually stopped/reset'''
         if (self.timer_time is not None) and monotonic() >= self.timer_time:
             # self.timer_time = None
             return True
@@ -39,17 +41,16 @@ class timer():
             return False
 
     def timer_set(self):
+        '''Restarts timer from time of method call'''
         self.timer_time = monotonic() + self.TIMER_INTERVAL
     
-    # TODO for ebb and flow may want to make an alternate version for hours/min?
 
 # TODO split hydro for main pump and conditioning
-# TODO don't let pump run if sonar detects the reservoir as empty?
+# TODO don't let pump run if sonar detects the reservoir as empty? note sonar range
 # TODO make alternating valve method for draining
 class hydro():
     '''Part of the Shrubber state machine that handles
     events passed to it, and defines and run the states as needed.'''
-    go = None  # indicates direction for turning
     start = "IDLE"
     test = False  # for printing state change and events
     test_q = "Y"
@@ -468,13 +469,14 @@ class menu():
             self.LCD.print('EC High Threshold\nEC Low Threshold')
             return None
         
-        # TODO test calibration menus
+        # TODO fix this
         if self.m1_hover == 7:
             # sets logic to handle A or B input on next loop
             self.child = "EC CONFIRM"
             self.LCD.print("Press A once the EC sensor is fully submerged in solution")
             return None
 
+        # TODO fix this
         if self.m1_hover == 6:
             self.child = "pH CONFIRM"
             self.LCD.print("Press A once the pH sensor is fully submerged in solution")
