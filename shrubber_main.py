@@ -25,6 +25,13 @@ import time
 # state machine
 from lib.state_machine import shrubber
 
+# for testing w/o buttons. simulates button input through keyboard
+import pygame
+pygame.init()
+screen = pygame.display.set_mode((100, 100))
+
+done = False
+
 # placeholder pin values
 PINS = {"res_trig": 'GPIO23', 'res_echo': 'GPIO24', 'A_B': 'GPIO18',
 'B_B': 'GPIO27', 'U_B': 'GPIO17', 'L_B': 'GPIO22', 'D_B': 'GPIO25', 'R_B': 'GPIO5',
@@ -35,7 +42,7 @@ pumpM = GZ.PWMLED(PINS['pumpM'])
 pumpA = GZ.LED(PINS['pumpA'])
 pumpB = GZ.LED(PINS['pumpB'])
 pumpN = GZ.LED(PINS['pumpN'])
-condP = [pumpA, pumpB, pumpN]
+condP = [pumpA, pumpB, pumpN]           
 
 buttons = []  # list of button instances
 for k, v in PINS.items():
@@ -44,39 +51,30 @@ for k, v in PINS.items():
 
 valves = [GZ.LED(PINS['valve1']), GZ.LED(PINS['valve2'])]
 
-# TODO LCD output for state machine with i2c
-
+# initialize i2c bus to use with ADC for analog input and send communicate with LCD
 i2c = busio.I2C(board.SCL, board.SDA)
-ads = ADS.ADS1015(i2c)
-pHsens = AnalogIn(ads, ADS.P0)  # signal at pin 0
-ECsens = AnalogIn(ads, ADS.P1)  # signal at pin 1
+
+with i2c:
+    print("I2C addresses found:",
+        [hex(device_address) for device_address in i2c.scan()])
+LCD = LCD(I2CPCF8574Interface(board.I2C(), 0x27), num_rows=4, num_cols=20)
+
+try:
+    ads = ADS.ADS1015(i2c)
+    pHsens = AnalogIn(ads, ADS.P0)  # signal at pin 0
+    ECsens = AnalogIn(ads, ADS.P1)  # signal at pin 1
+    tempSens = AnalogIn(ads, ADS.P2)  # signal at pin 2
+except (OSError, ValueError, AttributeError) as e:
+    print("Error connecting to ADC. Check connection and ADDR pin:", e)
+    ads = "dummy"
+    pHsens = "dummy"
+    ECsens = "dummy"
+    tempSens = "dummy"
 
 sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'], temperature=20)  # example code, 20 C
 
-class LCDdummy():
-    '''Dummy LCD class to handle methods before incorporating real LCD library. Use for testing/troubleshooting only.'''
-    def __init__(self):
-        print("LCD test instance created.")
-    
-    def display(self, stuff):
-        '''Handle string, list, tuple, int, and float inputs to put them on LCD'''
-        if (type(stuff) is list) or (type(stuff) is tuple):
-            for ele in stuff:
-                print(ele)
-        elif type(stuff) is str:
-            print(stuff)
-        elif (type(stuff) is int) or (type(stuff) is float):
-            stuff = str(stuff)
-            print(stuff)
-        else:
-            raise Exception("Not a valid input to display")
-    
-    def idle(self):
-        print("Idle Mode: Want to user timer and cache system to continually show new sensor data")
-    
-LCD = LCDdummy()
 # creating instance of state machine
-shrub = shrubber.hydro(pumpM, pHsens, ECsens, buttons, sonar, LCD, valves)
+shrub = shrubber.hydro(pumpM, pHsens, ECsens, buttons, sonar, LCD, valves, tempSens)
 menu = shrubber.menu(LCD, shrub)
 
 # testing parameters
@@ -86,72 +84,128 @@ print_time = 7
 
 # initializing variables
 last = time.monotonic()
-button_timer = shrubber.timer(.5)
+button_timer = shrubber.timer(.25)
+
 
 # will need to alter inital starting method for no keyboard/mouse
 # shrub.state used to track what state pump/uv is in
-while True: 
-    # TODO update this. can we make this into a group of states?
-    UV_test1 = None
-    while testing:  # for running test procedure with some input
-        if shrub.test_q != "SKIP":
-            shrub.test_q = input("Test pumps? \nY or N ")
-            shrub.test_q = shrub.test_q.upper()
-            if (shrub.test_q == "END"):
-                testing = False
-                break
-            if UV_test1 != "SKIP":
-                UV_test0 = input("Test UV? \nY or N ")
-                UV_test1 = UV_test0.upper()
-                if UV_test1 == "SKIP":
-                    continue  # TODO UV test function
-                if (UV_test1 == "END"):
-                    testing = False
-                    break
-                elif UV_test1 == "Y":
-                    duration = float(input("How long?\n"))
-                    shrub.pump_test(duration)
-        elif (shrub.test_q == UV_test1):
+
+# TODO update this. can we make this into a group of states?
+UV_test1 = None
+while testing:  # for running test procedure with some input
+    if shrub.test_q != "SKIP":
+        shrub.test_q = input("Test pumps? \nY or N ")
+        shrub.test_q = shrub.test_q.upper()
+        if (shrub.test_q == "END"):
             testing = False
             break
+        if UV_test1 != "SKIP":
+            UV_test0 = input("Test UV? \nY or N ")
+            UV_test1 = UV_test0.upper()
+            if UV_test1 == "SKIP":
+                continue  # TODO UV test function
+            if (UV_test1 == "END"):
+                testing = False
+                break
+            elif UV_test1 == "Y":
+                duration = float(input("How long?\n"))
+                shrub.pump_test(duration)
+    elif (shrub.test_q == UV_test1):
+        testing = False
+        break
 
-    # loop to run once diagnosis is done
-    print("Now expecting user input")
-    button_timer.timer_set()
-    LCD.idle()
-    while not testing:
-        # print sensor values to terminal to check operation
-        if time.monotonic() - last > print_time:
-            last = time.monotonic() 
-            if test2:
-                print(shrub)
-        
-        # prevent repeat presses
-        if button_timer.timer_event():
-            # detect user input
-            if buttons[0].is_pressed:
-                menu.evt_handler(evt='A_B')
-                button_timer.timer_set()
-            if buttons[1].is_pressed:
-                menu.evt_handler(evt='B_B')
-                button_timer.timer_set()
-            if buttons[2].is_pressed:
-                menu.evt_handler(evt='U_B')
-                button_timer.timer_set()
-            if buttons[3].is_pressed:
-                menu.evt_handler(evt='L_B')
-                button_timer.timer_set()
-            if buttons[4].is_pressed:
-                menu.evt_handler(evt='D_B')
-                button_timer.timer_set()
-            if buttons[5].is_pressed:
-                menu.evt_handler(evt='R_B')
-                button_timer.timer_set()
-        
-        # wait for lack of user input to set menu to idle
-        if menu.idle_timer.timer_event():
-            menu.evt_handler(timer=True)
+# loop to run once diagnosis is done
+print("Now expecting user input")
+menu.idle()
+button_timer.timer_set()
 
-        # TODO update this to work with valve and pump timer
-        if shrub.ptimer.timer_event():
-            shrub.evt_handler(ptime=True)
+# simulate butto npresses w/ keyboard input
+while (not done) and (not testing):
+    if button_timer.event_no_reset():
+        for event in pygame.event.get():
+            if (event.type == pygame.QUIT):
+                done = True
+                testing = True
+                break
+            elif event.type == pygame.KEYDOWN:
+                print("key is pressed")
+                if (event.key == pygame.K_w) or (event.key == pygame.K_UP):
+                    menu.evt_handler(evt='U_B')
+                    button_timer.timer_set()
+                if event.key == pygame.K_s or (event.key == pygame.K_DOWN):
+                    menu.evt_handler(evt='D_B')
+                    button_timer.timer_set()
+                if event.key == pygame.K_d or (event.key == pygame.K_RIGHT):
+                    menu.evt_handler(evt='R_B')
+                    button_timer.timer_set()
+                if event.key == pygame.K_a or (event.key == pygame.K_LEFT):
+                    menu.evt_handler(evt='L_B')
+                    button_timer.timer_set()
+                if event.key == pygame.K_q or (event.key == pygame.K_z):
+                    menu.evt_handler(evt='A_B')
+                    button_timer.timer_set()
+                if event.key == pygame.K_e or (event.key == pygame.K_x):
+                    menu.evt_handler(evt='B_B')
+                    button_timer.timer_set()
+                if (event.key == pygame.K_ESCAPE):
+                    done = True
+                    testing = True
+                    LCD.clear()
+                    print("Esc exits program. Goodbye")
+                    LCD.print("Esc exits program. Goodbye")
+
+#while not testing:
+    # print sensor values to terminal to check operation
+    if time.monotonic() - last > print_time:
+        last = time.monotonic() 
+        if test2:
+            print(f"menu state: {menu.state}")
+    
+    # prevent repeat presses
+    if button_timer.event_no_reset():
+        # detect user input
+        if buttons[0].is_pressed:
+            menu.evt_handler(evt='A_B')
+            button_timer.timer_set()
+        if buttons[1].is_pressed:
+            menu.evt_handler(evt='B_B')
+            button_timer.timer_set()
+        if buttons[2].is_pressed:
+            menu.evt_handler(evt='U_B')
+            button_timer.timer_set()
+        if buttons[3].is_pressed:
+            menu.evt_handler(evt='L_B')
+            button_timer.timer_set()
+        if buttons[4].is_pressed:
+            menu.evt_handler(evt='D_B')
+            button_timer.timer_set()
+        if buttons[5].is_pressed:
+            menu.evt_handler(evt='R_B')
+            button_timer.timer_set()
+    
+    # wait for lack of user input to set menu to idle
+    if menu.idle_timer.timer_event():
+        menu.evt_handler(timer=True)
+
+
+    # TODO update this to work with valve and pump timer
+    if shrub.ptimer.timer_event():
+        shrub.evt_handler(ptime=True)
+        
+    if menu.state == "IDLE" and menu.idle_printer.timer_event():
+        menu.idle_print()
+
+    # Show cursor position as a line when changing params
+    if type(menu.parent) is int:
+        if menu.parent <= 3:
+            LCD.set_cursor_mode(CursorMode.LINE)
+            menu.LCD.set_cursor_pos(1, menu.m2_hover)
+    elif (menu.parent == 'pH THRESH') or (menu.parent == 'EC THRESH'):
+        LCD.set_cursor_mode(CursorMode.LINE)
+        menu.LCD.set_cursor_pos(1, menu.m2_hover)
+
+    else:
+        LCD.set_cursor_mode(CursorMode.HIDE)
+            
+print("Something caused the state machine to break. Exiting program")
+LCD.print("Something caused the state machine to break. Exiting program")
