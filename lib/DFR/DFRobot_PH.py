@@ -19,9 +19,16 @@ class DFRobot_PH():
 		#		print acidVoltageLine
 				acidVoltageLine    = acidVoltageLine.strip('acidVoltage=')
 				_acidVoltage       = float(acidVoltageLine)
-		except:
-			print("phdata.txt ERROR ! Please run DFRobot_PH_Reset")
-			sys.exit(1)
+		except IOError as e:
+			if e is IOError:
+				print("phdata.txt does not exist. Creating file with default settings.")
+			with open('phdata.txt', 'w') as f:
+				#flist=f.readlines()
+				flist   ='neutralVoltage='+ str(_neutralVoltage) + '\n'
+				flist  +='acidVoltage='+ str(_acidVoltage) + '\n'
+				#f=open('data.txt','w+')
+				f.writelines(flist)
+			print(">>>Reset pH to default parameters<<<")
 
 	def readPH(self,voltage,temperature=0):
 		global _acidVoltage

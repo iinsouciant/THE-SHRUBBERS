@@ -21,11 +21,17 @@ class DFRobot_EC():
 				kvalueHighLine = f.readline()
 				kvalueHighLine = kvalueHighLine.strip('kvalueHigh=')
 				_kvalueHigh    = float(kvalueHighLine)
-		except IOError:
-			# problematic behavior for state machine, want to avoid any stops to system on initialization
-			# TODO make way to automate asking for calibration/file creation
-			print("ecdata.txt ERROR ! Please run DFRobot_EC_Reset")
-			sys.exit(1)
+
+		except (IOError) as e:
+			if e is IOError:
+				print("ecdata.txt does not exist. Creating file with default settings.")
+			with open('ecdata.txt', 'w') as f:
+				#flist=f.readlines()
+				flist   ='kvalueLow=' + str(_kvalueLow)  + '\n'
+				flist  +='kvalueHigh='+ str(_kvalueHigh) + '\n'
+				#f=open('data.txt','w+')
+				f.writelines(flist)
+			print(">>>Reset EC to default parameters<<<")
 
 	def readEC(self, voltage, temperature):
 		global _kvalueLow

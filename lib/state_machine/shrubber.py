@@ -297,7 +297,7 @@ class menu():
                 print("Settings loaded")
         except (IOError) as e:
             if e is IOError:
-                print("Settings.txt does not exist. Creating file with default settings.")
+                print("Settings.csv does not exist. Creating file with default settings.")
             with open(r"Settings.csv", 'w') as f:
                 rows = [['Flood Timer', self.ft], 
                     ['Drain Timer', self.dt], 
