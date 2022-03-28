@@ -23,7 +23,8 @@ import math
 import time
 
 # state machine
-from lib.state_machine import shrubber
+from lib.state_machine import LCDmenu
+from lib.state_machine import pumps
 
 # for testing w/o buttons. simulates button input through keyboard
 import pygame
@@ -74,8 +75,9 @@ except (OSError, ValueError, AttributeError) as e:
 sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'], temperature=20)  # example code, 20 C
 
 # creating instance of state machine
-shrub = shrubber.hydro(pumpM, pHsens, ECsens, buttons, sonar, LCD, valves, tempSens)
-menu = shrubber.menu(LCD, shrub)
+shrub = pumps.hydro(pumpM, pHsens, ECsens, buttons, sonar, LCD, valves, tempSens)
+condition = pumps.conditioner()
+menu = LCDmenu.menu(LCD, shrub)
 
 # testing parameters
 testing = False  # to run test procedure on startup
@@ -84,13 +86,13 @@ print_time = 7
 
 # initializing variables
 last = time.monotonic()
-button_timer = shrubber.timer(.25)
+button_timer = LCDmenu.timer(.25)
 
 
 # will need to alter inital starting method for no keyboard/mouse
 # shrub.state used to track what state pump/uv is in
 
-# TODO update this. can we make this into a group of states?
+# TODO might be worth to update this. can we make this into a group of states?
 UV_test1 = None
 while testing:  # for running test procedure with some input
     if shrub.test_q != "SKIP":
