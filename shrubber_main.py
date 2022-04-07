@@ -77,7 +77,7 @@ sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'], temperature=20)  
 # creating instance of state machine
 shrub = pumps.hydro(pumpM, pHsens, ECsens, buttons, sonar, LCD, valves, tempSens)
 condition = pumps.conditioner()
-menu = LCDmenu.menu(LCD, shrub)
+menu = LCDmenu.menu(LCD, shrub, condition)
 
 # testing parameters
 testing = False  # to run test procedure on startup

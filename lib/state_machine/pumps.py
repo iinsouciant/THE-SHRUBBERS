@@ -30,35 +30,27 @@ class hydro():
     ptimer = timer(ptimes[pt])
     ptimer.timer_set()
     # valve open time
-    vtime = 60*3
-    vt1 = 0
-    vt2 = 0
+    vtime = ptimes/2
+    # sequences to cycle through for valve opening
+    vState = ((0, 0), (1, 0), (0, 1), (0, 0), (0, 1), (1, 0))
+    vn = 0
+    [vt1, vt2] = vState[vn]
     state = start
 
-    def __init__(self, pump, pHsens, ECsens, sonar, valves, temp, filters=[7, 5, 5, 5]):
+    def __init__(self, pump, sonar, valves, filter=7):
         self.pump = pump
         self.s = sonar
-        self.temp = temp
-        self.fs = BF.LowPassFilter(filters[0])
-        self.fpH = BF.LowPassFilter(filters[1])
-        self.fEC = BF.LowPassFilter(filters[2])
-        self.fTemp = BF.LowPassFilter(filters[3])
-        self.filters = [self.fs, self.fpH, self.fEC, self.fTemp]
-        self.pHsens = pHsens
-        self.pH = PH.DFRobot_PH()
-        self.ECsens = ECsens
-        self.EC = EC.DFRobot_EC()
+        self.fs = BF.LowPassFilter(filter)
         self.topValve = valves[0]
         self.botValve = valves[1]
 
     def __repr__(self):
-        return "state_machine({}, {}, {}, {}, {}, {}, {})".format(self.pump, self.pHsens,
-        self.ECsens, self.s, self.topValve, self.botValve, self.temp)
+        return "state_machine({}, {}, {}, {})".format(self.pump, self.s, self.topValve, self.botValve)
     
     def __str__(self):  # TODO check if we need to update this
         '''Provides formatted sensor values connected to state machine'''
-        return "State: {}\nWater level: {} cm\npH: {}\nEC: {} mS\nTemp: {} C".format(
-            self.state, self.water_height(), self.grab_pH(), self.grab_EC(), self.grab_temp()
+        return "State: {}\nWater level: {} cm\nValve State: {}".format(
+            self.state, self.water_height(), self.vState[self.vn]
         )  # dummy function names
 
     def __error(err_string):
@@ -110,11 +102,6 @@ class hydro():
             # TODO finish
             pass
 
-    def newTimes(self, times):
-        self.ptimes = times
-        # use self.ptimer.time_remaining() to get remaining time and add that to new timer so it doesn't skip interval
-        self.ptimer = ("hi")
-
     def active(self, pwr=30):
         self.pump.value = pwr/100  # TODO set default value to match 1 GPM 
 
@@ -133,36 +120,6 @@ class hydro():
         except TypeError:
             return True
     
-    def EC_calibration(self):
-        '''Run this once the EC sensor is fully submerged in the high or low solution.
-        This will then exit if it detects a value in an acceptable range.'''
-        return self.EC.calibration(self.grab_EC(), self.grab_temp())
-        
-    def pH_calibration(self):
-        '''Run this once the EC sensor is fully submerged in the high or low solution.
-        This will then exit if it detects a value in an acceptable range.'''
-        return self.pH.calibration(self.grab_pH())
-
-    def grab_pH(self):
-        '''Tries to grab the pH sensor value 
-        without raising an exception halting the program'''
-        try:
-            dist = PH.readPH(self.pHsens.voltage())
-        except Exception:
-            print("The pH sensor is not detected.")
-            dist = 0
-        return self.fpH.filter(dist)
-
-    def grab_EC(self):
-        '''Tries to grab the conductivity sensor value 
-        without raising an exception halting the program'''
-        try:
-            dist = EC.readEC(self.ECsens.voltage(), self.grab_temp)
-        except Exception:  # TODO find correct exceptions here
-            print("The conductivity sensor is not detected.")
-            dist = 0
-        return self.fEC.filter(dist)
-
     def grab_sonar(self):
         '''Tries to grab the sonar sensor value 
         without raising an exception halting the program'''
@@ -170,27 +127,9 @@ class hydro():
             dist = self.s.basic_distance()
         except Exception:
             print("The sonar is not detected.")
+            warnings.WarningMessage("The sonar sensor is not detected.")
             dist = 0
         return self.fs.filter(dist)
-    
-    def grab_temp(self):
-        '''Tries to grab the temperature sensor value 
-        without raising an exception halting the program'''
-        try:
-            # TODO get temp sensor library and replace
-            dist = self.temp.voltage()
-        except Exception:
-            print("The temperature sensor is not detected.")
-            dist = 0
-        return self.fTemp.filter(dist)
-
-    # can replace this with __str__
-    def test_print(self):
-        warnings.warn("This mehod is deprocated, use print(shrub) instead", DeprecationWarning)
-        print("State: {}\nWater level: {} cm\npH: {}\nEC: {} mS".format(
-            self.state, self.grab_sonar(), self.grab_pH(), self.grab_EC()
-        )
-        )  # dummy function names
 
     def pump_pwm(level, pump):
         """This method is deprecated, use GZ.PWMLED value method instead."""
@@ -211,11 +150,75 @@ class conditioner():
     ph_Low = 4
     EC_High = 2
     EC_Low = 0
-    on_time = 1
+    on_timer = timer(1)
+    state = "IDLE"
 
-    def __init__(self, conditioning_pumps, shrub):
+    def __init__(self, conditioning_pumps, shrub, pHsens, ECsens, temp, filters=[5, 5, 5]):
         self.pumpA = conditioning_pumps[0]
         self.pumpB = conditioning_pumps[1]
         self.pumpN = conditioning_pumps[2]
         self.hydro = shrub
+        self.temp = temp
+        self.pHsens = pHsens
+        self.ECsens = ECsens
+        self.pH = PH.DFRobot_PH()
+        self.EC = EC.DFRobot_EC()
+        self.fpH = BF.LowPassFilter(filters[0])
+        self.fEC = BF.LowPassFilter(filters[1])
+        self.fTemp = BF.LowPassFilter(filters[2])
+        self.filters = [self.fpH, self.fEC, self.fTemp]
 
+    def __repr__(self):
+        return "state_machine({}, {}, {}, {}, {}, {})".format(self.pumpA, self.pumpB, self.pumpC, 
+        self.pHsens, self.ECsens, self.temp)
+
+    def __str__(self):  # TODO check if we need to update this
+        '''Provides formatted sensor values connected to state machine'''
+        return "Channel Pump State: {}\nConditioner State: {}\nWater level: {} cm\npH: {}\
+        \nEC: {} mS\nTemp: {} C".format(
+            self.hydro.state, self.state, self.hydro.grab_sonar(), self.grab_pH(), self.grab_EC(), self.grab_temp()
+        )
+
+    def EC_calibration(self):
+        '''Run this once the EC sensor is fully submerged in the high or low solution.
+        This will then exit if it detects a value in an acceptable range.'''
+        return self.EC.calibration(self.grab_EC(), self.grab_temp())
+        
+    def pH_calibration(self):
+        '''Run this once the EC sensor is fully submerged in the high or low solution.
+        This will then exit if it detects a value in an acceptable range.'''
+        return self.pH.calibration(self.grab_pH())
+
+    def grab_pH(self):
+        '''Tries to grab the pH sensor value 
+        without raising an exception halting the program'''
+        try:
+            dist = PH.readPH(self.pHsens.voltage())
+        except Exception:
+            print("The pH sensor is not detected.")
+            warnings.WarningMessage("The pH sensor is not detected.")
+            dist = 0
+        return self.fpH.filter(dist)
+
+    def grab_EC(self):
+        '''Tries to grab the conductivity sensor value 
+        without raising an exception halting the program'''
+        try:
+            dist = EC.readEC(self.ECsens.voltage(), self.grab_temp)
+        except Exception:  # TODO find correct exceptions here
+            print("The conductivity sensor is not detected.")
+            warnings.WarningMessage("The conductivity sensor is not detected.")
+            dist = 0
+        return self.fEC.filter(dist)
+
+    def grab_temp(self):
+        '''Tries to grab the temperature sensor value 
+        without raising an exception halting the program'''
+        try:
+            # TODO get temp sensor library and replace
+            dist = self.temp.voltage()
+        except Exception:
+            print("The temperature sensor is not detected.")
+            warnings.WarningMessage("The temperature sensor is not detected.")
+            dist = 0
+        return self.fTemp.filter(dist)

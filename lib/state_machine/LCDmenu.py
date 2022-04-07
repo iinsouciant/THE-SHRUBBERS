@@ -16,7 +16,8 @@ import warnings
 from lib.lcd.lcd import CursorMode
 
 class timer():
-    '''Creates a nonblocking timer to trigger a timer event when checked'''
+    '''Creates a nonblocking timer to trigger a timer event when checked. Use timer_set to start the timer.
+    Changing TIMER_INTERVAL does not update the new end time of the timer. '''
     timer_time = None
 
     def __init__(self, interval):
@@ -42,13 +43,25 @@ class timer():
         '''Restarts timer from time of method call'''
         self.timer_time = monotonic() + self.TIMER_INTERVAL
 
+    def time_remaining(self):
+        '''Checks to see if the time has passed. If it not, returns float of difference. No reset if time has passed'''
+        if (self.timer_time is not None) and monotonic() >= self.timer_time:
+            return None
+        else:
+            return self.timer_time - monotonic()
+    
+    def new_interval_timer(self, new_interval):
+        '''Adjusts the remaining time of the timer to fit'''
+        self.timer_time += new_interval - self.TIMER_INTERVAL
+        self.TIMER_INTERVAL = new_interval
+
 
 class menu():
     ''' Implement a menu state machine x levels deep to allow the user to
     configure the shrubber state machine without blocking operations elsewhere
     and simultaneously output information to the LCD screen.'''
     start = "IDLE"
-    ops = ("Flood timer", "Drain timer", "Active pump timer",
+    ops = ("Flood timer", "Drain timer", "Empty timer",
         "Gap from top", "pH thresholds", "EC thresholds", 
         "Calibrate pH", "Calibrate EC", "Toggle pump/UV", 
         "Toggle nutrient conditioners")
@@ -71,10 +84,11 @@ class menu():
     idle_printer = timer(8)
     _idle_n = 0
 
-    def __init__(self, LCD, shrub):
+    def __init__(self, LCD, shrub, conditioner):
         self.state = self.start
         self.LCD = LCD
         self.shrub = shrub
+        self.conditioner = conditioner
 
         # on boot, check to see if state machine settings exist. if not create w/ default settings
         try:
@@ -90,13 +104,14 @@ class menu():
                 self.ECH = float(rows[6][1])
                 self.ECL = float(rows[7][1])
                 print("Settings loaded")
+
         except (IOError) as e:
             if e is IOError:
                 print("Settings.csv does not exist. Creating file with default settings.")
             with open(r"Settings.csv", 'w') as f:
                 rows = [['Flood Timer', self.ft], 
                     ['Drain Timer', self.dt], 
-                    ['Active Pump Timer', self.ap], 
+                    ['Empty Timer', self.ap], 
                     ['Gap from top', self.sT],
                     ['pH High Threshold', self.pHH], 
                     ['pH Low Threshold', self.pHL], 
@@ -108,10 +123,13 @@ class menu():
         
         # list of operation settings
         self.settings = [self.ft, self.dt, self.ap, self.sT, self.pHH, self.pHL, self.ECH, self.ECL, ]
+        self.conditioner.pH_High = self.pHH
+        self.conditioner.pH_Low = self.pHL
+        self.conditioner.EC_High = self.ECH
+        self.conditioner.EC_Low = self.ECL
         # calc time pump needs to be off to let plants be submerged and drained
-        inactive_timer = self.settings[0]+self.settings[1]
         # save change to shrub state machine
-        self.shrub.ptimes = [self.settings[2], inactive_timer]
+        self.shrub.ptimes = [self.settings[0], self.settings[1], self.settings[2]]
 
     # TODO figure out more efficient way to save?
     def saveParamChange(self):
@@ -149,12 +167,9 @@ class menu():
             new_settings = csv.writer(f)
             new_settings.writerows(rows)
 
-        # calc time pump needs to be off to let plants be submerged and drained
-        inactive_timer = self.settings[0]+self.settings[1]
         # save change to shrub state machine
-        self.shrub.ptimes = [self.settings[2], inactive_timer]
-        # by changing TIMER_INTERVAL, same timer keeps going until it loops back around
-        self.shrub.ptimer.TIMER_INTERVAL = 
+        self.shrub.ptimes = [self.settins[0], self.settins[1], self.settings[2]]
+        self.conditioner.pH_
         self.LCD.clear()
         self.LCD.set_cursor_mode(CursorMode.HIDE)
         self.LCD.print("Settings saved!")
