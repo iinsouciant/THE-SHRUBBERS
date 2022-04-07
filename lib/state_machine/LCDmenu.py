@@ -42,13 +42,6 @@ class timer():
         '''Restarts timer from time of method call'''
         self.timer_time = monotonic() + self.TIMER_INTERVAL
 
-    def time_remaining(self):
-        '''Checks to see if the time has passed. If it not, returns float of difference. No reset if time has passed'''
-        if (self.timer_time is not None) and monotonic() >= self.timer_time:
-            return None
-        else:
-            return self.timer_time - monotonic()
-            # TODO some way to auto resume timer with amount of time remaining
 
 class menu():
     ''' Implement a menu state machine x levels deep to allow the user to
@@ -160,6 +153,8 @@ class menu():
         inactive_timer = self.settings[0]+self.settings[1]
         # save change to shrub state machine
         self.shrub.ptimes = [self.settings[2], inactive_timer]
+        # by changing TIMER_INTERVAL, same timer keeps going until it loops back around
+        self.shrub.ptimer.TIMER_INTERVAL = 
         self.LCD.clear()
         self.LCD.set_cursor_mode(CursorMode.HIDE)
         self.LCD.print("Settings saved!")
