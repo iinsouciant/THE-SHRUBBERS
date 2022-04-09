@@ -21,7 +21,11 @@ class timer():
     timer_time = None
 
     def __init__(self, interval):
-        self.TIMER_INTERVAL = interval
+        try:
+            self.TIMER_INTERVAL = float(interval)
+        except ValueError as e:
+            warnings.warn(f'Invalid timer input: {e}\nSetting interval to 10 seconds')
+            self.TIMER_INTERVAL = 10
 
     def timer_event(self):
         '''Checks to see if the time has passed. If it has, turns off timer and returns True'''
@@ -41,7 +45,14 @@ class timer():
 
     def timer_set(self):
         '''Restarts timer from time of method call'''
-        self.timer_time = monotonic() + self.TIMER_INTERVAL
+        try:
+            self.timer_time = monotonic() + self.TIMER_INTERVAL
+        except TypeError as e:
+            if self.TIMER_INTERVAL is None:
+                print("Timer interval set to None")
+                self.timer_time = None
+            else:
+                pass
 
     def time_remaining(self):
         '''Checks to see if the time has passed. If it not, returns float of difference. No reset if time has passed'''

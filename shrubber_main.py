@@ -123,7 +123,28 @@ button_timer.timer_set()
 
 # simulate butto npresses w/ keyboard input
 while (not done) and (not testing):
+    # prevent repeat detection of single press
     if button_timer.event_no_reset():
+        # detect user input
+        if buttons[0].is_pressed:
+            menu.evt_handler(evt='A_B')
+            button_timer.timer_set()
+        if buttons[1].is_pressed:
+            menu.evt_handler(evt='B_B')
+            button_timer.timer_set()
+        if buttons[2].is_pressed:
+            menu.evt_handler(evt='U_B')
+            button_timer.timer_set()
+        if buttons[3].is_pressed:
+            menu.evt_handler(evt='L_B')
+            button_timer.timer_set()
+        if buttons[4].is_pressed:
+            menu.evt_handler(evt='D_B')
+            button_timer.timer_set()
+        if buttons[5].is_pressed:
+            menu.evt_handler(evt='R_B')
+            button_timer.timer_set()
+        # simulate physical button press with keyboard
         for event in pygame.event.get():
             if (event.type == pygame.QUIT):
                 done = True
@@ -156,42 +177,31 @@ while (not done) and (not testing):
                     print("Esc exits program. Goodbye")
                     LCD.print("Esc exits program. Goodbye")
 
-#while not testing:
     # print sensor values to terminal to check operation
     if time.monotonic() - last > print_time:
         last = time.monotonic() 
         if test2:
             print(f"menu state: {menu.state}")
     
-    # prevent repeat presses
-    if button_timer.event_no_reset():
-        # detect user input
-        if buttons[0].is_pressed:
-            menu.evt_handler(evt='A_B')
-            button_timer.timer_set()
-        if buttons[1].is_pressed:
-            menu.evt_handler(evt='B_B')
-            button_timer.timer_set()
-        if buttons[2].is_pressed:
-            menu.evt_handler(evt='U_B')
-            button_timer.timer_set()
-        if buttons[3].is_pressed:
-            menu.evt_handler(evt='L_B')
-            button_timer.timer_set()
-        if buttons[4].is_pressed:
-            menu.evt_handler(evt='D_B')
-            button_timer.timer_set()
-        if buttons[5].is_pressed:
-            menu.evt_handler(evt='R_B')
-            button_timer.timer_set()
-    
     # wait for lack of user input to set menu to idle
     if menu.idle_timer.timer_event():
         menu.evt_handler(timer=True)
 
-    # TODO update this to work with valve and pump timer
+    # check for pump flood drain cycle timing
     if shrub.ptimer.timer_event():
         shrub.evt_handler(ptime=True)
+
+    # check for pump flood drain cycle timing
+    if shrub.vtimer.timer_event():
+        shrub.evt_handler(vtime=True)
+
+    # if the reservoir is dangerously full, stop valves. 
+    # should hopefully prevent repeat events
+    if shrub.overflow_det() and (shrub.state != "NO DRAIN"):
+        shrub.evt_handler(evt="OVERFLOW")
+    # allow valves to open up again
+    if (shrub.state == "NO DRAIN") and not condition.overflow_det:
+        shrub.evt_handler(evt="NO OVERFLOW")
         
     if menu.state == "IDLE" and menu.idle_printer.timer_event():
         menu.idle_print()
@@ -204,7 +214,6 @@ while (not done) and (not testing):
     elif (menu.parent == 'pH THRESH') or (menu.parent == 'EC THRESH'):
         LCD.set_cursor_mode(CursorMode.LINE)
         menu.LCD.set_cursor_pos(1, menu.m2_hover)
-
     else:
         LCD.set_cursor_mode(CursorMode.HIDE)
             
