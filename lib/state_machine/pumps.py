@@ -23,6 +23,7 @@ class hydro():
     start = "IDLE"
     test = False  # for printing state change and events
     test_q = "Y"
+    s_thresh = 10 # cm
     # pump active, drain, and inactive times
     ptimes = [60*20, 60*10, 60*60*4]
     pn= 0
@@ -56,6 +57,13 @@ class hydro():
 
     def __error(err_string):
         raise Exception(err_string)
+
+    def update_settings(self, ptimes, sonar_thresh):
+        self.ptimes = ptimes
+        self.ptimer.new_interval_timer(ptimes[self.pn])
+        # valve open time
+        self.vtimes = [ptimes[1]/2, ptimes[1]/2, None]*2
+        self.vtimer.new_interval_timer(vtimes[self.vn])
 
     # TODO update this: pass in pause button toggle + event and it chooses next state depending on current state. 
     def evt_handler(self, evt=None, ptime=False, vtime=False, pause=False):
@@ -91,13 +99,18 @@ class hydro():
             self.state = "IDK"
 
         # TODO test. do we mod this to enable pump too?
+        # close valves in case of flood
         if evt is not None:
             if evt == "OVERFLOW":
                 self.topValve.off
                 self.botValve.off
                 self.state = "NO DRAIN"
-            elif evt == ""
+            # any other events to consider?
+            elif evt == "PLACEHOLDER":
+                pass
+
         if self.state == "NO DRAIN":
+            # revert the valves back to normal operation
             if evt == "NO OVERFLOW":
                 self.state = self.last_s # might be better to make this just IDLE
             elif evt == "OVERFLOW":
@@ -109,6 +122,12 @@ class hydro():
             self.vn+=1
             self.vn%=6
             [self.topValveVal, self.botValveVal] = self.vState[self.vn]
+            # set new timer for being open or close
+            if (self.vn == 2) or (self.vn == 5):
+                # if it is not time to drain
+                self.vtimer.timer_time = None
+            else:
+                self.vtimer.timer_set()
 
             # have it called once to open first valve, second time to open second valve, third time to close both
             if self.topValveVal == 0:
@@ -138,14 +157,15 @@ class hydro():
         hole_depth1 = 35*2.54  # 35in to cm
         return self.s.depth(self.grab_sonar(), hole_depth1)
 
-    def overflow_det(self, thresh=10):  # in case water level is too high?
+    def overflow_det(self, thresh=self.s_thresh):  # in case water level is too high?
         height = self.water_height()
         try:
             if height >= thresh:
                 return True
             else:
                 return False
-        except TypeError:
+        except TypeError as e:
+            print(e)
             return True
     
     def grab_sonar(self):

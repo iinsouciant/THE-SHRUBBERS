@@ -24,8 +24,8 @@ class timer():
         try:
             self.TIMER_INTERVAL = float(interval)
         except ValueError as e:
-            warnings.warn(f'Invalid timer input: {e}\nSetting interval to 10 seconds')
-            self.TIMER_INTERVAL = 10
+            warnings.warn(f'Invalid timer input: {e}\nSetting interval to None')
+            self.TIMER_INTERVAL = None
 
     def timer_event(self):
         '''Checks to see if the time has passed. If it has, turns off timer and returns True'''
@@ -62,8 +62,11 @@ class timer():
             return self.timer_time - monotonic()
     
     def new_interval_timer(self, new_interval):
-        '''Adjusts the remaining time of the timer to fit'''
-        self.timer_time += new_interval - self.TIMER_INTERVAL
+        '''Adjusts the remaining time of the timer to fit new interval'''
+        if new_interval is not None:
+            self.timer_time += new_interval - self.TIMER_INTERVAL
+        else: 
+            self.timer_time = None
         self.TIMER_INTERVAL = new_interval
 
 
@@ -179,7 +182,7 @@ class menu():
             new_settings.writerows(rows)
 
         # save change to shrub state machine
-        self.shrub.ptimes = [self.settins[0], self.settins[1], self.settings[2]]
+        self.shrub.update_settings([self.settings[0], self.settings[1], self.settings[2]], self.settings[3])
         self.conditioner.pH_
         self.LCD.clear()
         self.LCD.set_cursor_mode(CursorMode.HIDE)
