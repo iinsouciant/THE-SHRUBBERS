@@ -137,6 +137,7 @@ class menu():
         
         # list of operation settings
         self.settings = [self.ft, self.dt, self.ap, self.sT, self.pHH, self.pHL, self.ECH, self.ECL, ]
+        self.shrub.update_settings([self.settings[0], self.settings[1], self.settings[2]], self.settings[3])
         self.conditioner.pH_High = self.pHH
         self.conditioner.pH_Low = self.pHL
         self.conditioner.EC_High = self.ECH
@@ -183,7 +184,10 @@ class menu():
 
         # save change to shrub state machine
         self.shrub.update_settings([self.settings[0], self.settings[1], self.settings[2]], self.settings[3])
-        self.conditioner.pH_
+        self.conditioner.pH_High = self.settings[4]
+        self.conditioner.pH_Low = self.settings[5]
+        self.conditioner.EC_High = self.settings[6]
+        self.conditioner.EC_Low = self.settings[7]
         self.LCD.clear()
         self.LCD.set_cursor_mode(CursorMode.HIDE)
         self.LCD.print("Settings saved!")
