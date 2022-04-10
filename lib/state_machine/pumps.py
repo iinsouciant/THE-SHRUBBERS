@@ -23,12 +23,12 @@ class hydro():
     start = "IDLE"
     test = False  # for printing state change and events
     test_q = "Y"
-    s_thresh = 10 # cm
+    s_thresh = 10  # cm
     # pump active, drain, and inactive times
     ptimes = [60*20, 60*10, 60*60*4]
-    pn= 0
+    pn = 0
     # independent timer event for pump/UV. start on
-    ptimer = timer(ptimes[pt])
+    ptimer = timer(ptimes[pn])
     ptimer.timer_set()
     # valve open time
     vtimes = [ptimes[1]/2, ptimes[1]/2, None]*2
@@ -63,7 +63,7 @@ class hydro():
         self.ptimer.new_interval_timer(ptimes[self.pn])
         # valve open time
         self.vtimes = [ptimes[1]/2, ptimes[1]/2, None]*2
-        self.vtimer.new_interval_timer(vtimes[self.vn])
+        self.vtimer.new_interval_timer(self.vtimes[self.vn])
 
     # TODO update this: pass in pause button toggle + event and it chooses next state depending on current state. 
     def evt_handler(self, evt=None, ptime=False, vtime=False, pause=False):
@@ -71,7 +71,7 @@ class hydro():
         depending on current state and event passed to it'''
         self.last_s = self.state
         if self.test:
-        print(self.last_s)
+            print(self.last_s)
             print(self.state)
             print(evt)
 
@@ -91,7 +91,7 @@ class hydro():
                 if self.pn == 2:
                     print("Valve open protocol beginning")
                     self.pump.value = 0
-                    vtime=True
+                    vtime = True
                 self.ptimer.TIMER_INTERVAL = self.ptimes[self.pt]
                 self.ptimer.timer_set()
         # example state handling
@@ -112,15 +112,15 @@ class hydro():
         if self.state == "NO DRAIN":
             # revert the valves back to normal operation
             if evt == "NO OVERFLOW":
-                self.state = self.last_s # might be better to make this just IDLE
+                self.state = self.last_s  # might be better to make this just IDLE
             elif evt == "OVERFLOW":
                 vtime = False
 
         # TODO valve events/timing so they alternate, split timing
         if vtime:
             print('Open one valve. set timer to then open other valve. change which goes first next time')
-            self.vn+=1
-            self.vn%=6
+            self.vn += 1
+            self.vn %= 6
             [self.topValveVal, self.botValveVal] = self.vState[self.vn]
             # set new timer for being open or close
             if (self.vn == 2) or (self.vn == 5):
@@ -140,14 +140,13 @@ class hydro():
                 self.botValve.on
     
     def hydro_restart(self):
-        self.state = IDLE
+        self.state = "IDLE"
         self.topValve.off
         self.botValve.off
         self.pn = 0
         self.vn = 0
         self.ptimer.TIMER_INTERVAL = self.ptimes[self.pt]
         self.ptimer.timer_set()
-
 
     def active(self, pwr=30):
         self.pump.value = pwr/100  # TODO set default value to match 1 GPM 
@@ -157,7 +156,9 @@ class hydro():
         hole_depth1 = 35*2.54  # 35in to cm
         return self.s.depth(self.grab_sonar(), hole_depth1)
 
-    def overflow_det(self, thresh=self.s_thresh):  # in case water level is too high?
+    def overflow_det(self, thresh=None):  # in case water level is too high?
+        if thresh is None:
+            thresh = self.s_thresh
         height = self.water_height()
         try:
             if height >= thresh:
