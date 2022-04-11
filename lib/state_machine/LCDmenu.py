@@ -63,7 +63,7 @@ class timer():
     
     def new_interval_timer(self, new_interval):
         '''Adjusts the remaining time of the timer to fit new interval'''
-        if new_interval is not None:
+        if (new_interval is not None) and (self.TIMER_INTERVAL is not None):
             self.timer_time += new_interval - self.TIMER_INTERVAL
         else: 
             self.timer_time = None
@@ -233,13 +233,13 @@ class menu():
         n = self._idle_n
         self.idle_printer.timer_set()
         if n == 0:
-            self._a = f"Water level: {self.shrub.water_height()} cm"
+            self._a = f"Water level: {self.shrub.water_height():.1f} cm"
         if n == 1:
-            self._a = f"pH level: {self.shrub.grab_pH():.1f}"
+            self._a = f"pH level: {self.conditioner.grab_pH():.1f}"
         if n == 2:
-            self._a = f"Conductivity level: {self.shrub.grab_EC():.2f} mS"
+            self._a = f"Conductivity level: {self.conditioner.grab_EC():.2f} mS"
         if n == 3:
-            self._a = f"Water temp: {self.shrub.grab_temp():.2f}"
+            self._a = f"Water temp: {self.conditioner.grab_temp():.2f}"
         
         # to create scrolling effect
         self.LCD.print(self._a)

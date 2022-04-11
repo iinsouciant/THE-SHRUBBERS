@@ -23,7 +23,7 @@ import math
 import time
 
 # state machine
-from lib.state_machine import LCDmenu
+import lib.state_machine.LCDmenu as LCDmenu
 from lib.state_machine import pumps
 
 import warnings
@@ -39,7 +39,7 @@ except pygame.error as e:
 done = False
 
 # placeholder pin values
-PINS = {"res_trig": 'GPIO23', 'res_echo': 'GPIO24', 'A_B': 'GPIO18',
+PINS = {"res_trig": 23, 'res_echo': 24, 'A_B': 'GPIO18',
 'B_B': 'GPIO27', 'U_B': 'GPIO17', 'L_B': 'GPIO22', 'D_B': 'GPIO25', 'R_B': 'GPIO5',
 'pumpM': 'GPIO13', 'pumpA': 'GPIO12', 'pumpB': 'GPIO16', 'pumpN': 'GPIO26',
 'valve1': 'GPIO20', 'valve2': 'GPIO21'}
@@ -67,11 +67,15 @@ try:
     LCD = LCD(I2CPCF8574Interface(board.I2C(), 0x27), num_rows=4, num_cols=20)
 except OSError as e:
     warnings.warn("LCD at 0x27 not detected.")
-    quit()
+    '''
+    import os
+    time.sleep(4)
+    os.system("sudo shutdown -h now")
+    quit()'''
 
 
 try:
-    ads = ADS.ADS1015(i2c)
+    ads = ADS.ADS1015(board.I2C())
     pHsens = AnalogIn(ads, ADS.P0)  # signal at pin 0
     ECsens = AnalogIn(ads, ADS.P1)  # signal at pin 1
     tempSens = AnalogIn(ads, ADS.P2)  # signal at pin 2
@@ -85,8 +89,8 @@ except (OSError, ValueError, AttributeError) as e:
 sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'], temperature=20)  # example code, 20 C
 
 # creating instance of state machine
-shrub = pumps.hydro(pumpM, pHsens, ECsens, buttons, sonar, LCD, valves, tempSens)
-condition = pumps.conditioner()
+shrub = pumps.hydro(pumpM, sonar, valves)
+condition = pumps.conditioner(condP, shrub, pHsens, ECsens, tempSens)
 menu = LCDmenu.menu(LCD, shrub, condition)
 
 # testing parameters
@@ -212,7 +216,7 @@ while (not done) and (not testing):
     if shrub.overflow_det() and (shrub.state != "NO DRAIN"):
         shrub.evt_handler(evt="OVERFLOW")
     # allow valves to open up again
-    if (shrub.state == "NO DRAIN") and not condition.overflow_det:
+    if (shrub.state == "NO DRAIN") and not shrub.overflow_det:
         shrub.evt_handler(evt="NO OVERFLOW")
         
     if menu.state == "IDLE" and menu.idle_printer.timer_event():

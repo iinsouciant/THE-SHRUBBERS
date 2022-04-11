@@ -38,6 +38,7 @@ class hydro():
     vState = ((1, 0), (0, 1), (0, 0), (0, 1), (1, 0), (0, 0))
     [topValveVal, botValveVal] = vState[vn]
     state = start
+    hole_depth = 35*2.54  # 35in to cm
 
     def __init__(self, pump, sonar, valves, filter=7):
         self.pump = pump
@@ -63,7 +64,12 @@ class hydro():
         self.ptimer.new_interval_timer(ptimes[self.pn])
         # valve open time
         self.vtimes = [ptimes[1]/2, ptimes[1]/2, None]*2
-        self.vtimer.new_interval_timer(self.vtimes[self.vn])
+        # while valves are meant to be inactive, we do not want 
+        # the valve timer to start when updated
+        if self.vtimer.timer_time is None:
+            self.vtimer.TIMER_INTERVAL = self.vtimes[self.vn]
+        else:
+            self.vtimer.new_interval_timer(self.vtimes[self.vn])
 
     # TODO update this: pass in pause button toggle + event and it chooses next state depending on current state. 
     def evt_handler(self, evt=None, ptime=False, vtime=False, pause=False):
@@ -83,13 +89,16 @@ class hydro():
                 self.pn += 1
                 self.pn %= 3
                 if self.pn == 0:
-                    print("Pump/UV is now on. WIP")
+                    if self.test:
+                        print("Pump/UV is now on.")
                     self.active()
                 if self.pn == 1:
-                    print("Pump/UV is now idle. WIP")
+                    if self.test:
+                        print("Pump/UV is now idle.")
                     self.pump.value = 0
                 if self.pn == 2:
-                    print("Valve open protocol beginning")
+                    if self.test:
+                        print("Valve open protocol beginning")
                     self.pump.value = 0
                     vtime = True
                 self.ptimer.TIMER_INTERVAL = self.ptimes[self.pt]
@@ -105,6 +114,10 @@ class hydro():
                 self.topValve.off
                 self.botValve.off
                 self.state = "NO DRAIN"
+                if self.test:
+                    print("Top valve: off")
+                    print("Bottom valve: off")
+                    print(self.state)
             # any other events to consider?
             elif evt == "PLACEHOLDER":
                 pass
@@ -115,10 +128,12 @@ class hydro():
                 self.state = self.last_s  # might be better to make this just IDLE
             elif evt == "OVERFLOW":
                 vtime = False
+                if self.test:
+                    print('valves disabled') 
 
-        # TODO valve events/timing so they alternate, split timing
+        # Open one valve. set timer to then open other valve. change which goes first next time
+        # TODO test
         if vtime:
-            print('Open one valve. set timer to then open other valve. change which goes first next time')
             self.vn += 1
             self.vn %= 6
             [self.topValveVal, self.botValveVal] = self.vState[self.vn]
@@ -130,19 +145,22 @@ class hydro():
                 self.vtimer.timer_set()
 
             # have it called once to open first valve, second time to open second valve, third time to close both
-            if self.topValveVal == 0:
-                self.topValve.off
-            elif self.topValveVal == 1:
+            if self.topValveVal:
                 self.topValve.on
-            if self.botValveVal == 0:
-                self.botValve.off
-            elif self.botValveVal == 1:
+            elif not self.topValveVal:
+                self.topValve.off
+            if self.botValveVal:
                 self.botValve.on
+            elif not self.botValveVal:
+                self.botValve.off
     
     def hydro_restart(self):
         self.state = "IDLE"
         self.topValve.off
         self.botValve.off
+        if self.test:
+            print("Top valve: off")
+            print("Bottom valve: off")
         self.pn = 0
         self.vn = 0
         self.ptimer.TIMER_INTERVAL = self.ptimes[self.pt]
@@ -153,8 +171,7 @@ class hydro():
 
     # TODO update this
     def water_height(self):  # in cm, good for ~9 to ~30
-        hole_depth1 = 35*2.54  # 35in to cm
-        return self.s.depth(self.grab_sonar(), hole_depth1)
+        return self.s.depth(self.grab_sonar(), self.hole_depth)
 
     def overflow_det(self, thresh=None):  # in case water level is too high?
         if thresh is None:
@@ -170,13 +187,18 @@ class hydro():
             return True
     
     def grab_sonar(self):
-        '''Tries to grab the sonar sensor value 
-        without raising an exception halting the program'''
+        '''Tries to grab the sonar sensor value without 
+        raising an exception halting the program. The reliable range is 9 to 32 cm.'''
         try:
-            dist = self.s.basic_distance()
-        except Exception:
-            print("The sonar is not detected.")
-            warnings.WarningMessage("The sonar sensor is not detected.")
+            dist = self.s.raw_distance(sample_size=5)
+        except SystemError as e:
+            print(f"The sonar is not detected: {e}")
+            warnings.warn("The sonar sensor is not detected.")
+            dist = 50
+        # limiting valid measurements
+        if dist >= self.hole_depth:
+            dist = self.hole_depth
+        elif dist < 0:
             dist = 0
         return self.fs.filter(dist)
 
@@ -245,7 +267,7 @@ class conditioner():
             dist = PH.readPH(self.pHsens.voltage())
         except Exception:
             print("The pH sensor is not detected.")
-            warnings.WarningMessage("The pH sensor is not detected.")
+            warnings.warn("The pH sensor is not detected.")
             dist = 0
         return self.fpH.filter(dist)
 
@@ -256,7 +278,7 @@ class conditioner():
             dist = EC.readEC(self.ECsens.voltage(), self.grab_temp)
         except Exception:  # TODO find correct exceptions here
             print("The conductivity sensor is not detected.")
-            warnings.WarningMessage("The conductivity sensor is not detected.")
+            warnings.warn("The conductivity sensor is not detected.")
             dist = 0
         return self.fEC.filter(dist)
 
@@ -268,6 +290,6 @@ class conditioner():
             dist = self.temp.voltage()
         except Exception:
             print("The temperature sensor is not detected.")
-            warnings.WarningMessage("The temperature sensor is not detected.")
+            warnings.warn("The temperature sensor is not detected.")
             dist = 0
         return self.fTemp.filter(dist)
