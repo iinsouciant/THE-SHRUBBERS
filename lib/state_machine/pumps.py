@@ -52,9 +52,12 @@ class hydro():
     
     def __str__(self):  # TODO check if we need to update this
         '''Provides formatted sensor values connected to state machine'''
-        return "State: {}\nWater level: {} cm\nValve State: {}".format(
-            self.state, self.water_height(), self.vState[self.vn]
-        )  # dummy function names
+        return "State: {}\nWater level: {} cm\nValves active? {}\nValve State: {}".format(
+            self.state, self.water_height(), self.vtimer.timer_time, 
+            self.vState[self.vn]
+        )  
+        if self.test:
+            print(self.vtimer.timer_time)
 
     def __error(err_string):
         raise Exception(err_string)
@@ -107,7 +110,7 @@ class hydro():
         elif (self.state == "MAX") and (evt == "nut"):
             self.state = "IDK"
 
-        # TODO test. do we mod this to enable pump too?
+        # TODO test. getting caught in no drain state and not leaving
         # close valves in case of flood
         if evt is not None:
             if evt == "OVERFLOW":
@@ -191,7 +194,7 @@ class hydro():
         raising an exception halting the program. The reliable range is 9 to 32 cm.'''
         try:
             dist = self.s.raw_distance(sample_size=5)
-        except SystemError as e:
+        except (SystemError, UnboundLocalError) as e:
             print(f"The sonar is not detected: {e}")
             warnings.warn("The sonar sensor is not detected.")
             dist = 50
@@ -265,9 +268,9 @@ class conditioner():
         without raising an exception halting the program'''
         try:
             dist = PH.readPH(self.pHsens.voltage())
-        except Exception:
+        except Exception as e:
             print(f"The pH sensor is not detected: {e}")
-            warnings.warn(f"The pH sensor is not detected: {e}")
+            warnings.warn("The pH sensor is not detected")
             dist = 0
         return self.fpH.filter(dist)
 
@@ -278,7 +281,7 @@ class conditioner():
             dist = EC.readEC(self.ECsens.voltage(), self.grab_temp)
         except Exception as e:  # TODO find correct exceptions here
             print(f"The conductivity sensor is not detected: {e}")
-            warnings.warn(f"The conductivity sensor is not detected: {e}")
+            warnings.warn("The conductivity sensor is not detected")
             dist = 0
         return self.fEC.filter(dist)
 
@@ -292,6 +295,6 @@ class conditioner():
                 dist = float(self.temp.read_temp()['temp_f'])
         except Exception as e:
             print(f"The temperature sensor is not detected: {e}")
-            warnings.warn(f"The temperature sensor is not detected: {e}")
+            warnings.warn("The temperature sensor is not detected")
             dist = 0
         return self.fTemp.filter(dist)

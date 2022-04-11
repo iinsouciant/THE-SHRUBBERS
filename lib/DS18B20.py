@@ -1,10 +1,14 @@
+# Slightly modified version from adafruit website&forums
+# https://cdn-learn.adafruit.com/downloads/pdf/adafruits-raspberry-pi-lesson-11-ds18b20-temperature-sensing.pdf
+# https://forums.raspberrypi.com/viewtopic.php?t=35508
 import os
 import glob
 from time import sleep
 
 class TempReader(object):
-    '''Use the 1 wire interface configured on raspberry pi to read the
-    temperature from a DS18B20. temp_sensor_pin should always be 28'''
+    '''Raspberry pi module to use 1-Wire interface to read
+    temperature from a DS18B20. Ensure the 1-Wire interface is enabled 
+    in the RPi configuration settings. temp_sensor_pin should always be 28'''
     def __init__(self, temp_sensor_pin=28):
         os.system('/sbin/modprobe w1-therm')
  
@@ -34,7 +38,7 @@ class TempReader(object):
         if equals_pos != -1:
             temp_string = lines[1][equals_pos+2:]
             temp_c = float(temp_string)/1000.0
-            temp_f = (temp_c * 180.0/100.0) + 32.0
+            temp_f = (temp_c * 9.0/5.0) + 32.0
         tempdict = {
             'temp_c': temp_c,
             'temp_f': temp_f

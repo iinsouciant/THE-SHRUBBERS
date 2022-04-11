@@ -96,6 +96,9 @@ menu = LCDmenu.menu(LCD, shrub, condition)
 # testing parameters
 testing = False  # to run test procedure on startup
 test2 = True  # show sensor value periodically in normal operation
+if test2:
+    test_timer = LCDmenu.timer(4)
+    test_timer.timer_set()
 print_time = 7
 
 # initializing variables
@@ -136,6 +139,11 @@ menu.idle()
 button_timer.timer_set()
 
 while (not done) and (not testing):
+    if test2:
+        if test_timer.timer_event():
+            print(condition)
+            print(shrub)
+            test_timer.timer_set()
     # prevent repeat events for one press
     if button_timer.event_no_reset():
         # detect user input
