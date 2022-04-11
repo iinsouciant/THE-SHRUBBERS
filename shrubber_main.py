@@ -26,10 +26,13 @@ import time
 from lib.state_machine import LCDmenu
 from lib.state_machine import pumps
 
-# for testing w/o buttons. simulates button input through keyboard
-import pygame
-pygame.init()
-screen = pygame.display.set_mode((100, 100))
+try:
+    # for testing w/o buttons. simulates button input through keyboard
+    import pygame
+    pygame.init()
+    screen = pygame.display.set_mode((100, 100))
+except pygame.error as e:
+    print("Pygame will not load headlessly")
 
 done = False
 
@@ -121,9 +124,8 @@ print("Now expecting user input")
 menu.idle()
 button_timer.timer_set()
 
-# simulate butto npresses w/ keyboard input
 while (not done) and (not testing):
-    # prevent repeat detection of single press
+    # prevent repeat events for one press
     if button_timer.event_no_reset():
         # detect user input
         if buttons[0].is_pressed:
@@ -144,38 +146,41 @@ while (not done) and (not testing):
         if buttons[5].is_pressed:
             menu.evt_handler(evt='R_B')
             button_timer.timer_set()
-        # simulate physical button press with keyboard
-        for event in pygame.event.get():
-            if (event.type == pygame.QUIT):
-                done = True
-                testing = True
-                break
-            elif event.type == pygame.KEYDOWN:
-                print("key is pressed")
-                if (event.key == pygame.K_w) or (event.key == pygame.K_UP):
-                    menu.evt_handler(evt='U_B')
-                    button_timer.timer_set()
-                if event.key == pygame.K_s or (event.key == pygame.K_DOWN):
-                    menu.evt_handler(evt='D_B')
-                    button_timer.timer_set()
-                if event.key == pygame.K_d or (event.key == pygame.K_RIGHT):
-                    menu.evt_handler(evt='R_B')
-                    button_timer.timer_set()
-                if event.key == pygame.K_a or (event.key == pygame.K_LEFT):
-                    menu.evt_handler(evt='L_B')
-                    button_timer.timer_set()
-                if event.key == pygame.K_q or (event.key == pygame.K_z):
-                    menu.evt_handler(evt='A_B')
-                    button_timer.timer_set()
-                if event.key == pygame.K_e or (event.key == pygame.K_x):
-                    menu.evt_handler(evt='B_B')
-                    button_timer.timer_set()
-                if (event.key == pygame.K_ESCAPE):
+        try:
+            # simulate button presses w/ keyboard input
+            for event in pygame.event.get():
+                if (event.type == pygame.QUIT):
                     done = True
                     testing = True
-                    LCD.clear()
-                    print("Esc exits program. Goodbye")
-                    LCD.print("Esc exits program. Goodbye")
+                    break
+                elif event.type == pygame.KEYDOWN:
+                    print("key is pressed")
+                    if (event.key == pygame.K_w) or (event.key == pygame.K_UP):
+                        menu.evt_handler(evt='U_B')
+                        button_timer.timer_set()
+                    if event.key == pygame.K_s or (event.key == pygame.K_DOWN):
+                        menu.evt_handler(evt='D_B')
+                        button_timer.timer_set()
+                    if event.key == pygame.K_d or (event.key == pygame.K_RIGHT):
+                        menu.evt_handler(evt='R_B')
+                        button_timer.timer_set()
+                    if event.key == pygame.K_a or (event.key == pygame.K_LEFT):
+                        menu.evt_handler(evt='L_B')
+                        button_timer.timer_set()
+                    if event.key == pygame.K_q or (event.key == pygame.K_z):
+                        menu.evt_handler(evt='A_B')
+                        button_timer.timer_set()
+                    if event.key == pygame.K_e or (event.key == pygame.K_x):
+                        menu.evt_handler(evt='B_B')
+                        button_timer.timer_set()
+                    if (event.key == pygame.K_ESCAPE):
+                        done = True
+                        testing = True
+                        LCD.clear()
+                        print("Esc exits program. Goodbye")
+                        LCD.print("Esc exits program. Goodbye")
+        except Exception as e:
+            pass  # headless running of pi prevents use of pygame
 
     # print sensor values to terminal to check operation
     if time.monotonic() - last > print_time:
