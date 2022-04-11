@@ -6,12 +6,12 @@ PIP3_PKGS="adafruit-circuitpython-ads1x15 scipy libcblas-dev"
 
 apt-get update
 apt-get upgrade -y
-apt remove python3-numpy -y
+#apt remove python3-numpy -y
 apt-get install $APT_PKGS -y
 pip3 install $PIP3_PKGS 
-pip install numpy==1.20
-apt-get install libatlas-base-dev -y
-pip3 install --upgrade numpy
+#pip install numpy==1.20
+#apt-get install libatlas-base-dev -y
+#pip3 install --upgrade numpy
 apt autoremove
 
 # ensure 1024x768 res for vnc
@@ -44,6 +44,14 @@ else
     echo "hdmi_mode=16" >> $CONFIG
 fi
 
+if grep -Fq "dtoverlay" $CONFIG
+then
+    sed -i "/dtoverlay/c\dtoverlay=w1-gpio" $CONFIG
+else
+    echo "dtoverlay=w1-gpio" >> $CONFIG
+fi
+
+
 pip3 install --upgrade adafruit-python-shell
 wget https://raw.githubusercontent.com/adafruit/Raspberry-Pi-Installer-Scripts/master/raspi-blinka.py
-python3 raspi-blinka
+python3 raspi-blinka.py

@@ -68,9 +68,9 @@ try:
 except OSError as e:
     warnings.warn("LCD at 0x27 not detected.")
     '''
-    import os
+    from os import system
     time.sleep(4)
-    os.system("sudo shutdown -h now")
+    system("sudo shutdown -h now")
     quit()'''
 
 
