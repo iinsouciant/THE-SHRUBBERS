@@ -26,6 +26,8 @@ import time
 from lib.state_machine import LCDmenu
 from lib.state_machine import pumps
 
+import warnings
+
 try:
     # for testing w/o buttons. simulates button input through keyboard
     import pygame
@@ -61,7 +63,12 @@ i2c = busio.I2C(board.SCL, board.SDA)
 with i2c:
     print("I2C addresses found:",
         [hex(device_address) for device_address in i2c.scan()])
-LCD = LCD(I2CPCF8574Interface(board.I2C(), 0x27), num_rows=4, num_cols=20)
+try:
+    LCD = LCD(I2CPCF8574Interface(board.I2C(), 0x27), num_rows=4, num_cols=20)
+except OSError as e:
+    warnings.warn("LCD at 0x27 not detected.")
+    quit()
+
 
 try:
     ads = ADS.ADS1015(i2c)

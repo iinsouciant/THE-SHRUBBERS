@@ -10,7 +10,7 @@
 from lib.butterworth import b_filter as BF
 from lib.DFR import DFRobot_EC as EC
 from lib.DFR import DFRobot_PH as PH   
-from LCDmenu import timer
+from lib.state_machine.LCDmenu import timer
 from time import sleep, monotonic
 import warnings
 
