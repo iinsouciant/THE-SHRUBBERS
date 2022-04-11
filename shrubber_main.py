@@ -8,10 +8,11 @@
 # TODO import only stuff we need from library
 import gpiozero as GZ
 from lib.hcsr04sensor import sensor as hcsr04
+from lib.DS18B20 import TempReader
 from lib.lcd.lcd import LCD
 from lib.lcd.i2c_pcf8574_interface import I2CPCF8574Interface
-
 from lib.lcd.lcd import CursorMode
+
 
 import board
 import busio
@@ -78,15 +79,14 @@ try:
     ads = ADS.ADS1015(board.I2C())
     pHsens = AnalogIn(ads, ADS.P0)  # signal at pin 0
     ECsens = AnalogIn(ads, ADS.P1)  # signal at pin 1
-    tempSens = AnalogIn(ads, ADS.P2)  # signal at pin 2
 except (OSError, ValueError, AttributeError) as e:
     print("Error connecting to ADC. Check connection and ADDR pin:", e)
     ads = "dummy"
     pHsens = "dummy"
     ECsens = "dummy"
-    tempSens = "dummy"
 
 sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'], temperature=20)  # example code, 20 C
+tempSens = TempReader()
 
 # creating instance of state machine
 shrub = pumps.hydro(pumpM, sonar, valves)

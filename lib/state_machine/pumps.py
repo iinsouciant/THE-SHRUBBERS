@@ -266,8 +266,8 @@ class conditioner():
         try:
             dist = PH.readPH(self.pHsens.voltage())
         except Exception:
-            print("The pH sensor is not detected.")
-            warnings.warn("The pH sensor is not detected.")
+            print(f"The pH sensor is not detected: {e}")
+            warnings.warn(f"The pH sensor is not detected: {e}")
             dist = 0
         return self.fpH.filter(dist)
 
@@ -276,20 +276,22 @@ class conditioner():
         without raising an exception halting the program'''
         try:
             dist = EC.readEC(self.ECsens.voltage(), self.grab_temp)
-        except Exception:  # TODO find correct exceptions here
-            print("The conductivity sensor is not detected.")
-            warnings.warn("The conductivity sensor is not detected.")
+        except Exception as e:  # TODO find correct exceptions here
+            print(f"The conductivity sensor is not detected: {e}")
+            warnings.warn(f"The conductivity sensor is not detected: {e}")
             dist = 0
         return self.fEC.filter(dist)
 
-    def grab_temp(self):
+    def grab_temp(self, unit="F"):
         '''Tries to grab the temperature sensor value 
         without raising an exception halting the program'''
         try:
-            # TODO get temp sensor library and replace
-            dist = self.temp.voltage()
-        except Exception:
-            print("The temperature sensor is not detected.")
-            warnings.warn("The temperature sensor is not detected.")
+            if unit == 'C':
+                dist = float(self.temp.read_temp()['temp_c'])
+            elif unit == 'F':
+                dist = float(self.temp.read_temp()['temp_f'])
+        except Exception as e:
+            print(f"The temperature sensor is not detected: {e}")
+            warnings.warn(f"The temperature sensor is not detected: {e}")
             dist = 0
         return self.fTemp.filter(dist)

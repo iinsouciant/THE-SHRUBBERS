@@ -239,7 +239,7 @@ class menu():
         if n == 2:
             self._a = f"Conductivity level: {self.conditioner.grab_EC():.2f} mS"
         if n == 3:
-            self._a = f"Water temp: {self.conditioner.grab_temp():.2f}"
+            self._a = f"Water temp: {self.conditioner.grab_temp():.2f} F"
         
         # to create scrolling effect
         self.LCD.print(self._a)
