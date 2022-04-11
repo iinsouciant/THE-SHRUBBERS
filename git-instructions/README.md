@@ -13,7 +13,14 @@ To then make changes to solve your specific issue in your dedicated branch, go t
 
 Select your branch
 
+_With Github app:_
+
 ![image](./images/branching.png)
+
+_Or VScode:_
+
+![image](https://user-images.githubusercontent.com/17360719/162851741-9f311c7b-df3c-43af-93ce-c26f0389fd67.png)
+
 
 If you get this prompt, this means that you have made changes to the file that haven't been committed to that branch so the changes are only local. If you want to pick up where you left off on that branch later, leave the changes to that branch and restore them when you get back to that branch.
 
