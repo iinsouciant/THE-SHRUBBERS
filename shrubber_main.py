@@ -60,10 +60,10 @@ valves = [GZ.LED(PINS['valve1']), GZ.LED(PINS['valve2'])]
 
 # initialize i2c bus to use with ADC for analog input and send communicate with LCD
 i2c = busio.I2C(board.SCL, board.SDA)
-
 with i2c:
     print("I2C addresses found:",
         [hex(device_address) for device_address in i2c.scan()])
+        
 try:
     LCD = LCD(I2CPCF8574Interface(board.I2C(), 0x27), num_rows=4, num_cols=20)
 except OSError as e:
@@ -73,7 +73,6 @@ except OSError as e:
     time.sleep(4)
     system("sudo shutdown -h now")
     quit()'''
-
 
 try:
     ads = ADS.ADS1015(board.I2C())
@@ -105,35 +104,8 @@ print_time = 7
 last = time.monotonic()
 button_timer = LCDmenu.timer(.25)
 
-
-# will need to alter inital starting method for no keyboard/mouse
 # shrub.state used to track what state pump/uv is in
 
-# TODO might be worth to update this. can we make this into a group of states?
-UV_test1 = None
-while testing:  # for running test procedure with some input
-    if shrub.test_q != "SKIP":
-        shrub.test_q = input("Test pumps? \nY or N ")
-        shrub.test_q = shrub.test_q.upper()
-        if (shrub.test_q == "END"):
-            testing = False
-            break
-        if UV_test1 != "SKIP":
-            UV_test0 = input("Test UV? \nY or N ")
-            UV_test1 = UV_test0.upper()
-            if UV_test1 == "SKIP":
-                continue  # TODO UV test function
-            if (UV_test1 == "END"):
-                testing = False
-                break
-            elif UV_test1 == "Y":
-                duration = float(input("How long?\n"))
-                shrub.pump_test(duration)
-    elif (shrub.test_q == UV_test1):
-        testing = False
-        break
-
-# loop to run once diagnosis is done
 print("Now expecting user input")
 menu.idle()
 button_timer.timer_set()

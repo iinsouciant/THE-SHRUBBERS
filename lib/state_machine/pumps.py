@@ -50,14 +50,14 @@ class hydro():
     def __repr__(self):
         return "state_machine({}, {}, {}, {})".format(self.pump, self.s, self.topValve, self.botValve)
     
-    def __str__(self):  # TODO check if we need to update this
+    def __str__(self):  # TODO check if we need to update this  
         '''Provides formatted sensor values connected to state machine'''
+        if self.test:
+            print(self.vtimer.timer_time)
         return "State: {}\nWater level: {} cm\nValves active? {}\nValve State: {}".format(
             self.state, self.water_height(), self.vtimer.timer_time, 
             self.vState[self.vn]
-        )  
-        if self.test:
-            print(self.vtimer.timer_time)
+        )
 
     def __error(err_string):
         raise Exception(err_string)
@@ -85,6 +85,7 @@ class hydro():
             print(evt)
 
         # IDLE is default operating behavior
+        # TODO combine pump and valve timer to make it simpler. don't change pump value for certain index values
         if (self.state == "IDLE"):
             # TODO test. 
             if ptime:
