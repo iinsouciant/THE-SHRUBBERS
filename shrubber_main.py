@@ -97,7 +97,8 @@ except IndexError:
     )
     time.sleep(5)
     from os import system
-    system("sudo reboot")  # TODO output file to document this for better troubleshooting
+    system("sudo reboot")
+    # TODO output file to document this for better troubleshooting
 
 # creating instance of state machine
 shrub = pumps.hydro(pumpM, sonar, valves)

@@ -24,16 +24,8 @@ class hydro():
     test = False  # for printing state change and events
     test_q = "Y"
     s_thresh = 10  # cm
-    # pump active, drain, and inactive times
+    # channel flooded, drained, and  pump active times
     ptimes = [60*20, 60*10, 60*60*4]
-    pn = 0
-    # independent timer event for pump/UV. start on
-    ptimer = timer(ptimes[pn])
-    ptimer.timer_set()
-    # valve open time
-    vtimes = [ptimes[1]/2, ptimes[1]/2, None]*2
-    vn = 0
-    vtimer = timer(vtimes[vn])
     # sequences to cycle through for valve opening
     vState = ((1, 0), (0, 1), (0, 0), (0, 1), (1, 0), (0, 0))
     [topValveVal, botValveVal] = vState[vn]
@@ -46,6 +38,10 @@ class hydro():
         self.fs = BF.LowPassFilter(filter)
         self.topValve = valves[0]
         self.botValve = valves[1]
+        # join valve and channel pump times together to create simple sequence
+        self.actual_times = []
+        self.actual_times[1] = self.ptimes[0]
+        self.actual_times[1] = self.ptimes[1]
 
     def __repr__(self):
         return "state_machine({}, {}, {}, {})".format(self.pump, self.s, self.topValve, self.botValve)
@@ -62,9 +58,10 @@ class hydro():
     def __error(err_string):
         raise Exception(err_string)
 
+    # TODO update/fix
     def update_settings(self, ptimes, sonar_thresh):
         self.ptimes = ptimes
-        self.ptimer.new_interval_timer(ptimes[self.pn])
+        self.actual_times = 
         # valve open time
         self.vtimes = [ptimes[1]/2, ptimes[1]/2, None]*2
         # while valves are meant to be inactive, we do not want 

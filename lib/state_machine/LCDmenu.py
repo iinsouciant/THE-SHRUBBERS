@@ -75,7 +75,7 @@ class menu():
     configure the shrubber state machine without blocking operations elsewhere
     and simultaneously output information to the LCD screen.'''
     start = "IDLE"
-    ops = ("Flood timer", "Drain timer", "Empty timer",
+    ops = ("Flood timer", "Channel Pump timer", "Empty timer",
         "Gap from top", "pH thresholds", "EC thresholds", 
         "Calibrate pH", "Calibrate EC", "Toggle pump/UV", 
         "Toggle nutrient conditioners")
@@ -110,8 +110,8 @@ class menu():
                 settings = csv.reader(f)
                 rows = [row for row in settings if True]
                 self.ft = int(rows[0][1])
-                self.dt = int(rows[1][1])
-                self.ap = int(rows[2][1])
+                self.ap = int(rows[1][1])
+                self.et = int(rows[2][1])
                 self.sT = int(rows[3][1])
                 self.pHH = float(rows[4][1])
                 self.pHL = float(rows[5][1])
@@ -123,10 +123,10 @@ class menu():
             if e is IOError:
                 print("Settings.csv does not exist. Creating file with default settings.")
             with open(r"Settings.csv", 'w') as f:
-                rows = [['Flood Timer', self.ft], 
-                    ['Drain Timer', self.dt], 
-                    ['Empty Timer', self.ap], 
-                    ['Gap from top', self.sT],
+                rows = [[self.ops[0], self.ft], 
+                    [self.ops[1], self.ap], 
+                    [self.ops[2], self.ep], 
+                    [self.ops[3], self.sT],
                     ['pH High Threshold', self.pHH], 
                     ['pH Low Threshold', self.pHL], 
                     ['EC High Threshold', self.ECH], 
@@ -136,7 +136,7 @@ class menu():
                 settings.writerows(rows)
         
         # list of operation settings
-        self.settings = [self.ft, self.dt, self.ap, self.sT, self.pHH, self.pHL, self.ECH, self.ECL, ]
+        self.settings = [self.ft, self.ap, self.et, self.sT, self.pHH, self.pHL, self.ECH, self.ECL, ]
         self.shrub.update_settings([self.settings[0], self.settings[1], self.settings[2]], self.settings[3])
         self.conditioner.pH_High = self.pHH
         self.conditioner.pH_Low = self.pHL
