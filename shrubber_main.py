@@ -40,8 +40,8 @@ except pygame.error as e:
 done = False
 
 # placeholder pin values
-PINS = {"res_trig": 23, 'res_echo': 24, 'A_B': 'GPIO9',
-'B_B': 'GPIO10', 'U_B': 'GPIO9', 'L_B': 'GPIO24', 'D_B': 'GPIO11', 'R_B': 'GPIO8',
+PINS = {"res_trig": 23, 'res_echo': 24, 'A_B': 'GPIO7',
+'B_B': 'GPIO0', 'U_B': 'GPIO9', 'L_B': 'GPIO24', 'D_B': 'GPIO11', 'R_B': 'GPIO8',
 'pumpM': 'GPIO13', 'pumpA': 'GPIO22', 'pumpB': 'GPIO27', 'pumpN': 'GPIO17',
 'valve1': 'GPIO12', 'valve2': 'GPIO1', 'uv_filter': 'GPIO6'}
 
