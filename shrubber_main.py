@@ -34,10 +34,10 @@ screen = pygame.display.set_mode((100, 100))
 done = False
 
 # placeholder pin values
-PINS = {"res_trig": 'GPIO23', 'res_echo': 'GPIO24', 'A_B': 'GPIO18',
-'B_B': 'GPIO27', 'U_B': 'GPIO17', 'L_B': 'GPIO22', 'D_B': 'GPIO25', 'R_B': 'GPIO5',
-'pumpM': 'GPIO13', 'pumpA': 'GPIO12', 'pumpB': 'GPIO16', 'pumpN': 'GPIO26',
-'valve1': 'GPIO20', 'valve2': 'GPIO21'}
+PINS = {"res_trig": 23, 'res_echo': 24, 'A_B': 'GPIO9',
+'B_B': 'GPIO10', 'U_B': 'GPIO9', 'L_B': 'GPIO24', 'D_B': 'GPIO11', 'R_B': 'GPIO8',
+'pumpM': 'GPIO13', 'pumpA': 'GPIO22', 'pumpB': 'GPIO27', 'pumpN': 'GPIO17',
+'valve1': 'GPIO12', 'valve2': 'GPIO1', 'uv_filter': 'GPIO6'}
 
 pumpM = GZ.PWMLED(PINS['pumpM'])
 pumpA = GZ.LED(PINS['pumpA'])
