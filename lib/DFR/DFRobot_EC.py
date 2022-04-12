@@ -1,12 +1,12 @@
 from time import sleep
 import sys
 
-_kvalue                 = 1.0
-_kvalueLow              = 1.0
-_kvalueHigh             = 1.0
+_kvalue = 1.0
+_kvalueLow = 1.0
+_kvalueHigh = 1.0
 _cmdReceivedBufferIndex = 0
-_voltage                = 0.0
-_temperature            = 25.0
+_voltage = 0.0
+_temperature = 25.0
 
 class DFRobot_EC():  
 	# maybe update this to work with LCD/file reading
@@ -15,20 +15,20 @@ class DFRobot_EC():
 		global _kvalueHigh
 		try:
 			with open('ecdata.txt', 'r') as f:
-				kvalueLowLine  = f.readline()
-				kvalueLowLine  = kvalueLowLine.strip('kvalueLow=')
-				_kvalueLow     = float(kvalueLowLine)
+				kvalueLowLine = f.readline()
+				kvalueLowLine = kvalueLowLine.strip('kvalueLow=')
+				_kvalueLow = float(kvalueLowLine)
 				kvalueHighLine = f.readline()
 				kvalueHighLine = kvalueHighLine.strip('kvalueHigh=')
-				_kvalueHigh    = float(kvalueHighLine)
+				_kvalueHigh = float(kvalueHighLine)
 
 		except (IOError) as e:
 			if e is IOError:
 				print("ecdata.txt does not exist. Creating file with default settings.")
 			with open('ecdata.txt', 'w') as f:
 				#flist=f.readlines()
-				flist   ='kvalueLow=' + str(_kvalueLow)  + '\n'
-				flist  +='kvalueHigh='+ str(_kvalueHigh) + '\n'
+				flist = 'kvalueLow=' + str(_kvalueLow) + '\n'
+				flist += 'kvalueHigh=' + str(_kvalueHigh) + '\n'
 				#f=open('data.txt','w+')
 				f.writelines(flist)
 			print(">>>Reset EC to default parameters<<<")
@@ -49,30 +49,30 @@ class DFRobot_EC():
 
 	def calibration(self, voltage, temperature):
 		if (voltage == 0.0) and (temperature == 0.0):
-			return "Test values passed in. Check wires & sensor initialization."
+			return ">>Invalid sensor reading. Check wires & sensor initialization.<<"
 		else:
 			rawEC = 1000*voltage/820.0/200.0
-			if (rawEC>0.9 and rawEC<1.9):
+			if (rawEC > 0.9 and rawEC < 1.9):
 				compECsolution = 1.413*(1.0+0.0185*(temperature-25.0))
 				KValueTemp = 820.0*200.0*compECsolution/1000.0/voltage
 				round(KValueTemp, 2)
 				#print(">>>Buffer Solution:1.413us/cm")
-				f=open('ecdata.txt','r+')
-				flist=f.readlines()
-				flist[0]='kvalueLow='+ str(KValueTemp) + '\n'
-				f=open('ecdata.txt','w+')
+				f = open('ecdata.txt', 'r+')
+				flist = f.readlines()
+				flist[0] = 'kvalueLow=' + str(KValueTemp) + '\n'
+				f = open('ecdata.txt', 'w+')
 				f.writelines(flist)
 				f.close()
 				#print(">>>EC:1.413us/cm Calibration completed")
 				return "1.413us/cm calibration completed"
-			elif (rawEC>9 and rawEC<16.8):
+			elif (rawEC > 9 and rawEC < 16.8):
 				compECsolution = 12.88*(1.0+0.0185*(temperature-25.0))
 				KValueTemp = 820.0*200.0*compECsolution/1000.0/voltage
 				#print(">>>Buffer Solution:12.88ms/cm")
-				f=open('ecdata.txt','r+')
-				flist=f.readlines()
-				flist[1]='kvalueHigh='+ str(KValueTemp) + '\n'
-				f=open('ecdata.txt','w+')
+				f = open('ecdata.txt', 'r+')
+				flist = f.readlines()
+				flist[1] = 'kvalueHigh=' + str(KValueTemp) + '\n'
+				f = open('ecdata.txt', 'w+')
 				f.writelines(flist)
 				f.close()
 				#print(">>>EC:12.88ms/cm Calibration completed")
@@ -81,22 +81,22 @@ class DFRobot_EC():
 				return ">>>Buffer solution out of range. Measurement discarded<<<"
 			
 	def reset(self):
-		_kvalueLow              = 1.0
-		_kvalueHigh             = 1.0
+		_kvalueLow = 1.0
+		_kvalueHigh = 1.0
 		try:
-			f=open('ecdata.txt','r+')
-			flist=f.readlines()
-			flist[0]='kvalueLow=' + str(_kvalueLow)  + '\n'
-			flist[1]='kvalueHigh='+ str(_kvalueHigh) + '\n'
-			f=open('ecdata.txt','w+')
+			f = open('ecdata.txt', 'r+')
+			flist = f.readlines()
+			flist[0] = 'kvalueLow=' + str(_kvalueLow) + '\n'
+			flist[1] = 'kvalueHigh=' + str(_kvalueHigh) + '\n'
+			f = open('ecdata.txt', 'w+')
 			f.writelines(flist)
 			f.close()
 			print(">>>Reset to default parameters<<<")
 		except:
-			f=open('ecdata.txt','w')
+			f = open('ecdata.txt', 'w')
 			#flist=f.readlines()
-			flist   ='kvalueLow=' + str(_kvalueLow)  + '\n'
-			flist  +='kvalueHigh='+ str(_kvalueHigh) + '\n'
+			flist = 'kvalueLow=' + str(_kvalueLow) + '\n'
+			flist += 'kvalueHigh=' + str(_kvalueHigh) + '\n'
 			#f=open('data.txt','w+')
 			f.writelines(flist)
 			f.close()

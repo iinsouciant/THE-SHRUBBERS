@@ -41,7 +41,7 @@ class DFRobot_PH():
 
 	def calibration(self,voltage):
 		if (voltage == 0):
-			return ">>Test values passed in. Check wires & sensor initialization.<<"
+			return ">>Invalid sensor reading. Check wires & sensor initialization.<<"
 		else:
 			if (voltage>1322 and voltage<1678):
 				print(">>>Buffer Solution:7.0")

@@ -221,6 +221,7 @@ class hydro():
 class conditioner():
     '''Class to handle the state machine behavior of the nutrient solution conditioning pumps'''
 
+    test = True
     pH_High = 9
     ph_Low = 4
     EC_High = 2
@@ -251,7 +252,8 @@ class conditioner():
         '''Provides formatted sensor values connected to state machine'''
         return "Channel Pump State: {}\nConditioner State: {}\nWater level: {} cm\npH: {}\
         \nEC: {} mS\nTemp: {} C".format(
-            self.hydro.state, self.state, self.hydro.grab_sonar(), self.grab_pH(), self.grab_EC(), self.grab_temp()
+            self.hydro.state, self.state, self.hydro.grab_sonar(), self.grab_pH(), 
+            self.grab_EC(), self.grab_temp(unit="C")
         )
 
     def EC_calibration(self):
@@ -268,7 +270,9 @@ class conditioner():
         '''Tries to grab the pH sensor value 
         without raising an exception halting the program'''
         try:
-            dist = PH.readPH(self.pHsens.voltage())
+            dist = self.pH.readPH(self.pHsens.voltage)
+            if self.test:
+                print(f'ph voltage reading: {self.pHsens.voltage:.3f}')
         except Exception as e:
             print(f"The pH sensor is not detected: {e}")
             warnings.warn("The pH sensor is not detected")
@@ -279,7 +283,9 @@ class conditioner():
         '''Tries to grab the conductivity sensor value 
         without raising an exception halting the program'''
         try:
-            dist = EC.readEC(self.ECsens.voltage(), self.grab_temp)
+            dist = self.EC.readEC(self.ECsens.voltage, self.grab_temp())
+            if self.test:
+                print(f'ec voltage reading: {self.ECsens.voltage:.3f}')
         except Exception as e:  # TODO find correct exceptions here
             print(f"The conductivity sensor is not detected: {e}")
             warnings.warn("The conductivity sensor is not detected")

@@ -85,7 +85,19 @@ except (OSError, ValueError, AttributeError) as e:
     ECsens = "dummy"
 
 sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'], temperature=20)  # example code, 20 C
-tempSens = TempReader()
+
+try:
+    tempSens = TempReader()
+except IndexError:
+    print("1-Wire connection is bad.\
+        Try checkng connection. Attempting reboot to fix.")
+    LCD.print(
+        "1-Wire connection is bad. Try checkng connection." +
+        "Attempting reboot to fix."
+    )
+    time.sleep(5)
+    from os import system
+    system("sudo reboot")  # TODO output file to document this for better troubleshooting
 
 # creating instance of state machine
 shrub = pumps.hydro(pumpM, sonar, valves)
@@ -102,7 +114,7 @@ print_time = 7
 
 # initializing variables
 last = time.monotonic()
-button_timer = LCDmenu.timer(.25)
+button_timer = LCDmenu.timer(.15)
 
 # shrub.state used to track what state pump/uv is in
 
@@ -110,6 +122,7 @@ print("Now expecting user input")
 menu.idle()
 button_timer.timer_set()
 
+# TODO when finished, reduce loop time for easier user input
 while (not done) and (not testing):
     if test2:
         if test_timer.timer_event():

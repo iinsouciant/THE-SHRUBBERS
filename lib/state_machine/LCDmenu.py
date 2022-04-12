@@ -239,7 +239,7 @@ class menu():
         if n == 2:
             self._a = f"Conductivity level: {self.conditioner.grab_EC():.2f} mS"
         if n == 3:
-            self._a = f"Water temp: {self.conditioner.grab_temp():.2f} F"
+            self._a = f"Water temp: {self.conditioner.grab_temp(unit='F'):.2f} F"
         
         # to create scrolling effect
         self.LCD.print(self._a)
@@ -333,7 +333,7 @@ class menu():
             self.startMenu(hover=8)
             
     # TODO see if i can segment this to reduce loop time?
-    def evt_handler(self, evt=None, timer=False, test=False):
+    def evt_handler(self, evt=None, timer=False, test=True):
         if test:
             print(f"child: {self.child}")
             print(f'parent: {self.parent}')
@@ -743,7 +743,7 @@ class menu():
             if self.child == "EC CONFIRM":
                 if (evt == "A_B") or (evt == "R_B"):
                     self.LCD.clear()
-                    self.LCD.print(self.shrub.EC_calibration())
+                    self.LCD.print(self.conditioner.EC_calibration())
                     self.child = "WAIT"
                     self.parent = None
                 elif (evt == "B_B") or (evt == "L_B"):
@@ -752,7 +752,7 @@ class menu():
             if self.child == "pH CONFIRM":
                 if (evt == "A_B") or (evt == "R_B"):
                     self.LCD.clear()
-                    self.LCD.print(self.shrub.pH_calibration())
+                    self.LCD.print(self.conditioner.pH_calibration())
                     self.child = "WAIT"
                     self.parent = None
                 elif (evt == "B_B") or (evt == "L_B"):
