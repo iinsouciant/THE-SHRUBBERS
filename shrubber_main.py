@@ -199,12 +199,16 @@ while (not done) and (not testing):
         menu.evt_handler(timer=True)
 
     # check for pump flood drain cycle timing
-    if shrub.ptimer.timer_event():
-        shrub.evt_handler(ptime=True)
+    if shrub.hydroTimer.timer_event():
+        shrub.evt_handler(evt='TIME')
 
     # check for pump flood drain cycle timing
-    if shrub.vtimer.timer_event():
-        shrub.evt_handler(vtime=True)
+    if condition.on_timer.timer_event():
+        shrub.evt_handler(evt='ON TIMER')
+    if condition.wait_timer.event_no_reset():
+        temp = condition.sensOutOfRange()
+        if temp is not None:
+            condition.evt_handler(evt=temp)
 
     # if the reservoir is dangerously full, stop valves. 
     # should hopefully prevent repeat events

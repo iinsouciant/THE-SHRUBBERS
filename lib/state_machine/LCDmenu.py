@@ -28,10 +28,13 @@ class timer():
             self.TIMER_INTERVAL = None
 
     def timer_event(self):
-        '''Checks to see if the time has passed. If it has, turns off timer and returns True'''
+        '''Checks to see if the time has passed. If it has, turns off timer and returns True. If the timer was not set,
+        returns None'''
         if (self.timer_time is not None) and monotonic() >= self.timer_time:
             self.timer_time = None
             return True
+        elif self.timer_time is None:
+            return None
         else:
             return False
 
@@ -40,6 +43,8 @@ class timer():
         if (self.timer_time is not None) and monotonic() >= self.timer_time:
             # self.timer_time = None
             return True
+        elif self.timer_time is None:
+            return None
         else:
             return False
 

@@ -101,7 +101,7 @@ class hydro():
                 sleep(6)
                 self.topValve.off
                 self.botValve.off
-                self.active(pwr)
+                self.active(pwr=0)
 
             elif evt == "OVERFLOW":
                 valvePause = True
@@ -242,11 +242,14 @@ class conditioner():
     ph_Low = 4
     EC_High = 2
     EC_Low = 0
-    on_timer = timer(1)
+    on_timer = timer(3)
+    wait_timer = timer(15)
+    wait_timer.timer_set()
     userToggle = False
     overflowCondition = "NO OVERFLOW"
 
     def __init__(self, conditioning_pumps, shrub, pHsens, ECsens, temp, filters=[200, 200, 200]):
+        self.pumps = conditioning_pumps
         self.pumpA = conditioning_pumps[0]
         self.pumpB = conditioning_pumps[1]
         self.pumpN = conditioning_pumps[2]
@@ -267,10 +270,10 @@ class conditioner():
 
     def __str__(self):  # TODO check if we need to update this
         '''Provides formatted sensor values connected to state machine'''
-        return "Channel Pump State: {}\nConditioner State: {}\nWater level: {} cm\npH: {}\
+        return "Channel Pump State: {}\nPump States: {:.2f} A {:.2f} B {:.2f} N\nWater level: {} cm\npH: {}\
         \nEC: {} mS\nTemp: {} C".format(
-            self.hydro.state, self.state, self.hydro.grab_sonar(), self.grab_pH(), 
-            self.grab_EC(), self.grab_temp(unit="C")
+            self.hydro.state, self.pumpA.value, self.pumpB.value, self.pumpN.value,  
+            self.hydro.grab_sonar(), self.grab_pH(), self.grab_EC(), self.grab_temp(unit="C")
         )
     
     def evt_handler(self, evt=None):
@@ -292,6 +295,7 @@ class conditioner():
                 if self.userToggle is False:
                     pumpPause = False
 
+            # TODO while on timer or wait timer is false, do not take low or high ec/ph values. handle this in shrubber_main
             # user toggle overrides overflow until next loop where overflow event is passed. change this?
             elif evt == "USER TOGGLE":
                 self.userToggle = not self.userToggle
@@ -299,6 +303,9 @@ class conditioner():
                     pumpPause = True
                 elif not self.userToggle:
                     pumpPause = False
+            elif evt == "ON TIMER":
+                for pump in self.pumps:
+                    self.pump_active(pump, pwr=0)
 
             # TODO want some kind of event to start pump at will for testing or maintenance
             elif evt == "TEST":
@@ -311,14 +318,34 @@ class conditioner():
             elif pumpPause is False:
                 self.pPause = False
             
-            if (pumpPause is False) and (evt=="LOW PH"):
-                pass
+            if self.pPause:
+                for pump in self.pumps:
+                    self.pump_active(pump, pwr=0)
+            # wait for reservoir to mix a little before turning on pumps again
+            elif (self.wait_timer.event_no_reset()) and (pumpPause is False):
+                if (evt == "LOW EC"):
+                    self.pump_active(self.pumpN)
+                    self.on_timer.timer_set()
+                    self.wait_timer.timer_set()
+                elif (evt == "LOW PH"):
+                    self.pump_active(self.pumpA)
+                    self.on_timer.timer_set()
+                    self.wait_timer.timer_set()
+                elif (evt == "HIGH PH"):
+                    self.pump_active(self.pumpB)
+                    self.on_timer.timer_set()
+                    self.wait_timer.timer_set()
 
         else:
             print('Invalid event: '+evt)
 
     def pump_active(self, pump, pwr=60):
-        pump.
+        '''PWM % value to output to motor of pump'''
+        if pwr >= 100:
+            pwr = 100
+        elif pwr <= 0:
+            pwr = 0
+        pump.value = pwr/100
 
     def EC_calibration(self):
         '''Run this once the EC sensor is fully submerged in the high or low solution.
@@ -369,3 +396,13 @@ class conditioner():
             warnings.warn("The temperature sensor is not detected")
             dist = 0
         return self.fTemp.filter(dist)
+
+    def sensOutOfRange(self):
+        if self.grab_pH >= self.pH_High:
+            return 'HIGH PH'
+        elif self.grab_pH <= self.ph_Low:
+            return 'LOW PH'
+        elif self.grab_EC <= self.EC_Low:
+            return 'LOW EC'
+        else:
+            return None
