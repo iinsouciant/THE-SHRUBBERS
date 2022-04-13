@@ -89,3 +89,10 @@ class DFRobot_PH():
 			f.writelines(flist)
 			f.close()
 			print(">>>Reset to default parameters<<<")
+
+	def atlas_readPH(self,voltage):
+		# read pH values using equation from Atlas Sci
+		volt_val = voltage/4096 * 3.3   # get value in Volts from 12-bit ADC
+		phVal = (-5.6548 * volt_val) + 15.509
+		round(phVal,2)
+		return(phVal)
