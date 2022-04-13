@@ -19,9 +19,9 @@ import busio
 import adafruit_ads1x15.ads1015 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
 
-import numpy as np
-import math
-import time
+# import numpy as np
+# import math
+from time import sleep
 
 # state machine
 import lib.state_machine.LCDmenu as LCDmenu
@@ -49,7 +49,8 @@ pumpM = GZ.PWMLED(PINS['pumpM'])
 pumpA = GZ.LED(PINS['pumpA'])
 pumpB = GZ.LED(PINS['pumpB'])
 pumpN = GZ.LED(PINS['pumpN'])
-condP = [pumpA, pumpB, pumpN]           
+condP = [pumpA, pumpB, pumpN]  
+UV = GZ.LED(PINS['uv_filter'])         
 
 buttons = []  # list of button instances
 for k, v in PINS.items():
@@ -70,8 +71,8 @@ except OSError as e:
     warnings.warn("LCD at 0x27 not detected.")
     '''
     from os import system
-    time.sleep(4)
-    system("sudo shutdown -h now")
+    sleep(4)
+    system("sudo reboot")
     quit()'''
 
 try:
@@ -95,13 +96,13 @@ except IndexError:
         "1-Wire connection is bad. Try checkng connection." +
         "Attempting reboot to fix."
     )
-    time.sleep(5)
+    sleep(5)
     from os import system
     system("sudo reboot")
     # TODO output file to document this for better troubleshooting
 
 # creating instance of state machine
-shrub = pumps.hydro(pumpM, sonar, valves)
+shrub = pumps.hydro(pumpM, sonar, valves, UV)
 condition = pumps.conditioner(condP, shrub, pHsens, ECsens, tempSens)
 menu = LCDmenu.menu(LCD, shrub, condition)
 
@@ -114,7 +115,6 @@ if test2:
 print_time = 7
 
 # initializing variables
-last = time.monotonic()
 button_timer = LCDmenu.timer(.15)
 
 # shrub.state used to track what state pump/uv is in
@@ -135,23 +135,27 @@ while (not done) and (not testing):
             test_timer.timer_set()
     # prevent repeat events for one press
     if button_timer.event_no_reset():
+        # press A and B to turn on all outputs for a short period
+        if buttons[0].is_pressed and buttons[1].is_pressed:
+            menu.evt_handler(evt="TEST")
+            button_timer.timer_set()
         # detect user input
-        if buttons[0].is_pressed:
+        elif buttons[0].is_pressed:
             menu.evt_handler(evt='A_B')
             button_timer.timer_set()
-        if buttons[1].is_pressed:
+        elif buttons[1].is_pressed:
             menu.evt_handler(evt='B_B')
             button_timer.timer_set()
-        if buttons[2].is_pressed:
+        elif buttons[2].is_pressed:
             menu.evt_handler(evt='U_B')
             button_timer.timer_set()
-        if buttons[3].is_pressed:
+        elif buttons[3].is_pressed:
             menu.evt_handler(evt='L_B')
             button_timer.timer_set()
-        if buttons[4].is_pressed:
+        elif buttons[4].is_pressed:
             menu.evt_handler(evt='D_B')
             button_timer.timer_set()
-        if buttons[5].is_pressed:
+        elif buttons[5].is_pressed:
             menu.evt_handler(evt='R_B')
             button_timer.timer_set()
         try:
@@ -189,12 +193,6 @@ while (not done) and (not testing):
                         LCD.print("Esc exits program. Goodbye")
         except Exception as e:
             pass  # headless running of pi prevents use of pygame
-
-    # print sensor values to terminal to check operation
-    if time.monotonic() - last > print_time:
-        last = time.monotonic() 
-        if test2:
-            print(f"menu state: {menu.state}")
     
     # wait for lack of user input to set menu to idle
     if menu.idle_timer.timer_event():
@@ -210,10 +208,10 @@ while (not done) and (not testing):
 
     # if the reservoir is dangerously full, stop valves. 
     # should hopefully prevent repeat events
-    if shrub.overflow_det() and (shrub.state != "NO DRAIN"):
+    if shrub.overflow_det() and (shrub.overflowCondition != "NO DRAIN"):
         shrub.evt_handler(evt="OVERFLOW")
     # allow valves to open up again
-    if (shrub.state == "NO DRAIN") and not shrub.overflow_det:
+    if (shrub.overflowCondition == "NO DRAIN") and not shrub.overflow_det:
         shrub.evt_handler(evt="NO OVERFLOW")
         
     if menu.state == "IDLE" and menu.idle_printer.timer_event():
@@ -231,4 +229,8 @@ while (not done) and (not testing):
         LCD.set_cursor_mode(CursorMode.HIDE)
             
 print("Something caused the state machine to break. Exiting program")
-LCD.print("Something caused the state machine to break. Exiting program")
+LCD.print("Something caused the state machine to break. Exiting program and rebooting")
+from os import system
+sleep(4)
+# TODO insert save all settings, states, and timer values to file before reboot
+system("sudo reboot")

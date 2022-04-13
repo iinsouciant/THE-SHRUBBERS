@@ -22,11 +22,17 @@ class hydro():
     events passed to it, and defines and run the states as needed.'''
     test = False  # for printing state change and events
     # channel flooded, drained, and  pump active times
-    ptimes = [60*20, 60*10, 60*60*4]
+    ptimes = [60*60*3, 60*60*3.5, 60*20]
+    valveDrainTime = 60*20
     actual_times = []
     # sequences to cycle through for valve opening
-    pVals = (   1,      0,      0,      0,      1,      0,      0,      0)
-    vVals = ((0, 0), (1, 0), (0, 1), (0, 0), (0, 0), (0, 1), (1, 0), (0, 0))
+    pVals = (   1,      0,      0,      0,      0) * 2
+    vVals = ((0, 0), (0, 0), (1, 0), (0, 1), (0, 0), (0, 0), (0, 0), (0, 1), (1, 0), (0, 0))
+
+    pPause = False
+    vPause = False
+    overflowCondition = "NO OVERFLOW"
+    userToggle = False
 
     hydro_state = 0
     pumpVal = pVals[hydro_state]
@@ -37,14 +43,15 @@ class hydro():
     hole_depth = 35*2.54  # 35in to cm
     s_thresh = 10  # cm
 
-    def __init__(self, pump, sonar, valves, filter=200):
+    def __init__(self, pump, sonar, valves, UV, filter=200):
         self.pump = pump
         self.s = sonar
         self.fs = BF.LowPassFilter(filter)
         self.topValve = valves[0]
         self.botValve = valves[1]
+        self.UV = UV
         # join valve and channel pump times together to create simple sequence
-        self.actual_times = []
+        self.__ptimes2actual()
 
     def __repr__(self):
         return "state_machine({}, {}, {}, {})".format(self.pump, self.s, self.topValve, self.botValve)
@@ -61,61 +68,126 @@ class hydro():
     def __error(err_string):
         raise Exception(err_string)
 
-    # TODO update/fix
+    # TODO test
     def update_settings(self, ptimes, sonar_thresh):
         self.__ptimes2actual(ptimes)
         self.hydroTimer.new_interval_timer(self.actual_times[self.hydro_state])
         self.s_thresh = sonar_thresh
     
-    # TODO
+    # TODO test
     def __ptimes2actual(self, ptimes):
         self.ptimes = ptimes
-        self.actual_times[0] = ptimes[0]
-        self.actual_times[1] = ptimes[1]
+        self.actual_times[0] = ptimes[2]  # pump fill channel
+        self.actual_times[1] = ptimes[0]  # pump stop and leaved channel flooded
+        self.actual_times[2] = self.valveDrainTime  # first valve open
+        self.actual_times[3] = self.valveDrainTime  # first valve close second valve open
+        self.actual_times[4] = ptimes[1] - 2 * self.valveDrainTime  # close both valves
+        self.actual_times *= 2
 
-    # TODO update this: pass in pause button toggle + event and it chooses next state depending on current state. 
-    def evt_handler(self, evt=None, time=False, pumpPause=False, valvePause=False):
+    # TODO test 
+    def evt_handler(self, evt=None, pumpPause=None, valvePause=None):
         '''Handles the logic to choose and run the proper state
         depending on current state and event passed to it'''
         if self.test:
-            print(self.last_s)
-            print(self.state)
+            print(f'user shut off: {self.userToggle}')
+            print(f'overflow condition: {self.overflowCondition}')
             print(evt)
-
-        # IDLE is default operating behavior
-        # TODO combine pump and valve timer to make it simpler. don't change pump value for certain index values
+        
         if evt is not None:
-            if evt == "OVERFLOW":
+            if evt == 'TEST':
+                self.topValve.on
+                self.botValve.on
+                self.active()
+                sleep(6)
                 self.topValve.off
                 self.botValve.off
-                self.valve_state = "NO DRAIN"
-                if self.test:
+                self.active(pwr)
+
+            elif evt == "OVERFLOW":
+                valvePause = True
+                self.overflowCondition = evt
+                '''if self.test:
                     print("Top valve: off")
-                    print("Bottom valve: off")
-                    print(self.state)
-            # any other events to consider?
+                    print("Bottom valve: off")'''
+            elif (evt == "NO OVERFLOW") and (self.overflowCondition == "OVERFLOW"):
+                self.overflowCondition = evt
+                # prevent overflow condition from overriding the user toggling our outputs
+                if self.userToggle is False:
+                    valvePause = False
+                    #pumpPause = False
+
+            # user toggle overrides overflow until next loop where overflow event is passed. change this?
+            elif evt == "USER TOGGLE":
+                self.userToggle = not self.userToggle
+                if self.userToggle:
+                    pumpPause = True
+                    valvePause = True
+                elif not self.userToggle:
+                    pumpPause = False
+                    valvePause = False
+
+            # TODO want some kind of event to start pump/uv/valve at will for testing
             elif evt == "PLACEHOLDER":
                 pass
 
-        if self.state == "NO DRAIN":
-            # revert the valves back to normal operation
-            if evt == "NO OVERFLOW":
-                pass
-            elif evt == "OVERFLOW":
-                vtime = False
-                if self.test:
-                    print('valves disabled') 
+            # to stop the valves and pumps in case of emergency. 
+            # stored in values to retain behavior across multiple events
+            if pumpPause:
+                self.pPause = True
+            elif pumpPause is False:
+                self.pPause = False
+            if valvePause:
+                self.vPause = True
+            elif valvePause is False:
+                self.vPause = False
+            
+            # go to next pump and valve state
+            if evt == "TIME":
+                self.hydro_state += 1
+                self.hydro_state %= 10
+                self.pumpVal = self.pVals[self.hydro_state]
+                [self.topValveVal, self.botValveVal] = self.vVals[self.hydro_state]
+                self.hydroTimer.timer_set(new=self.actual_times[self.hydro_state])
+
+                if self.pumpVal and not self.pPause:
+                    self.active()
+                else:
+                    self.active(pwr=0)
+                if not self.vPause:
+                    if self.topValveVal:
+                        self.topValve.on
+                    else:
+                        self.topValve.off
+                    if self.botValveVal:
+                        self.botValve.on
+                    else:
+                        self.botValve.off
+        
+        if self.test:
+            print(f'new user shut off: {self.userToggle}')
+            print(f'new overflow condition: {self.overflowCondition}')
+            print(f'top valve state: {self.topValve}')
+            print(f'bot valve state: {self.botValve}')
     
-    # TODO update/fix
+    # TODO test. any reason to use this?
     def hydro_restart(self):
         self.topValve.off
         self.botValve.off
+        self.hydro_state = 0
+        self.overflowCondition = False
+        self.userToggle = False
         if self.test:
             print("Top valve: off")
             print("Bottom valve: off")
 
     def active(self, pwr=30):
+        if pwr >= 100:
+            pwr = 100
         self.pump.value = pwr/100  # TODO set default value to match 1 GPM 
+        if pwr <= 0:
+            self.UV.value = 0
+        else:
+            self.UV.value = 1
 
     def water_height(self):  # in cm, good for ~9 to ~30
         return self.s.depth(self.grab_sonar(), self.hole_depth)
@@ -137,6 +209,7 @@ class hydro():
         '''Tries to grab the sonar sensor value without 
         raising an exception halting the program. The reliable range is 9 to 32 cm.'''
         try:
+            # might want to lower sample_wait to reduce loop time of menu for better user input
             dist = self.s.raw_distance(sample_size=5, sample_wait=0.01)
         except (SystemError, UnboundLocalError) as e:
             print(f"The sonar is not detected: {e}")
@@ -170,9 +243,10 @@ class conditioner():
     EC_High = 2
     EC_Low = 0
     on_timer = timer(1)
-    state = "IDLE"
+    userToggle = False
+    overflowCondition = "NO OVERFLOW"
 
-    def __init__(self, conditioning_pumps, shrub, pHsens, ECsens, temp, filters=[5, 5, 5]):
+    def __init__(self, conditioning_pumps, shrub, pHsens, ECsens, temp, filters=[200, 200, 200]):
         self.pumpA = conditioning_pumps[0]
         self.pumpB = conditioning_pumps[1]
         self.pumpN = conditioning_pumps[2]
@@ -198,6 +272,53 @@ class conditioner():
             self.hydro.state, self.state, self.hydro.grab_sonar(), self.grab_pH(), 
             self.grab_EC(), self.grab_temp(unit="C")
         )
+    
+    def evt_handler(self, evt=None):
+        if self.test:
+            print(f'user shut off: {self.userToggle}')
+            print(f'overflow condition: {self.overflowCondition}')
+            print(evt)
+        
+        if evt is not None:
+            if evt == "OVERFLOW":
+                pumpPause = True
+                self.overflowCondition = evt
+                '''if self.test:
+                    print("Top valve: off")
+                    print("Bottom valve: off")'''
+            elif (evt == "NO OVERFLOW") and (self.overflowCondition == "OVERFLOW"):
+                self.overflowCondition = evt
+                # prevent overflow condition from overriding the user toggling our outputs
+                if self.userToggle is False:
+                    pumpPause = False
+
+            # user toggle overrides overflow until next loop where overflow event is passed. change this?
+            elif evt == "USER TOGGLE":
+                self.userToggle = not self.userToggle
+                if self.userToggle:
+                    pumpPause = True
+                elif not self.userToggle:
+                    pumpPause = False
+
+            # TODO want some kind of event to start pump at will for testing or maintenance
+            elif evt == "TEST":
+                pass
+
+            # to stop the valves and pumps in case of emergency. 
+            # stored in values to retain behavior across multiple events
+            if pumpPause:
+                self.pPause = True
+            elif pumpPause is False:
+                self.pPause = False
+            
+            if (pumpPause is False) and (evt=="LOW PH"):
+                pass
+
+        else:
+            print('Invalid event: '+evt)
+
+    def pump_active(self, pump, pwr=60):
+        pump.
 
     def EC_calibration(self):
         '''Run this once the EC sensor is fully submerged in the high or low solution.
