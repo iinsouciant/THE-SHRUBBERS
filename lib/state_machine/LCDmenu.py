@@ -83,17 +83,17 @@ class menu():
     child = ops
     m1_hover = 0
     m2_hover = 0
-    ft = 19*60
-    dt = 6*60
-    ap = 120
+    ft = 19*60  # flood timer
+    et = 6*60  # empty timer
+    ap = 120  # active pump timer to flood channels
     # Sensor threshold values
     pHH = 9
     pHL = 4
     ECH = 2
     ECL = 0
-    sT = 10
+    sT = 10  # sonar threshold
     # independent timer event
-    idle_timer = timer(5*60)
+    idle_timer = timer(3*60)
     idle_timer.timer_set()
     idle_printer = timer(8)
     _idle_n = 0
@@ -125,7 +125,7 @@ class menu():
             with open(r"Settings.csv", 'w') as f:
                 rows = [[self.ops[0], self.ft], 
                     [self.ops[1], self.ap], 
-                    [self.ops[2], self.ep], 
+                    [self.ops[2], self.et], 
                     [self.ops[3], self.sT],
                     ['pH High Threshold', self.pHH], 
                     ['pH Low Threshold', self.pHL], 

@@ -52,7 +52,7 @@ class DFRobot_PH():
 				f.writelines(flist)
 				f.close()
 				print(">>>PH:7.0 Calibration completed")
-				time.sleep(2.0)
+				#time.sleep(2.0)
 				return ">>>PH:7.0 Calibration completed"
 			elif (voltage>1854 and voltage<2210):
 				print(">>>Buffer Solution:4.0")
@@ -63,7 +63,7 @@ class DFRobot_PH():
 				f.writelines(flist)
 				f.close()
 				print(">>>PH:4.0 Calibration completed")
-				time.sleep(2.0)
+				#time.sleep(2.0)
 				return ">>>PH:4.0 Calibration completed"
 			else:
 				return ">>>Buffer solution out of range. Measurement discarded<<<"

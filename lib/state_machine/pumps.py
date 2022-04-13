@@ -20,19 +20,24 @@ import warnings
 class hydro():
     '''Part of the Shrubber state machine that handles
     events passed to it, and defines and run the states as needed.'''
-    start = "IDLE"
     test = False  # for printing state change and events
-    test_q = "Y"
-    s_thresh = 10  # cm
     # channel flooded, drained, and  pump active times
     ptimes = [60*20, 60*10, 60*60*4]
+    actual_times = []
     # sequences to cycle through for valve opening
-    vState = ((1, 0), (0, 1), (0, 0), (0, 1), (1, 0), (0, 0))
-    [topValveVal, botValveVal] = vState[vn]
-    state = start
-    hole_depth = 35*2.54  # 35in to cm
+    pVals = (   1,      0,      0,      0,      1,      0,      0,      0)
+    vVals = ((0, 0), (1, 0), (0, 1), (0, 0), (0, 0), (0, 1), (1, 0), (0, 0))
 
-    def __init__(self, pump, sonar, valves, filter=7):
+    hydro_state = 0
+    pumpVal = pVals[hydro_state]
+    [topValveVal, botValveVal] = vVals[hydro_state]
+    hydroTimer = timer(actual_times[hydro_state])
+
+    # TODO update w/ actual measurement
+    hole_depth = 35*2.54  # 35in to cm
+    s_thresh = 10  # cm
+
+    def __init__(self, pump, sonar, valves, filter=200):
         self.pump = pump
         self.s = sonar
         self.fs = BF.LowPassFilter(filter)
@@ -40,8 +45,6 @@ class hydro():
         self.botValve = valves[1]
         # join valve and channel pump times together to create simple sequence
         self.actual_times = []
-        self.actual_times[1] = self.ptimes[0]
-        self.actual_times[1] = self.ptimes[1]
 
     def __repr__(self):
         return "state_machine({}, {}, {}, {})".format(self.pump, self.s, self.topValve, self.botValve)
@@ -52,7 +55,7 @@ class hydro():
             print(self.vtimer.timer_time)
         return "State: {}\nWater level: {} cm\nValves active? {}\nValve State: {}".format(
             self.state, self.water_height(), self.vtimer.timer_time, 
-            self.vState[self.vn]
+            self.vVals[self.vn]
         )
 
     def __error(err_string):
@@ -60,22 +63,20 @@ class hydro():
 
     # TODO update/fix
     def update_settings(self, ptimes, sonar_thresh):
+        self.__ptimes2actual(ptimes)
+        self.hydroTimer.new_interval_timer(self.actual_times[self.hydro_state])
+        self.s_thresh = sonar_thresh
+    
+    # TODO
+    def __ptimes2actual(self, ptimes):
         self.ptimes = ptimes
-        self.actual_times = 
-        # valve open time
-        self.vtimes = [ptimes[1]/2, ptimes[1]/2, None]*2
-        # while valves are meant to be inactive, we do not want 
-        # the valve timer to start when updated
-        if self.vtimer.timer_time is None:
-            self.vtimer.TIMER_INTERVAL = self.vtimes[self.vn]
-        else:
-            self.vtimer.new_interval_timer(self.vtimes[self.vn])
+        self.actual_times[0] = ptimes[0]
+        self.actual_times[1] = ptimes[1]
 
     # TODO update this: pass in pause button toggle + event and it chooses next state depending on current state. 
-    def evt_handler(self, evt=None, ptime=False, vtime=False, pause=False):
+    def evt_handler(self, evt=None, time=False, pumpPause=False, valvePause=False):
         '''Handles the logic to choose and run the proper state
         depending on current state and event passed to it'''
-        self.last_s = self.state
         if self.test:
             print(self.last_s)
             print(self.state)
@@ -83,38 +84,11 @@ class hydro():
 
         # IDLE is default operating behavior
         # TODO combine pump and valve timer to make it simpler. don't change pump value for certain index values
-        if (self.state == "IDLE"):
-            # TODO test. 
-            if ptime:
-                self.state = "FLOOD"
-                self.pn += 1
-                self.pn %= 3
-                if self.pn == 0:
-                    if self.test:
-                        print("Pump/UV is now on.")
-                    self.active()
-                if self.pn == 1:
-                    if self.test:
-                        print("Pump/UV is now idle.")
-                    self.pump.value = 0
-                if self.pn == 2:
-                    if self.test:
-                        print("Valve open protocol beginning")
-                    self.pump.value = 0
-                    vtime = True
-                self.ptimer.TIMER_INTERVAL = self.ptimes[self.pt]
-                self.ptimer.timer_set()
-        # example state handling
-        elif (self.state == "MAX") and (evt == "nut"):
-            self.state = "IDK"
-
-        # TODO test. getting caught in no drain state and not leaving
-        # close valves in case of flood
         if evt is not None:
             if evt == "OVERFLOW":
                 self.topValve.off
                 self.botValve.off
-                self.state = "NO DRAIN"
+                self.valve_state = "NO DRAIN"
                 if self.test:
                     print("Top valve: off")
                     print("Bottom valve: off")
@@ -126,51 +100,23 @@ class hydro():
         if self.state == "NO DRAIN":
             # revert the valves back to normal operation
             if evt == "NO OVERFLOW":
-                self.state = self.last_s  # might be better to make this just IDLE
+                pass
             elif evt == "OVERFLOW":
                 vtime = False
                 if self.test:
                     print('valves disabled') 
-
-        # Open one valve. set timer to then open other valve. change which goes first next time
-        # TODO test
-        if vtime:
-            self.vn += 1
-            self.vn %= 6
-            [self.topValveVal, self.botValveVal] = self.vState[self.vn]
-            # set new timer for being open or close
-            if (self.vn == 2) or (self.vn == 5):
-                # if it is not time to drain
-                self.vtimer.timer_time = None
-            else:
-                self.vtimer.timer_set()
-
-            # have it called once to open first valve, second time to open second valve, third time to close both
-            if self.topValveVal:
-                self.topValve.on
-            elif not self.topValveVal:
-                self.topValve.off
-            if self.botValveVal:
-                self.botValve.on
-            elif not self.botValveVal:
-                self.botValve.off
     
+    # TODO update/fix
     def hydro_restart(self):
-        self.state = "IDLE"
         self.topValve.off
         self.botValve.off
         if self.test:
             print("Top valve: off")
             print("Bottom valve: off")
-        self.pn = 0
-        self.vn = 0
-        self.ptimer.TIMER_INTERVAL = self.ptimes[self.pt]
-        self.ptimer.timer_set()
 
     def active(self, pwr=30):
         self.pump.value = pwr/100  # TODO set default value to match 1 GPM 
 
-    # TODO update this
     def water_height(self):  # in cm, good for ~9 to ~30
         return self.s.depth(self.grab_sonar(), self.hole_depth)
 
@@ -191,7 +137,7 @@ class hydro():
         '''Tries to grab the sonar sensor value without 
         raising an exception halting the program. The reliable range is 9 to 32 cm.'''
         try:
-            dist = self.s.raw_distance(sample_size=5)
+            dist = self.s.raw_distance(sample_size=5, sample_wait=0.01)
         except (SystemError, UnboundLocalError) as e:
             print(f"The sonar is not detected: {e}")
             warnings.warn("The sonar sensor is not detected.")

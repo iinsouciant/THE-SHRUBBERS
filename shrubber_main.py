@@ -125,10 +125,13 @@ button_timer.timer_set()
 
 # TODO when finished, reduce loop time for easier user input
 while (not done) and (not testing):
+    # grab all sensor values to pass to butterworth filter with higher frequency
+    a = str(condition)
+    b = str(shrub)
     if test2:
         if test_timer.timer_event():
-            print(condition)
-            print(shrub)
+            print(a)
+            print(b)
             test_timer.timer_set()
     # prevent repeat events for one press
     if button_timer.event_no_reset():
