@@ -8,6 +8,8 @@
 #   v0.65 17-Feb-2022 Drafting menu state machine to interact with hydro
 #   v0.90 23-Mar-2022 Working LCD integration and menu for 8 operations. CSV file functionality complete
 #   v1.00 27-Mar-2022 Moving pump state machines to separate file for organization
+#   v1.15 13-Apr-2022 Add functionality to have menu to send settings to other state machines.
+#                     Timer functionality increased to handle None exceptions and other use cases.
 
 # TODO import only stuff we need from library
 from time import sleep, monotonic
@@ -208,7 +210,7 @@ class menu():
         self.parent = None
 
     def startMenu(self, hover=0):
-        '''send the menu back to the first level menu'''
+        '''Send the menu back to the first level menu'''
         self.idle_timer.timer_set()
         self.parent = self.start
         self.m1_hover = hover
@@ -220,7 +222,7 @@ class menu():
         self.LCD.print(self.ops[hover]) 
 
     def idle(self):
-        '''send the state machine to the idle state showing sensor values'''
+        '''Send the state machine to the idle state showing sensor values'''
         self.parent = self.start
         self.child = self.ops
         self.state = "IDLE"
@@ -229,6 +231,7 @@ class menu():
         self.LCD.print("Menu is now idle.")
     
     def idle_print(self):
+        # save old strings printed for scrolling effect
         try:
             c = self._b
         except Exception as e:
@@ -237,10 +240,12 @@ class menu():
             self._b = self._a
         except Exception as e:
             self._b = ""
+        
         self.LCD.clear()
         self._idle_n += 1
-        self._idle_n %= 4  # for each sensor
+        self._idle_n %= 4  # loop through each sensor
         n = self._idle_n
+        # set timer to wait for next call to idle_print
         self.idle_printer.timer_set()
         if n == 0:
             self._a = f"Water level: {self.shrub.water_height():.1f} cm"

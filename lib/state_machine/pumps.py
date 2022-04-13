@@ -5,6 +5,11 @@
 #
 # Written by Gustavo Garay, Summer Selness, Ryan Sands (sandsryanj@gmail.com)
 #   v0.42 27-Mar-2022 Migration of hydro class from LCDmenu.py
+#   v0.85 13-Apr-2022 First draft state machines. Sequence approach for simple loop of operation
+#                     for the channel pump and valves, few conditions to check when enabling or
+#                     disabling outputs. Nothing to stop timer dictating state. Conditioner
+#                     only checks for values out of range or potentially harmful conditions before 
+#                     operation. Next steps: save state to file periodically in case of brief shutoff
 
 # Butterworth lowpass filter
 from lib.butterworth import b_filter as BF
@@ -125,10 +130,6 @@ class hydro():
                 elif not self.userToggle:
                     pumpPause = False
                     valvePause = False
-
-            # TODO want some kind of event to start pump/uv/valve at will for testing
-            elif evt == "PLACEHOLDER":
-                pass
 
             # to stop the valves and pumps in case of emergency. 
             # stored in values to retain behavior across multiple events
@@ -398,6 +399,9 @@ class conditioner():
             elif unit == 'F':
                 dist = float(self.temp.read_temp()['temp_f'])
         except Exception as e:
+            # TODO maybe have a protocol to restart the system to relaunch the 1-wire 
+            # or try to cd back into the sensor and get readings again. currently,
+            # once it disconnects it stays disconnected until program rescans
             print(f"The temperature sensor is not detected: {e}")
             warnings.warn("The temperature sensor is not detected")
             dist = 0

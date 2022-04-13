@@ -4,6 +4,8 @@
 # Written by Gustavo Garay, Summer Selness, Ryan Sands (sandsryanj@gmail.com)
 #   v0.50 30-Oct-2021 Finding code examples to use for this project
 #   v0.60 06-Nov-2021 Copying over class and logic for state machine with some edits. not working version
+#   v0.85 13-Apr-2022 Included libraries for all sensors, final pin assignments, keyboard input option,
+#                     input and output instances, error handling in case of sensor not workingm
 
 # TODO import only stuff we need from library
 import gpiozero as GZ
@@ -35,7 +37,7 @@ try:
     pygame.init()
     screen = pygame.display.set_mode((100, 100))
 except pygame.error as e:
-    print("Pygame will not load headlessly")
+    print("Pygame has not been loaded as it does not work headlessly.")
 
 done = False
 
