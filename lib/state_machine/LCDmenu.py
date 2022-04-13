@@ -148,6 +148,7 @@ class menu():
         # list of operation settings
         self.settings = [self.ft, self.ap, self.et, self.sT, self.pHH, self.pHL, self.ECH, self.ECL, ]
         self.shrub.update_settings([self.settings[0], self.settings[1], self.settings[2]], self.settings[3])
+        self.conditioner.update_settings(self.settings[4], self.settings[5], self.settings[6], self.settings[7])
         self.conditioner.pH_High = self.pHH
         self.conditioner.pH_Low = self.pHL
         self.conditioner.EC_High = self.ECH

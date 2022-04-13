@@ -276,6 +276,12 @@ class conditioner():
             self.hydro.grab_sonar(), self.grab_pH(), self.grab_EC(), self.grab_temp(unit="C")
         )
     
+    def update_settings(self, pH_High, pH_Low, EC_High, EC_Low):
+        self.pH_High = pH_High
+        self.pH_Low = pH_Low
+        self.EC_High = EC_High
+        self.EC_Low = EC_Low
+    
     def evt_handler(self, evt=None):
         if self.test:
             print(f'user shut off: {self.userToggle}')
