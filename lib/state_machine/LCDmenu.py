@@ -73,7 +73,11 @@ class timer():
     def new_interval_timer(self, new_interval):
         '''Adjusts the remaining time of the timer to fit new interval'''
         if (new_interval is not None) and (self.TIMER_INTERVAL is not None):
-            self.timer_time += new_interval - self.TIMER_INTERVAL
+            if self.timer_time is None:
+                self.TIMER_INTERVAL = new_interval
+                self.timer_set()
+            else:
+                self.timer_time += new_interval - self.TIMER_INTERVAL
         else: 
             self.timer_time = None
         self.TIMER_INTERVAL = new_interval
@@ -100,8 +104,8 @@ class menu():
     pHH = 9
     pHL = 4
     ECH = 2
-    ECL = 0
-    sT = 10  # sonar threshold
+    ECL = 0.01
+    sT = 16  # sonar threshold
     # independent timer event
     idle_timer = timer(3*60)
     idle_timer.timer_set()

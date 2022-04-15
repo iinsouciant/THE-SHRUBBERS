@@ -25,11 +25,11 @@ import warnings
 class hydro():
     '''Part of the Shrubber state machine that handles
     events passed to it, and defines and run the states as needed.'''
-    test = False  # for printing state change and events
+    test = True  # for printing state change and events
     # channel flooded, drained, and  pump active times
     ptimes = [60*60*3, 60*60*3.5, 60*20]
     valveDrainTime = 60*20
-    actual_times = []
+    actual_times = [ptimes[2], 0, 0, 0, 0]
     # sequences to cycle through for valve opening
     pVals = (   1,      0,      0,      0,      0) * 2
     vVals = ((0, 0), (0, 0), (1, 0), (0, 1), (0, 0), (0, 0), (0, 0), (0, 1), (1, 0), (0, 0))
@@ -44,9 +44,14 @@ class hydro():
     [topValveVal, botValveVal] = vVals[hydro_state]
     hydroTimer = timer(actual_times[hydro_state])
 
+    # limits how often the sonar sensor is grabbed to reduce use of sleep
+    sonar_timer = timer(1)
+    sonar_timer.timer_set()
+    last_sonar = 0
+
     # TODO update w/ actual measurement
     hole_depth = 35*2.54  # 35in to cm
-    s_thresh = 10  # cm
+    s_thresh = 14  # cm
 
     def __init__(self, pump, sonar, valves, UV, filter=200):
         self.pump = pump
@@ -56,7 +61,7 @@ class hydro():
         self.botValve = valves[1]
         self.UV = UV
         # join valve and channel pump times together to create simple sequence
-        self.__ptimes2actual()
+        self.__ptimes2actual(self.ptimes)
 
     def __repr__(self):
         return "state_machine({}, {}, {}, {})".format(self.pump, self.s, self.topValve, self.botValve)
@@ -64,10 +69,9 @@ class hydro():
     def __str__(self):  # TODO check if we need to update this  
         '''Provides formatted sensor values connected to state machine'''
         if self.test:
-            print(self.vtimer.timer_time)
-        return "State: {}\nWater level: {} cm\nValves active? {}\nValve State: {}".format(
-            self.state, self.water_height(), self.vtimer.timer_time, 
-            self.vVals[self.vn]
+            print(f'next cycle timer: {self.hydroTimer.time_remaining()}')
+        return "Pump: {}\nValves: {}, {}\nWater level: {} cm\nValves paused? {}\n".format(
+            self.pumpVal, self.botValveVal, self.topValveVal, self.water_height(), self.vPause
         )
 
     def __error(err_string):
@@ -94,10 +98,11 @@ class hydro():
         '''Handles the logic to choose and run the proper state
         depending on current state and event passed to it'''
         if self.test:
-            print(f'user shut off: {self.userToggle}')
-            print(f'overflow condition: {self.overflowCondition}')
+            print(f'shrub user shut off: {self.userToggle}')
+            print(f'shrub overflow condition: {self.overflowCondition}')
             print(evt)
         
+        # getting stuck on no overflow even when it should be overflow
         if evt is not None:
             if evt == 'TEST':
                 self.topValve.on
@@ -154,7 +159,7 @@ class hydro():
                     self.active()
                 else:
                     self.active(pwr=0)
-                if not self.vPause:
+                if (not self.vPause) and (self.overflowCondition != "OVERFLOW"):
                     if self.topValveVal:
                         self.topValve.on
                     else:
@@ -167,8 +172,8 @@ class hydro():
         if self.test:
             print(f'new user shut off: {self.userToggle}')
             print(f'new overflow condition: {self.overflowCondition}')
-            print(f'top valve state: {self.topValve}')
-            print(f'bot valve state: {self.botValve}')
+            print(f'top valve state: {self.topValveVal}')
+            print(f'bot valve state: {self.botValveVal}')
     
     # TODO test. any reason to use this?
     def hydro_restart(self):
@@ -193,12 +198,12 @@ class hydro():
     def water_height(self):  # in cm, good for ~9 to ~30
         return self.s.depth(self.grab_sonar(), self.hole_depth)
 
-    def overflow_det(self, thresh=None):  # in case water level is too high?
-        if thresh is None:
-            thresh = self.s_thresh
+    def overflow_det(self, height_thresh=None):  # in case water level is too high?
+        if height_thresh is None:
+            height_thresh = self.hole_depth - self.s_thresh
         height = self.water_height()
         try:
-            if height >= thresh:
+            if height >= height_thresh:
                 return True
             else:
                 return False
@@ -206,22 +211,30 @@ class hydro():
             print(e)
             return True
     
+    # TODO add timer how often we poll this so loop time is faster
     def grab_sonar(self):
         '''Tries to grab the sonar sensor value without 
         raising an exception halting the program. The reliable range is 9 to 32 cm.'''
-        try:
-            # might want to lower sample_wait to reduce loop time of menu for better user input
-            dist = self.s.raw_distance(sample_size=5, sample_wait=0.01)
-        except (SystemError, UnboundLocalError) as e:
-            print(f"The sonar is not detected: {e}")
-            warnings.warn("The sonar sensor is not detected.")
-            dist = 50
-        # limiting valid measurements
-        if dist >= self.hole_depth:
-            dist = self.hole_depth
-        elif dist < 0:
-            dist = 0
-        return self.fs.filter(dist)
+        if self.sonar_timer.timer_event():
+            try:
+                # might want to lower sample_wait to reduce loop time of menu for better user input
+                dist = self.s.raw_distance(sample_size=5, sample_wait=0.01)
+            except (SystemError, UnboundLocalError) as e:
+                print(f"The sonar is not detected: {e}")
+                warnings.warn("The sonar sensor is not detected.")
+                dist = 50
+            # limiting valid measurements
+            if dist >= self.hole_depth:
+                dist = self.hole_depth
+            elif dist < 0:
+                dist = 0
+            self.last_sonar = self.fs.filter(dist)
+            self.sonar_timer.timer_set()
+            if self.test:
+                print(f'New sonar value: {self.last_sonar}')
+        else:
+            print(f'Old sonar value grabbed: {self.last_sonar}')
+        return self.last_sonar
 
     def pump_pwm(level, pump):
         """This method is deprecated, use GZ.PWMLED value method instead."""
@@ -248,6 +261,7 @@ class conditioner():
     wait_timer.timer_set()
     userToggle = False
     overflowCondition = "NO OVERFLOW"
+    pPause = False
 
     def __init__(self, conditioning_pumps, shrub, pHsens, ECsens, temp, filters=[200, 200, 200]):
         self.pumps = conditioning_pumps
@@ -271,9 +285,9 @@ class conditioner():
 
     def __str__(self):  # TODO check if we need to update this
         '''Provides formatted sensor values connected to state machine'''
-        return "Channel Pump State: {}\nPump States: {:.2f} A {:.2f} B {:.2f} N\nWater level: {} cm\npH: {}\
+        return "Pump States: {:.2f} A {:.2f} B {:.2f} N\nWater level: {} cm\npH: {}\
         \nEC: {} mS\nTemp: {} C".format(
-            self.hydro.state, self.pumpA.value, self.pumpB.value, self.pumpN.value,  
+            self.pumpA.value, self.pumpB.value, self.pumpN.value,  
             self.hydro.grab_sonar(), self.grab_pH(), self.grab_EC(), self.grab_temp(unit="C")
         )
     
@@ -285,10 +299,11 @@ class conditioner():
     
     def evt_handler(self, evt=None):
         if self.test:
-            print(f'user shut off: {self.userToggle}')
-            print(f'overflow condition: {self.overflowCondition}')
+            print(f'cond user shut off: {self.userToggle}')
+            print(f'cond overflow condition: {self.overflowCondition}')
             print(evt)
-        
+        pumpPause = None
+
         if evt is not None:
             if evt == "OVERFLOW":
                 pumpPause = True
@@ -329,7 +344,7 @@ class conditioner():
                 for pump in self.pumps:
                     self.pump_active(pump, pwr=0)
             # wait for reservoir to mix a little before turning on pumps again
-            elif (self.wait_timer.event_no_reset()) and (pumpPause is False):
+            elif (self.wait_timer.event_no_reset()) and (self.pPause is False):
                 if (evt == "LOW EC"):
                     self.pump_active(self.pumpN)
                     self.on_timer.timer_set()
@@ -408,11 +423,12 @@ class conditioner():
         return self.fTemp.filter(dist)
 
     def sensOutOfRange(self):
-        if self.grab_pH >= self.pH_High:
-            return 'HIGH PH'
-        elif self.grab_pH <= self.ph_Low:
-            return 'LOW PH'
-        elif self.grab_EC <= self.EC_Low:
-            return 'LOW EC'
-        else:
-            return None
+        solutions = [None, None, None]
+        pH_val = self.grab_pH()
+        if pH_val >= self.pH_High:
+            solutions[0] = 'HIGH PH'
+        if pH_val <= self.ph_Low:
+            solutions[1] = 'LOW PH'
+        if self.grab_EC() <= self.EC_Low:
+            solutions[2] = 'LOW EC'
+        return solutions

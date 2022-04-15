@@ -110,7 +110,7 @@ menu = LCDmenu.menu(LCD, shrub, condition)
 
 # testing parameters
 testing = False  # to run test procedure on startup
-test2 = True  # show sensor value periodically in normal operation
+test2 = False  # show sensor value periodically in normal operation
 if test2:
     test_timer = LCDmenu.timer(4)
     test_timer.timer_set()
@@ -128,9 +128,10 @@ button_timer.timer_set()
 # TODO when finished, reduce loop time for easier user input
 while (not done) and (not testing):
     # grab all sensor values to pass to butterworth filter with higher frequency
-    a = str(condition)
-    b = str(shrub)
+    
     if test2:
+        a = str(condition)
+        b = str(shrub)
         if test_timer.timer_event():
             print(a)
             print(b)
@@ -209,16 +210,20 @@ while (not done) and (not testing):
         shrub.evt_handler(evt='ON TIMER')
     if condition.wait_timer.event_no_reset():
         temp = condition.sensOutOfRange()
-        if temp is not None:
-            condition.evt_handler(evt=temp)
+        for event in temp:
+            if event is not None:
+                condition.evt_handler(evt=event)
 
     # if the reservoir is dangerously full, stop valves. 
     # should hopefully prevent repeat events
-    if shrub.overflow_det() and (shrub.overflowCondition != "NO DRAIN"):
+    test_overflow = shrub.overflow_det()
+    if test_overflow and (shrub.overflowCondition != "OVERFLOW"):
         shrub.evt_handler(evt="OVERFLOW")
+        condition.evt_handler(evt="OVERFLOW")
     # allow valves to open up again
-    if (shrub.overflowCondition == "NO DRAIN") and not shrub.overflow_det:
+    elif (shrub.overflowCondition == "OVERFLOW") and (not test_overflow):
         shrub.evt_handler(evt="NO OVERFLOW")
+        condition.evt_handler(evt="NO OVERFLOW")
         
     if menu.state == "IDLE" and menu.idle_printer.timer_event():
         menu.idle_print()
