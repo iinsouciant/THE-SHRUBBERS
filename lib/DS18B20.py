@@ -1,8 +1,9 @@
 # Slightly modified version from adafruit website&forums
 # https://cdn-learn.adafruit.com/downloads/pdf/adafruits-raspberry-pi-lesson-11-ds18b20-temperature-sensing.pdf
 # https://forums.raspberrypi.com/viewtopic.php?t=35508
-import os
-import glob
+
+from os import system
+from glob import glob
 from time import sleep
 
 class TempReader(object):
@@ -10,12 +11,12 @@ class TempReader(object):
     temperature from a DS18B20. Ensure the 1-Wire interface is enabled 
     in the RPi configuration settings. temp_sensor_pin should always be 28'''
     def __init__(self, temp_sensor_pin=28):
-        os.system('/sbin/modprobe w1-therm')
+        system('/sbin/modprobe w1-therm')
  
         self.temp_sensor_pin = temp_sensor_pin
         self.base_dir = '/sys/bus/w1/devices/'
         try:
-            self.device_folder = glob.glob(
+            self.device_folder = glob(
                 self.base_dir + '28*')[0]
             #print(glob.glob(self.base_dir + '28*'))
         except AttributeError:
