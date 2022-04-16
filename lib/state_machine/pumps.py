@@ -100,7 +100,7 @@ class hydro():
         if self.test:
             print(f'shrub user shut off: {self.userToggle}')
             print(f'shrub overflow condition: {self.overflowCondition}')
-            print(evt)
+            print(f'new shrub event: {evt}')
         
         # getting stuck on no overflow even when it should be overflow
         if evt is not None:
@@ -235,6 +235,8 @@ class hydro():
         else:
             if self.test:
                 #print(f'Old sonar value grabbed: {self.last_sonar}')
+                pass
+
         return self.last_sonar
 
     def pump_pwm(level, pump):
@@ -302,7 +304,8 @@ class conditioner():
         if self.test:
             print(f'cond user shut off: {self.userToggle}')
             print(f'cond overflow condition: {self.overflowCondition}')
-            print(evt)
+            print(f'new cond event: {evt}')
+
         pumpPause = None
 
         if evt is not None:
