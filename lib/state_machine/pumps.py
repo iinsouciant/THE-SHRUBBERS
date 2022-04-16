@@ -45,7 +45,7 @@ class hydro():
     hydroTimer = timer(actual_times[hydro_state])
 
     # limits how often the sonar sensor is grabbed to reduce use of sleep
-    sonar_timer = timer(1)
+    sonar_timer = timer(1.25)
     sonar_timer.timer_set()
     last_sonar = 0
 
@@ -233,7 +233,8 @@ class hydro():
             if self.test:
                 print(f'New sonar value: {self.last_sonar}')
         else:
-            print(f'Old sonar value grabbed: {self.last_sonar}')
+            if self.test:
+                #print(f'Old sonar value grabbed: {self.last_sonar}')
         return self.last_sonar
 
     def pump_pwm(level, pump):
