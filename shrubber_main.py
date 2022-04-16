@@ -109,7 +109,6 @@ condition = pumps.conditioner(condP, shrub, pHsens, ECsens, tempSens)
 menu = LCDmenu.menu(LCD, shrub, condition)
 
 # testing parameters
-testing = False  # to run test procedure on startup
 test2 = False  # show sensor value periodically in normal operation
 if test2:
     test_timer = LCDmenu.timer(4)
@@ -126,7 +125,7 @@ menu.idle()
 button_timer.timer_set()
 
 # TODO when finished, reduce loop time for easier user input
-while (not done) and (not testing):
+while (not done):
     # grab all sensor values to pass to butterworth filter with higher frequency
     
     if test2:
@@ -166,7 +165,6 @@ while (not done) and (not testing):
             for event in pygame.event.get():
                 if (event.type == pygame.QUIT):
                     done = True
-                    testing = True
                     break
                 elif event.type == pygame.KEYDOWN:
                     print("key is pressed")
@@ -190,7 +188,6 @@ while (not done) and (not testing):
                         button_timer.timer_set()
                     if (event.key == pygame.K_ESCAPE):
                         done = True
-                        testing = True
                         LCD.clear()
                         print("Esc exits program. Goodbye")
                         LCD.print("Esc exits program. Goodbye")

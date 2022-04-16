@@ -364,6 +364,8 @@ class conditioner():
 
         else:
             print('Invalid event: '+evt)
+        if self.test:
+            print(f'new pump vals: \n{self.pumpN} {self.pumpA} {self.pumpB}')
 
     def pump_active(self, pump, pwr=60):
         '''PWM % value to output to motor of pump'''
