@@ -92,7 +92,7 @@ class menu():
     ops = ("Flood timer", "Channel Pump timer", "Empty timer",
         "Gap from top", "pH thresholds", "EC thresholds", 
         "Calibrate pH", "Calibrate EC", "Shut off pump+UV+valve", 
-        "Shut off nutrient conditioners")
+        "Shut off nutrient conditioners", "Test outputs")
     parent = start
     child = ops
     m1_hover = 0
@@ -319,31 +319,31 @@ class menu():
                 return self.settings[self.m1_hover]
         
         # show sublevel to pick low/high pH threshold values
-        if self.m1_hover == 4:
+        elif self.m1_hover == 4:
             self.child = 'pH THRESH'
             self.LCD.print('^ pH High Threshold\nv pH Low Threshold')
             return None
         
         # show sublevel to pick low/high EC threshold values
-        if self.m1_hover == 5:
+        elif self.m1_hover == 5:
             self.child = 'EC THRESH'
             self.LCD.print('^ EC High Threshold\nv EC Low Threshold')
             return None
         
         # operation to run EC calibration
-        if self.m1_hover == 7:
+        elif self.m1_hover == 7:
             # sets logic to handle A or B input on next loop
             self.child = "EC CONFIRM"
             self.LCD.print("Press A once the EC sensor is fully submerged in solution")
             return None
 
-        if self.m1_hover == 6:
+        elif self.m1_hover == 6:
             self.child = "pH CONFIRM"
             self.LCD.print("Press A once the pH sensor is fully submerged in solution")
             return None
 
-        # TODO finish menu logic for toggle pump/uv
-        if self.m1_hover == 8:
+        # TODO test
+        elif self.m1_hover == 8:
             self.shrub.evt_handler(evt="USER TOGGLE")
             if self.shrub.userToggle:
                 self.LCD.print("Pump/UV/valve off")
@@ -351,15 +351,20 @@ class menu():
                 self.LCD.print("Pump/UV/valve on")
             self.child = "WAIT"
 
-        # TODO finish menu logic for toggle peristaltic
-        if self.m1_hover == 9:
+        # TODO test toggle works
+        elif self.m1_hover == 9:
             self.conditioner.evt_handler(evt="USER TOGGLE")
             if self.conditioner.userToggle:
                 self.LCD.print("Pump/UV/valve off")
             elif self.conditioner.userToggle is False:
                 self.LCD.print("Pump/UV/valve on")
             self.child = "WAIT"
+
+        elif self.m1_hover == 10:
+            self.LCD.print("Turning on all outputs for a few seconds")
             self.child = "WAIT"
+            self.conditioner.evt_handler(evt="TEST")
+            self.shrub.evt_handler(evt="TEST")
             
     # TODO see if i can segment this to reduce loop time?
     def evt_handler(self, evt=None, timer=False, test=True):
@@ -775,6 +780,7 @@ class menu():
 
             # second level submenus to confirm calibration of sensors
             elif self.child == "EC CONFIRM":
+                # TODO run in debugger. seems to get stuck here
                 if (evt == "A_B") or (evt == "R_B"):
                     self.LCD.clear()
                     self.LCD.print(self.conditioner.EC_calibration())

@@ -31,12 +31,16 @@ class DFRobot_EC():
 				#f=open('data.txt','w+')
 				f.writelines(flist)
 			print(">>>Reset EC to default parameters<<<")
+	
+	def rawEC(self, voltage):
+		raw = 10000*1000*voltage/820.0/200.0
+		return raw
 
 	def readEC(self, voltage, temperature):
 		global _kvalueLow
 		global _kvalueHigh
 		global _kvalue
-		rawEC = 1000*voltage/820.0/200.0
+		rawEC = self.rawEC(voltage)
 		valueTemp = rawEC * _kvalue
 		if(valueTemp > 2.5):
 			_kvalue = _kvalueHigh
@@ -50,7 +54,7 @@ class DFRobot_EC():
 		if (voltage == 0.0) and (temperature == 0.0):
 			return ">>Invalid sensor reading. Check wires & sensor initialization.<<"
 		else:
-			rawEC = 1000*voltage/820.0/200.0
+			rawEC = self.rawEC(voltage)
 			if (rawEC > 0.9 and rawEC < 1.9):
 				compECsolution = 1.413*(1.0+0.0185*(temperature-25.0))
 				KValueTemp = 820.0*200.0*compECsolution/1000.0/voltage

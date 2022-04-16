@@ -109,7 +109,7 @@ condition = pumps.conditioner(condP, shrub, pHsens, ECsens, tempSens)
 menu = LCDmenu.menu(LCD, shrub, condition)
 
 # testing parameters
-test2 = False  # show sensor value periodically in normal operation
+test2 = True  # show sensor value periodically in normal operation
 if test2:
     test_timer = LCDmenu.timer(4)
     test_timer.timer_set()
@@ -205,8 +205,9 @@ while (not done):
     # check for pump flood drain cycle timing
     if condition.on_timer.timer_event():
         shrub.evt_handler(evt='ON TIMER')
+    
+    temp = condition.sensOutOfRange()
     if condition.wait_timer.event_no_reset():
-        temp = condition.sensOutOfRange()
         for event in temp:
             if event is not None:
                 condition.evt_handler(evt=event)

@@ -254,7 +254,7 @@ class hydro():
 class conditioner():
     '''Class to handle the state machine behavior of the nutrient solution conditioning pumps'''
 
-    test = True
+    test = False
     pH_High = 9
     ph_Low = 4
     EC_High = 2
@@ -291,7 +291,7 @@ class conditioner():
         return "Pump States: {:.2f} A {:.2f} B {:.2f} N\nWater level: {} cm\npH: {}\
         \nEC: {} mS\nTemp: {} C".format(
             self.pumpA.value, self.pumpB.value, self.pumpN.value,  
-            self.hydro.grab_sonar(), self.grab_pH(), self.grab_EC(), self.grab_temp(unit="C")
+            self.hydro.grab_sonar(), self.grab_pH(), self.grab_EC(test=True), self.grab_temp(unit="C")
         )
     
     def update_settings(self, pH_High, pH_Low, EC_High, EC_Low):
@@ -333,9 +333,13 @@ class conditioner():
                 for pump in self.pumps:
                     self.pump_active(pump, pwr=0)
 
-            # TODO want some kind of event to start pump at will for testing or maintenance
+            # start pump at will for testing or maintenance
             elif evt == "TEST":
-                pass
+                for pump in self.pumps:
+                    self.pump_active(pump)
+                sleep(6)
+                for pump in self.pumps:
+                    self.pump_active(pump, pwr=0)
 
             # to stop the valves and pumps in case of emergency. 
             # stored in values to retain behavior across multiple events
@@ -398,12 +402,12 @@ class conditioner():
             dist = 0
         return self.fpH.filter(dist)
 
-    def grab_EC(self):
+    def grab_EC(self, test=False):
         '''Tries to grab the conductivity sensor value 
         without raising an exception halting the program'''
         try:
             dist = self.EC.readEC(self.ECsens.voltage, self.grab_temp())
-            if self.test:
+            if self.test or test:
                 print(f'ec voltage reading: {self.ECsens.voltage:.3f}')
         except Exception as e:  # TODO find correct exceptions here
             print(f"The conductivity sensor is not detected: {e}")
