@@ -8,6 +8,8 @@
 #   v0.65 17-Feb-2022 Drafting menu state machine to interact with hydro
 #   v0.90 23-Mar-2022 Working LCD integration and menu for 8 operations. CSV file functionality complete
 #   v1.00 27-Mar-2022 Moving pump state machines to separate file for organization
+#   v1.15 13-Apr-2022 Add functionality to have menu to send settings to other state machines.
+#                     Timer functionality increased to handle None exceptions and other use cases.
 
 # TODO import only stuff we need from library
 from time import sleep, monotonic
@@ -28,10 +30,13 @@ class timer():
             self.TIMER_INTERVAL = None
 
     def timer_event(self):
-        '''Checks to see if the time has passed. If it has, turns off timer and returns True'''
+        '''Checks to see if the time has passed. If it has, turns off timer and returns True. If the timer was not set,
+        returns None'''
         if (self.timer_time is not None) and monotonic() >= self.timer_time:
             self.timer_time = None
             return True
+        elif self.timer_time is None:
+            return None
         else:
             return False
 
@@ -40,11 +45,15 @@ class timer():
         if (self.timer_time is not None) and monotonic() >= self.timer_time:
             # self.timer_time = None
             return True
+        elif self.timer_time is None:
+            return None
         else:
             return False
 
-    def timer_set(self):
+    def timer_set(self, new=None):
         '''Restarts timer from time of method call'''
+        if (type(new) is int) or (type(new) is float):
+            self.TIMER_INTERVAL = new
         try:
             self.timer_time = monotonic() + self.TIMER_INTERVAL
         except TypeError as e:
@@ -63,8 +72,12 @@ class timer():
     
     def new_interval_timer(self, new_interval):
         '''Adjusts the remaining time of the timer to fit new interval'''
-        if new_interval is not None:
-            self.timer_time += new_interval - self.TIMER_INTERVAL
+        if (new_interval is not None) and (self.TIMER_INTERVAL is not None):
+            if self.timer_time is None:
+                self.TIMER_INTERVAL = new_interval
+                self.timer_set()
+            else:
+                self.timer_time += new_interval - self.TIMER_INTERVAL
         else: 
             self.timer_time = None
         self.TIMER_INTERVAL = new_interval
@@ -75,25 +88,26 @@ class menu():
     configure the shrubber state machine without blocking operations elsewhere
     and simultaneously output information to the LCD screen.'''
     start = "IDLE"
-    ops = ("Flood timer", "Drain timer", "Empty timer",
+    # TODO incorporate operation to turn on all outputs
+    ops = ("Flood timer", "Channel Pump timer", "Empty timer",
         "Gap from top", "pH thresholds", "EC thresholds", 
-        "Calibrate pH", "Calibrate EC", "Toggle pump/UV", 
-        "Toggle nutrient conditioners")
+        "Calibrate pH", "Calibrate EC", "Shut off pump+UV+valve", 
+        "Shut off nutrient conditioners", "Test outputs")
     parent = start
     child = ops
     m1_hover = 0
     m2_hover = 0
-    ft = 19*60
-    dt = 6*60
-    ap = 120
+    ft = 19*60  # flood timer
+    et = 6*60  # empty timer
+    ap = 120  # active pump timer to flood channels
     # Sensor threshold values
     pHH = 9
     pHL = 4
     ECH = 2
-    ECL = 0
-    sT = 10
+    ECL = 0.01
+    sT = 16  # sonar threshold
     # independent timer event
-    idle_timer = timer(5*60)
+    idle_timer = timer(3*60)
     idle_timer.timer_set()
     idle_printer = timer(8)
     _idle_n = 0
@@ -104,14 +118,16 @@ class menu():
         self.shrub = shrub
         self.conditioner = conditioner
 
+        # TODO add row to remember what hydro state we were last on so that it doesn't start pumping on reboot
+        # periodically add what time is remaining on pump timer as well due to long duration
         # on boot, check to see if state machine settings exist. if not create w/ default settings
         try:
             with open('Settings.csv', 'r') as f:
                 settings = csv.reader(f)
                 rows = [row for row in settings if True]
                 self.ft = int(rows[0][1])
-                self.dt = int(rows[1][1])
-                self.ap = int(rows[2][1])
+                self.ap = int(rows[1][1])
+                self.et = int(rows[2][1])
                 self.sT = int(rows[3][1])
                 self.pHH = float(rows[4][1])
                 self.pHL = float(rows[5][1])
@@ -123,10 +139,10 @@ class menu():
             if e is IOError:
                 print("Settings.csv does not exist. Creating file with default settings.")
             with open(r"Settings.csv", 'w') as f:
-                rows = [['Flood Timer', self.ft], 
-                    ['Drain Timer', self.dt], 
-                    ['Empty Timer', self.ap], 
-                    ['Gap from top', self.sT],
+                rows = [[self.ops[0], self.ft], 
+                    [self.ops[1], self.ap], 
+                    [self.ops[2], self.et], 
+                    [self.ops[3], self.sT],
                     ['pH High Threshold', self.pHH], 
                     ['pH Low Threshold', self.pHL], 
                     ['EC High Threshold', self.ECH], 
@@ -136,8 +152,9 @@ class menu():
                 settings.writerows(rows)
         
         # list of operation settings
-        self.settings = [self.ft, self.dt, self.ap, self.sT, self.pHH, self.pHL, self.ECH, self.ECL, ]
+        self.settings = [self.ft, self.ap, self.et, self.sT, self.pHH, self.pHL, self.ECH, self.ECL, ]
         self.shrub.update_settings([self.settings[0], self.settings[1], self.settings[2]], self.settings[3])
+        self.conditioner.update_settings(self.settings[4], self.settings[5], self.settings[6], self.settings[7])
         self.conditioner.pH_High = self.pHH
         self.conditioner.pH_Low = self.pHL
         self.conditioner.EC_High = self.ECH
@@ -184,6 +201,7 @@ class menu():
 
         # save change to shrub state machine
         self.shrub.update_settings([self.settings[0], self.settings[1], self.settings[2]], self.settings[3])
+        self.conditioner.update_settings(self.settings[4], self.settings[5], self.settings[6], self.settings[7])
         self.conditioner.pH_High = self.settings[4]
         self.conditioner.pH_Low = self.settings[5]
         self.conditioner.EC_High = self.settings[6]
@@ -194,11 +212,9 @@ class menu():
         # show message until user input
         self.child = "WAIT"
         self.parent = None
-        # TODO send these params to other state machines
-        # shrub.new_timer() or something
 
     def startMenu(self, hover=0):
-        '''send the menu back to the first level menu'''
+        '''Send the menu back to the first level menu'''
         self.idle_timer.timer_set()
         self.parent = self.start
         self.m1_hover = hover
@@ -210,7 +226,7 @@ class menu():
         self.LCD.print(self.ops[hover]) 
 
     def idle(self):
-        '''send the state machine to the idle state showing sensor values'''
+        '''Send the state machine to the idle state showing sensor values'''
         self.parent = self.start
         self.child = self.ops
         self.state = "IDLE"
@@ -219,6 +235,7 @@ class menu():
         self.LCD.print("Menu is now idle.")
     
     def idle_print(self):
+        # save old strings printed for scrolling effect
         try:
             c = self._b
         except Exception as e:
@@ -227,19 +244,21 @@ class menu():
             self._b = self._a
         except Exception as e:
             self._b = ""
+        
         self.LCD.clear()
         self._idle_n += 1
-        self._idle_n %= 4  # for each sensor
+        self._idle_n %= 4  # loop through each sensor
         n = self._idle_n
+        # set timer to wait for next call to idle_print
         self.idle_printer.timer_set()
         if n == 0:
-            self._a = f"Water level: {self.shrub.water_height()} cm"
+            self._a = f"Water level: {self.shrub.water_height():.1f} cm"
         if n == 1:
-            self._a = f"pH level: {self.shrub.grab_pH():.1f}"
+            self._a = f"pH level: {self.conditioner.grab_pH():.1f}"
         if n == 2:
-            self._a = f"Conductivity level: {self.shrub.grab_EC():.2f} mS"
+            self._a = f"Conductivity level: {self.conditioner.grab_EC():.2f} mS"
         if n == 3:
-            self._a = f"Water temp: {self.shrub.grab_temp():.2f}"
+            self._a = f"Water temp: {self.conditioner.grab_temp(unit='F'):.2f} F"
         
         # to create scrolling effect
         self.LCD.print(self._a)
@@ -299,41 +318,56 @@ class menu():
                     self.LCD.print(f"{self.settings[self.m1_hover]} cm")
                 return self.settings[self.m1_hover]
         
-        # show sublevel to pick low/high threshold values
-        if self.m1_hover == 4:
+        # show sublevel to pick low/high pH threshold values
+        elif self.m1_hover == 4:
             self.child = 'pH THRESH'
             self.LCD.print('^ pH High Threshold\nv pH Low Threshold')
             return None
         
-        # show sublevel to pick low/high threshold values
-        if self.m1_hover == 5:
+        # show sublevel to pick low/high EC threshold values
+        elif self.m1_hover == 5:
             self.child = 'EC THRESH'
             self.LCD.print('^ EC High Threshold\nv EC Low Threshold')
             return None
         
-        if self.m1_hover == 7:
+        # operation to run EC calibration
+        elif self.m1_hover == 7:
             # sets logic to handle A or B input on next loop
             self.child = "EC CONFIRM"
             self.LCD.print("Press A once the EC sensor is fully submerged in solution")
             return None
 
-        if self.m1_hover == 6:
+        elif self.m1_hover == 6:
             self.child = "pH CONFIRM"
             self.LCD.print("Press A once the pH sensor is fully submerged in solution")
             return None
 
-        # TODO finish menu logic for toggle pump/uv
-        if self.m1_hover == 8:
-            self.LCD.print("TODO toggle pump/UV")
-            self.startMenu(hover=8)
+        # TODO test
+        elif self.m1_hover == 8:
+            self.shrub.evt_handler(evt="USER TOGGLE")
+            if self.shrub.userToggle:
+                self.LCD.print("Pump/UV/valve off")
+            elif self.shrub.userToggle is False:
+                self.LCD.print("Pump/UV/valve on")
+            self.child = "WAIT"
 
-        # TODO finish menu logic for toggle peristaltic
-        if self.m1_hover == 9:
-            self.LCD.print("TODO toggle conditioning pumps")
-            self.startMenu(hover=8)
+        # TODO test toggle works
+        elif self.m1_hover == 9:
+            self.conditioner.evt_handler(evt="USER TOGGLE")
+            if self.conditioner.userToggle:
+                self.LCD.print("Pump/UV/valve off")
+            elif self.conditioner.userToggle is False:
+                self.LCD.print("Pump/UV/valve on")
+            self.child = "WAIT"
+
+        elif self.m1_hover == 10:
+            self.LCD.print("Turning on all outputs for a few seconds")
+            self.child = "WAIT"
+            self.conditioner.evt_handler(evt="TEST")
+            self.shrub.evt_handler(evt="TEST")
             
     # TODO see if i can segment this to reduce loop time?
-    def evt_handler(self, evt=None, timer=False, test=False):
+    def evt_handler(self, evt=None, timer=False, test=True):
         if test:
             print(f"child: {self.child}")
             print(f'parent: {self.parent}')
@@ -345,6 +379,11 @@ class menu():
         if evt is not None:
             self.idle_timer.timer_set()
             self.state = 'ACTIVE'
+            if evt == 'TEST':
+                self.shrub.evt_handler(evt='TEST')
+                self.conditioner.evt_handler(evt='TEST')
+                self.LCD.print("All outputs enabled for 6 seconds")
+                self.child = 'WAIT'
 
         # whenever there has been no user input for a while, go back to idle
         if timer:
@@ -405,10 +444,10 @@ class menu():
                     self.LCD.print(self.ops[0])'''
                 self.child = self.ops[self.m1_hover]
         
-        # submenu to change timings
         elif self.child not in self.ops:
             # need to make sure once it goes to first submenu, it doesn't raise error
             if type(self.parent) is int:
+                # submenus to change timings
                 if (self.parent <= 2) and (self.child is None):
                     if (evt == "A_B"):
                         # save changes to file
@@ -740,23 +779,25 @@ class menu():
                             self.m2_hover = 4 - 1
 
             # second level submenus to confirm calibration of sensors
-            if self.child == "EC CONFIRM":
+            elif self.child == "EC CONFIRM":
+                # TODO run in debugger. seems to get stuck here
                 if (evt == "A_B") or (evt == "R_B"):
                     self.LCD.clear()
-                    self.LCD.print(self.shrub.EC_calibration())
+                    self.LCD.print(self.conditioner.EC_calibration())
                     self.child = "WAIT"
                     self.parent = None
                 elif (evt == "B_B") or (evt == "L_B"):
                     self.startMenu(self.m1_hover)
 
-            if self.child == "pH CONFIRM":
+            elif self.child == "pH CONFIRM":
                 if (evt == "A_B") or (evt == "R_B"):
                     self.LCD.clear()
-                    self.LCD.print(self.shrub.pH_calibration())
+                    self.LCD.print(self.conditioner.pH_calibration())
                     self.child = "WAIT"
                     self.parent = None
                 elif (evt == "B_B") or (evt == "L_B"):
                     self.startMenu(self.m1_hover)
+            
 
 class LCDdummy():
     '''Dummy LCD class to handle methods before incorporating real LCD library. Use for testing/troubleshooting only.'''

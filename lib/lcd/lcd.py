@@ -18,7 +18,7 @@
 # IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 # CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-import time
+from time import sleep
 from micropython import const
 
 # Commands
@@ -117,37 +117,37 @@ class LCD(object):
 
         # Choose 4 or 8 bit mode
         self.command(0x03)
-        time.sleep(4.5*MILLISECOND)
+        sleep(4.5*MILLISECOND)
         self.command(0x03)
-        time.sleep(4.5*MILLISECOND)
+        sleep(4.5*MILLISECOND)
         self.command(0x03)
         if self.interface.data_bus_mode == LCD_4BITMODE:
             # Hitachi manual page 46
-            time.sleep(100*MICROSECOND)
+            sleep(100*MICROSECOND)
             self.command(0x02)
         elif self.interface.data_bus_mode == _LCD_8BITMODE:
             # Hitachi manual page 45
             self.command(0x30)
-            time.sleep(4.5*MILLISECOND)
+            sleep(4.5*MILLISECOND)
             self.command(0x30)
-            time.sleep(100*MICROSECOND)
+            sleep(100*MICROSECOND)
             self.command(0x30)
         else:
             raise ValueError('Invalid data bus mode: {}'.format(self.interface.data_bus_mode))
 
         # Write configuration to display
         self.command(_LCD_FUNCTIONSET | displayfunction)
-        time.sleep(50*MICROSECOND)
+        sleep(50*MICROSECOND)
 
         # Configure entry mode. Define internal fields.
         self.command(_LCD_ENTRYMODESET | _LCD_ENTRYLEFT)
-        time.sleep(50*MICROSECOND)
+        sleep(50*MICROSECOND)
 
         # Configure display mode. Define internal fields.
         self._display_mode = _LCD_DISPLAYON
         self._cursor_mode = CursorMode.HIDE
         self.command(_LCD_DISPLAYCONTROL | self._display_mode | self._cursor_mode)
-        time.sleep(50*MICROSECOND)
+        sleep(50*MICROSECOND)
 
         self.clear()
 
@@ -160,12 +160,12 @@ class LCD(object):
     def set_display_enabled(self, value):
         self._display_mode = _LCD_DISPLAYON if value else _LCD_DISPLAYOFF
         self.command(_LCD_DISPLAYCONTROL | self._display_mode | self._cursor_mode)
-        time.sleep(50*MICROSECOND)
+        sleep(50*MICROSECOND)
 
     def set_cursor_mode(self, value):
         self._cursor_mode = value
         self.command(_LCD_DISPLAYCONTROL | self._display_mode | self._cursor_mode)
-        time.sleep(50*MICROSECOND)
+        sleep(50*MICROSECOND)
 
     def cursor_pos(self):
         """The cursor position as a 2-tuple (row, col)."""
@@ -179,7 +179,7 @@ class LCD(object):
         self._row = row
         self._col = col
         self.command(_LCD_SETDDRAMADDR | self._row_offsets[row] + col)
-        time.sleep(50*MICROSECOND)
+        sleep(50*MICROSECOND)
 
     def print(self, string):
         """
@@ -202,7 +202,7 @@ class LCD(object):
     def clear(self):
         """Overwrite display with blank characters and reset cursor position."""
         self.command(_LCD_CLEARDISPLAY)
-        time.sleep(2*MILLISECOND)
+        sleep(2*MILLISECOND)
         self.home()
 
     def home(self):
@@ -210,7 +210,7 @@ class LCD(object):
         self.command(_LCD_RETURNHOME)
         self._row = 0
         self._col = 0
-        time.sleep(2*MILLISECOND)
+        sleep(2*MILLISECOND)
 
     def shift_display(self, amount):
         """Shift the display. Use negative amounts to shift left and positive
@@ -220,7 +220,7 @@ class LCD(object):
         direction = _LCD_MOVERIGHT if amount > 0 else _LCD_MOVELEFT
         for i in range(abs(amount)):
             self.command(_LCD_CURSORSHIFT | _LCD_DISPLAYMOVE | direction)
-            time.sleep(50*MICROSECOND)
+            sleep(50*MICROSECOND)
 
     def create_char(self, location, bitmap):
         """Create a new character.

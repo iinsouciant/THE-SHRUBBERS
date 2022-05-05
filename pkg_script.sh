@@ -43,6 +43,14 @@ then
 else
     echo "hdmi_mode=16" >> $CONFIG
 fi
+# enable 1 wire interface for temp sensor
+if grep -Fq "dtoverlay" $CONFIG
+then
+    sed -i "/dtoverlay/c\dtoverlay=w1-gpio" $CONFIG
+else
+    echo "dtoverlay=w1-gpio" >> $CONFIG
+fi
+
 
 pip3 install --upgrade adafruit-python-shell
 wget https://raw.githubusercontent.com/adafruit/Raspberry-Pi-Installer-Scripts/master/raspi-blinka.py

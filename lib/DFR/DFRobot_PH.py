@@ -1,5 +1,5 @@
-import time
-import sys
+#import time
+#import sys
 
 _temperature      = 25.0
 _acidVoltage      = 2032.44
@@ -30,20 +30,21 @@ class DFRobot_PH():
 				f.writelines(flist)
 			print(">>>Reset pH to default parameters<<<")
 
-	def readPH(self,voltage,temperature=0):
+	def readPH(self, voltage, temperature=0):
 		global _acidVoltage
 		global _neutralVoltage
 		slope     = (7.0-4.0)/((_neutralVoltage-1500.0)/3.0 - (_acidVoltage-1500.0)/3.0)
 		intercept = 7.0 - slope*(_neutralVoltage-1500.0)/3.0
 		_phValue  = slope*(voltage-1500.0)/3.0+intercept
-		round(_phValue,2)
+		round(_phValue, 2)
 		return _phValue
 
-	def calibration(self,voltage):
+	# TODO adapt ph calibration from arduino
+	def calibration(self, voltage):
 		if (voltage == 0):
-			return ">>Test values passed in. Check wires & sensor initialization.<<"
+			return ">>Invalid sensor reading. Check wires & sensor initialization.<<"
 		else:
-			if (voltage>1322 and voltage<1678):
+			if (voltage > 1322 and voltage < 1678):
 				print(">>>Buffer Solution:7.0")
 				f=open('phdata.txt','r+')
 				flist=f.readlines()
@@ -52,9 +53,9 @@ class DFRobot_PH():
 				f.writelines(flist)
 				f.close()
 				print(">>>PH:7.0 Calibration completed")
-				time.sleep(2.0)
+				#time.sleep(2.0)
 				return ">>>PH:7.0 Calibration completed"
-			elif (voltage>1854 and voltage<2210):
+			elif (voltage > 1854 and voltage < 2210):
 				print(">>>Buffer Solution:4.0")
 				f=open('phdata.txt','r+')
 				flist=f.readlines()
@@ -63,10 +64,11 @@ class DFRobot_PH():
 				f.writelines(flist)
 				f.close()
 				print(">>>PH:4.0 Calibration completed")
-				time.sleep(2.0)
+				#time.sleep(2.0)
 				return ">>>PH:4.0 Calibration completed"
 			else:
-				return ">>>Buffer solution out of range. Measurement discarded<<<"
+				return "New calibration not translated from C++ to Python. WIP"
+				#return ">>>Buffer solution out of range. Measurement discarded<<<"
 
 	def reset(self):
 		_acidVoltage    = 2032.44
@@ -89,3 +91,10 @@ class DFRobot_PH():
 			f.writelines(flist)
 			f.close()
 			print(">>>Reset to default parameters<<<")
+
+	def atlas_readPH(self,voltage):
+		# read pH values using equation from Atlas Sci
+		volt_val = voltage/4096 * 3.3   # get value in Volts from 12-bit ADC
+		phVal = (-5.6548 * volt_val) + 15.509
+		round(phVal,2)
+		return(phVal)
