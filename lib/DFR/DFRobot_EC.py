@@ -7,8 +7,7 @@ _cmdReceivedBufferIndex = 0
 _voltage = 0.0
 _temperature = 25.0
 
-class DFRobot_EC():  
-	# maybe update this to work with LCD/file reading
+class DFRobot_EC():
 	def begin(self):
 		global _kvalueLow
 		global _kvalueHigh
@@ -20,17 +19,18 @@ class DFRobot_EC():
 				kvalueHighLine = f.readline()
 				kvalueHighLine = kvalueHighLine.strip('kvalueHigh=')
 				_kvalueHigh = float(kvalueHighLine)
-
-		except (IOError) as e:
+		except Exception as e:
 			if e is IOError:
 				print("ecdata.txt does not exist. Creating file with default settings.")
-			with open('ecdata.txt', 'w') as f:
-				#flist=f.readlines()
-				flist = 'kvalueLow=' + str(_kvalueLow) + '\n'
-				flist += 'kvalueHigh=' + str(_kvalueHigh) + '\n'
-				#f=open('data.txt','w+')
-				f.writelines(flist)
-			print(">>>Reset EC to default parameters<<<")
+				with open('ecdata.txt', 'w') as f:
+					#flist=f.readlines()
+					flist = 'kvalueLow=' + str(_kvalueLow) + '\n'
+					flist += 'kvalueHigh=' + str(_kvalueHigh) + '\n'
+					#f=open('data.txt','w+')
+					f.writelines(flist)
+				print(">>>Reset EC to default parameters<<<")
+			else:
+				print(e)
 	
 	def rawEC(self, voltage):
 		raw = 1000*voltage/820.0/200.0
@@ -95,7 +95,7 @@ class DFRobot_EC():
 			f.writelines(flist)
 			f.close()
 			print(">>>Reset to default parameters<<<")
-		except:
+		except IOError:
 			f = open('ecdata.txt', 'w')
 			#flist=f.readlines()
 			flist = 'kvalueLow=' + str(_kvalueLow) + '\n'
@@ -107,7 +107,8 @@ class DFRobot_EC():
 	
 
 if __name__ == '__main__':
-    ecSens = DFRobot_EC()
-    for i in range(5):
-        sleep(3)
-        print(ecSens.readEC())
+	from time import sleep
+	ecSens = DFRobot_EC()
+	for i in range(5):
+		sleep(3)
+		print(ecSens.readEC())

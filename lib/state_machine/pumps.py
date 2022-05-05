@@ -334,7 +334,9 @@ class conditioner():
                 if self.userToggle is False:
                     pumpPause = False
 
-            # TODO while on timer or wait timer is false, do not take low or high ec/ph values. handle this in shrubber_main
+            # TODO while on timer or wait timer is false, do not take low or high ec/ph values.
+            # handle this in shrubber_main
+            
             # user toggle overrides overflow until next loop where overflow event is passed. change this?
             elif evt == "USER TOGGLE":
                 self.userToggle = not self.userToggle
@@ -384,7 +386,7 @@ class conditioner():
         if self.test and self.evt_print.timer_event():
             print(f'new pump vals: \nnutrient: {self.pumpN.is_active} \
 acid: {self.pumpA.is_active} base: {self.pumpB.is_active}')
-            self.evt_timer.timer_set()
+            self.evt_print.timer_set()
 
     def pump_active(self, pump, pwr=60):
         '''PWM % value to output to motor of pump'''

@@ -820,7 +820,7 @@ class LCDdummy():
             raise Exception("Not a valid input to display")
 
     def clear(self):
-        print('Simulated lcd screen clear')
+        print('Simulated lcd screen clear\n\n\n\n')
     
     def set_cursor_pos(self, row, column):
         print("\n")

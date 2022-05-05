@@ -10,7 +10,7 @@ class DFRobot_PH():
 		global _acidVoltage
 		global _neutralVoltage
 		try:
-			with open('phdata.txt','r') as f:
+			with open('phdata.txt', 'r') as f:
 				neutralVoltageLine = f.readline()
 		#		print neutralVoltageLine
 				neutralVoltageLine = neutralVoltageLine.strip('neutralVoltage=')
@@ -31,12 +31,10 @@ class DFRobot_PH():
 			print(">>>Reset pH to default parameters<<<")
 
 	def readPH(self, voltage, temperature=0):
-		global _acidVoltage
-		global _neutralVoltage
-		slope     = (7.0-4.0)/((_neutralVoltage-1500.0)/3.0 - (_acidVoltage-1500.0)/3.0)
-		intercept = 7.0 - slope*(_neutralVoltage-1500.0)/3.0
-		_phValue  = slope*(voltage-1500.0)/3.0+intercept
-		round(_phValue, 2)
+		slope = -5.6548
+		intercept = 15.509
+		_phValue  = slope*(voltage)+intercept
+		round(_phValue, 3)
 		return _phValue
 
 	# TODO adapt ph calibration from arduino
