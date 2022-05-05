@@ -1,4 +1,6 @@
-## How to fix issues in the program
+## How to contribute to the repository
+The easiest way to get started with using a remote repository hosted on Github is to use the Github [desktop app](https://desktop.github.com/ "Github desktop"). Another way is to use VSCode and directly clone the repository from there. I recommend signing into your github account on VSCode to easily push changes to the remote repository: https://code.visualstudio.com/docs/editor/github
+# Repository Issues/features
 When dealing with one of the issues on the github repository, create a separate branch for that issue. The branch title should have the number of the issue and a brief description of what it is. For example, if you are going to work on issue number 4, you would create a branch by going to the main page and create a branch with the title of 4-IR_SENSOR. Do not make changes to the main branch directly unless necessary.
 ![imagename](./images/create_branch.png)
 
@@ -13,7 +15,14 @@ To then make changes to solve your specific issue in your dedicated branch, go t
 
 Select your branch
 
+_With Github app:_
+
 ![image](./images/branching.png)
+
+_Or VScode:_
+
+![image](https://user-images.githubusercontent.com/17360719/162851741-9f311c7b-df3c-43af-93ce-c26f0389fd67.png)
+
 
 If you get this prompt, this means that you have made changes to the file that haven't been committed to that branch so the changes are only local. If you want to pick up where you left off on that branch later, leave the changes to that branch and restore them when you get back to that branch.
 
