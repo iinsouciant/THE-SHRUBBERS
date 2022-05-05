@@ -7,9 +7,9 @@ from glob import glob
 from time import sleep
 
 class TempReader(object):
-    '''Raspberry pi module to use 1-Wire interface to read
-    temperature from a DS18B20. Ensure the 1-Wire interface is enabled 
-    in the RPi configuration settings. temp_sensor_pin should always be 28'''
+    '''Raspberry pi module to use 1-Wire interface to read temperature 
+    from a DS18B20. Ensure the 1-Wire interface is enabled in the RPi 
+    configuration settings. temp_sensor_pin should always be 28, GPIO pin 4'''
     def __init__(self, temp_sensor_pin=28):
         system('/sbin/modprobe w1-therm')
  
