@@ -93,15 +93,15 @@ sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'], temperature=20)  
 try:
     tempSens = TempReader()
 except IndexError:
-    print("1-Wire connection is bad.\
-        Try checkng connection. Attempting reboot to fix.")
+    #print("1-Wire connection is bad.\
+    #    Try checkng connection. Attempting reboot to fix.")
     LCD.print(
         "1-Wire connection is bad. Try checkng connection." +
         "Attempting reboot to fix."
     )
     sleep(5)
     from os import system
-    system("sudo reboot")
+    #system("sudo reboot")
     # TODO output file to document this for better troubleshooting
 
 # creating instance of state machine
