@@ -70,13 +70,15 @@ with i2c:
         
 try:
     LCD = LCD(I2CPCF8574Interface(board.I2C(), 0x27), num_rows=4, num_cols=20)
-except OSError as e:
+except (OSError, ValueError, AttributeError) as e:
     warnings.warn("LCD at 0x27 not detected.")
     '''
     from os import system
     sleep(4)
     system("sudo reboot")
     quit()'''
+    LCD = LCDmenu.LCDdummy()
+
 
 try:
     ads = ADS.ADS1015(board.I2C())

@@ -804,7 +804,7 @@ class LCDdummy():
     def __init__(self):
         print("LCD test instance created.")
     
-    def display(self, stuff):
+    def print(self, stuff):
         '''Handle string, list, tuple, int, and float inputs to put them on LCD'''
         if (type(stuff) is list) or (type(stuff) is tuple):
             for ele in stuff:
@@ -816,7 +816,20 @@ class LCDdummy():
             print(stuff)
         else:
             raise Exception("Not a valid input to display")
+
+    def clear(self):
+        print('Simulated lcd screen clear')
     
+    def set_cursor_pos(self, row, column):
+        print("\n")
+        pass
+
+    def set_cursor_mode(self, cursor_mode):
+        pass
+
+    def cursor_pos(self):
+        return [0, 0]
+
     def idle(self):
         print("Idle Mode: Want to user timer and cache system to continually show new sensor data")
     
