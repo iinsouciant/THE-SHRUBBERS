@@ -112,11 +112,13 @@ class menu():
     idle_printer = timer(8)
     _idle_n = 0
 
-    def __init__(self, LCD, shrub, conditioner):
+    def __init__(self, LCD, shrub, conditioner, test=False):
         self.state = self.start
         self.LCD = LCD
         self.shrub = shrub
         self.conditioner = conditioner
+
+        self.test = test
 
         # TODO add row to remember what hydro state we were last on so that it doesn't start pumping on reboot
         # periodically add what time is remaining on pump timer as well due to long duration
@@ -367,8 +369,8 @@ class menu():
             self.shrub.evt_handler(evt="TEST")
             
     # TODO see if i can segment this to reduce loop time?
-    def evt_handler(self, evt=None, timer=False, test=True):
-        if test:
+    def evt_handler(self, evt=None, timer=False):
+        if self.test:
             print(f"child: {self.child}")
             print(f'parent: {self.parent}')
             try:

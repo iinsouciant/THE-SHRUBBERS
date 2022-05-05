@@ -25,7 +25,6 @@ import warnings
 class hydro():
     '''Part of the Shrubber state machine that handles
     events passed to it, and defines and run the states as needed.'''
-    test = True  # for printing state change and events
     # channel flooded, drained, and  pump active times
     ptimes = [60*60*3, 60*60*3.5, 60*20]
     valveDrainTime = 60*20
@@ -56,7 +55,7 @@ class hydro():
     str_timer = timer(10)
     str_timer.timer_set()
 
-    def __init__(self, pump, sonar, valves, UV, filter=200):
+    def __init__(self, pump, sonar, valves, UV, filter=200, test=False):
         self.pump = pump
         self.s = sonar
         self.fs = BF.LowPassFilter(filter)
@@ -65,6 +64,8 @@ class hydro():
         self.UV = UV
         # join valve and channel pump times together to create simple sequence
         self.__ptimes2actual(self.ptimes)
+
+        self.test = test  # for printing state change and events
 
     def __repr__(self):
         return "state_machine({}, {}, {}, {})".format(self.pump, self.s, self.topValve, self.botValve)
@@ -256,8 +257,6 @@ class hydro():
 
 class conditioner():
     '''Class to handle the state machine behavior of the nutrient solution conditioning pumps'''
-
-    test = False
     pH_High = 9
     ph_Low = 4
     EC_High = 2
@@ -272,8 +271,12 @@ class conditioner():
     therm_timer.timer_set()
     EC_print = timer(5)
     EC_print.timer_set()
+    ph_print = timer(5)
+    ph_print.timer_set()
+    evt_print = timer(1.5)
+    evt_print.timer_set()
 
-    def __init__(self, conditioning_pumps, shrub, pHsens, ECsens, temp, filters=[200, 200, 200]):
+    def __init__(self, conditioning_pumps, shrub, pHsens, ECsens, temp, filters=[200, 200, 200], test=False):
         self.pumps = conditioning_pumps
         self.pumpA = conditioning_pumps[0]
         self.pumpB = conditioning_pumps[1]
@@ -289,6 +292,7 @@ class conditioner():
         self.fTemp_C = BF.LowPassFilter(filters[2])
         self.fTemp_F = BF.LowPassFilter(filters[2])
         self.filters = [self.fpH, self.fEC, self.fTemp_C]
+        self.test = test
 
     def __repr__(self):
         return "state_machine({}, {}, {}, {}, {}, {})".format(self.pumpA, self.pumpB, self.pumpC, 
@@ -309,10 +313,11 @@ class conditioner():
         self.EC_Low = EC_Low
     
     def evt_handler(self, evt=None):
-        if self.test:
+        if self.test and self.evt_print.event_no_reset():
             print(f'cond user shut off: {self.userToggle}')
             print(f'cond overflow condition: {self.overflowCondition}')
             print(f'new cond event: {evt}')
+            self.evt_print.timer_set()
 
         pumpPause = None
 
@@ -376,8 +381,10 @@ class conditioner():
 
         else:
             print('Invalid event: '+evt)
-        if self.test:
-            print(f'new pump vals: \n{self.pumpN} {self.pumpA} {self.pumpB}')
+        if self.test and self.evt_print.timer_event():
+            print(f'new pump vals: \nnutrient: {self.pumpN.is_active} \
+acid: {self.pumpA.is_active} base: {self.pumpB.is_active}')
+            self.evt_timer.timer_set()
 
     def pump_active(self, pump, pwr=60):
         '''PWM % value to output to motor of pump'''
@@ -402,11 +409,14 @@ class conditioner():
         without raising an exception halting the program'''
         try:
             dist = self.pH.readPH(self.pHsens.voltage)
-            if self.test:
+            if self.test and self.ph_print.timer_event():
                 print(f'ph voltage reading: {self.pHsens.voltage:.3f}')
+                self.ph_print.timer_set()
         except Exception as e:
-            print(f"The pH sensor is not detected: {e}")
-            warnings.warn("The pH sensor is not detected")
+            if self.ph_print.timer_event():
+                print(f"The pH sensor is not detected: {e}")
+                warnings.warn("The pH sensor is not detected")
+                self.ph_print.timer_set()
             dist = 0
         return self.fpH.filter(dist)
 

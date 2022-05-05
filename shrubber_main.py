@@ -99,7 +99,7 @@ except IndexError as e:
     #    Try checkng connection. Attempting reboot to fix.")
     print(e)
     LCD.print(
-        "1-Wire connection is bad. Try checkng connection." +
+        "1-Wire connection is bad. Try checkng connection. " +
         "Attempting reboot to fix."
     )
     sleep(5)
@@ -108,17 +108,18 @@ except IndexError as e:
     # TODO output file to document this for better troubleshooting
     tempSens = "dummy instance"
 
-# creating instance of state machine
-shrub = pumps.hydro(pumpM, sonar, valves, UV)
-condition = pumps.conditioner(condP, shrub, pHsens, ECsens, tempSens)
-menu = LCDmenu.menu(LCD, shrub, condition)
-
 # testing parameters
 test2 = True  # show sensor value periodically in normal operation
 if test2:
     test_timer = LCDmenu.timer(4)
     test_timer.timer_set()
 print_time = 7
+
+# creating instance of state machine
+shrub = pumps.hydro(pumpM, sonar, valves, UV, test=test2)
+condition = pumps.conditioner(condP, shrub, pHsens, ECsens, tempSens, test=test2)
+menu = LCDmenu.menu(LCD, shrub, condition, test=test2)
+
 
 # initializing variables
 button_timer = LCDmenu.timer(.15)
