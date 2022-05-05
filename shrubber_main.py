@@ -43,8 +43,8 @@ done = False
 
 # Button wire colors: 
 # Blue is a or down, yellow is b, white is up or left, green is right
-PINS = {"res_trig": 23, 'res_echo': 24, 'A_B': 'GPIO25',
-'B_B': 'GPIO0', 'U_B': 'GPIO5', 'L_B': 'GPIO16', 'D_B': 'GPIO20', 'R_B': 'GPIO21',
+PINS = {"res_trig": 23, 'res_echo': 24, 'A_B': 'GPIO20',
+'B_B': 'GPIO0', 'L_B': 'GPIO5', 'U_B': 'GPIO21', 'D_B': 'GPIO25', 'R_B': 'GPIO16',
 'pumpM': 'GPIO13', 'pumpA': 'GPIO22', 'pumpB': 'GPIO27', 'pumpN': 'GPIO17',
 'valve1': 'GPIO12', 'valve2': 'GPIO1', 'uv_filter': 'GPIO6'}
 

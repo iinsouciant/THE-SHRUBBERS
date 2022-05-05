@@ -33,7 +33,7 @@ class DFRobot_EC():
 			print(">>>Reset EC to default parameters<<<")
 	
 	def rawEC(self, voltage):
-		raw = 10000*1000*voltage/820.0/200.0
+		raw = 1000*voltage/820.0/200.0
 		return raw
 
 	def readEC(self, voltage, temperature):

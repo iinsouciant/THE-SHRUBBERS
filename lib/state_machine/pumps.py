@@ -53,6 +53,9 @@ class hydro():
     hole_depth = 35*2.54  # 35in to cm
     s_thresh = 14  # cm
 
+    str_timer = timer(10)
+    str_timer.timer_set()
+
     def __init__(self, pump, sonar, valves, UV, filter=200):
         self.pump = pump
         self.s = sonar
@@ -68,8 +71,9 @@ class hydro():
     
     def __str__(self):  # TODO check if we need to update this  
         '''Provides formatted sensor values connected to state machine'''
-        if self.test:
+        if self.test and self.str_timer.timer_event():
             print(f'next cycle timer: {self.hydroTimer.time_remaining()}')
+            self.str_timer.timer_set()
         return "Pump: {}\nValves: {}, {}\nWater level: {} cm\nValves paused? {}\n".format(
             self.pumpVal, self.botValveVal, self.topValveVal, self.water_height(), self.vPause
         )
@@ -211,7 +215,6 @@ class hydro():
             print(e)
             return True
     
-    # TODO add timer how often we poll this so loop time is faster
     def grab_sonar(self):
         '''Tries to grab the sonar sensor value without 
         raising an exception halting the program. The reliable range is 9 to 32 cm.'''
@@ -265,6 +268,10 @@ class conditioner():
     userToggle = False
     overflowCondition = "NO OVERFLOW"
     pPause = False
+    therm_timer = timer(5)
+    therm_timer.timer_set()
+    EC_print = timer(5)
+    EC_print.timer_set()
 
     def __init__(self, conditioning_pumps, shrub, pHsens, ECsens, temp, filters=[200, 200, 200]):
         self.pumps = conditioning_pumps
@@ -279,8 +286,9 @@ class conditioner():
         self.EC = EC.DFRobot_EC()
         self.fpH = BF.LowPassFilter(filters[0])
         self.fEC = BF.LowPassFilter(filters[1])
-        self.fTemp = BF.LowPassFilter(filters[2])
-        self.filters = [self.fpH, self.fEC, self.fTemp]
+        self.fTemp_C = BF.LowPassFilter(filters[2])
+        self.fTemp_F = BF.LowPassFilter(filters[2])
+        self.filters = [self.fpH, self.fEC, self.fTemp_C]
 
     def __repr__(self):
         return "state_machine({}, {}, {}, {}, {}, {})".format(self.pumpA, self.pumpB, self.pumpC, 
@@ -406,16 +414,20 @@ class conditioner():
         '''Tries to grab the conductivity sensor value 
         without raising an exception halting the program'''
         try:
-            dist = self.EC.readEC(self.ECsens.voltage, self.grab_temp())
+            dist = self.EC.readEC(self.ECsens.voltage, self.grab_temp())*1000
             if self.test or test:
-                print(f'ec voltage reading: {self.ECsens.voltage:.3f}')
+                if self.EC_print.timer_event():
+                    print(f'ec voltage reading: {self.ECsens.voltage:.3f}')
+                    self.EC_print.timer_set()
         except Exception as e:  # TODO find correct exceptions here
-            print(f"The conductivity sensor is not detected: {e}")
-            warnings.warn("The conductivity sensor is not detected")
+            if self.EC_print.timer_event():
+                self.EC_print.timer_set()
+                print(f"The conductivity sensor is not detected: {e}")
+                warnings.warn("The conductivity sensor is not detected")
             dist = 0
         return self.fEC.filter(dist)
 
-    def grab_temp(self, unit="F"):
+    def grab_temp(self, unit="F") -> float:
         '''Tries to grab the temperature sensor value 
         without raising an exception halting the program'''
         try:
@@ -423,14 +435,21 @@ class conditioner():
                 dist = float(self.temp.read_temp()['temp_c'])
             elif unit == 'F':
                 dist = float(self.temp.read_temp()['temp_f'])
+            else:
+                print("invalid unit. Try 'F' or 'C'")
         except Exception as e:
             # TODO maybe have a protocol to restart the system to relaunch the 1-wire 
             # or try to cd back into the sensor and get readings again. currently,
             # once it disconnects it stays disconnected until program rescans
-            print(f"The temperature sensor is not detected: {e}")
-            warnings.warn("The temperature sensor is not detected")
+            if self.therm_timer.timer_event():
+                print(f"The temperature sensor is not detected: {e}")
+                warnings.warn("The temperature sensor is not detected")
+                self.therm_timer.timer_set()
             dist = 0
-        return self.fTemp.filter(dist)
+        if unit == 'F':
+            return self.fTemp_F.filter(dist)
+        elif unit == 'C':
+            return self.fTemp_C.filter(dist)
 
     def sensOutOfRange(self):
         solutions = [None, None, None]
