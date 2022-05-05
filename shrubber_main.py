@@ -92,9 +92,10 @@ sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'], temperature=20)  
 
 try:
     tempSens = TempReader()
-except IndexError:
+except IndexError as e:
     #print("1-Wire connection is bad.\
     #    Try checkng connection. Attempting reboot to fix.")
+    print(e)
     LCD.print(
         "1-Wire connection is bad. Try checkng connection." +
         "Attempting reboot to fix."
@@ -103,6 +104,7 @@ except IndexError:
     from os import system
     #system("sudo reboot")
     # TODO output file to document this for better troubleshooting
+    tempSens = "dummy instance"
 
 # creating instance of state machine
 shrub = pumps.hydro(pumpM, sonar, valves, UV)
