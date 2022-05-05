@@ -49,5 +49,5 @@ class TempReader(object):
 if __name__ == '__main__':
     tempSens = TempReader()
     for i in range(5):
-        tempSens.read_temp()
         sleep(5)
+        print(tempSens.read_temp())

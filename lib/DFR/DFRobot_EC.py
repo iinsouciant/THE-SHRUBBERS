@@ -104,3 +104,10 @@ class DFRobot_EC():
 			f.writelines(flist)
 			f.close()
 			print(">>>Reset to default parameters<<<")
+	
+
+if __name__ == '__main__':
+    ecSens = DFRobot_EC()
+    for i in range(5):
+        sleep(3)
+        print(ecSens.readEC())
