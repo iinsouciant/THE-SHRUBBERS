@@ -7,8 +7,8 @@
 #   v0.85 13-Apr-2022 Included libraries for all sensors, final pin assignments, keyboard input option,
 #                     input and output instances, error handling in case of sensor not workingm
 
-# TODO import only stuff we need from library
-import gpiozero as GZ
+
+from gpiozero import Button, PWMLED, LED
 from lib.hcsr04sensor import sensor as hcsr04
 from lib.DS18B20 import TempReader
 from lib.lcd.lcd import LCD
@@ -16,20 +16,18 @@ from lib.lcd.i2c_pcf8574_interface import I2CPCF8574Interface
 from lib.lcd.lcd import CursorMode
 
 
-import board
-import busio
+from board import SCL, SDA, I2C
+from busio import I2C as IIC
 import adafruit_ads1x15.ads1015 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
 
 # import numpy as np
 # import math
-from time import sleep
+from time import sleep, time
 
 # state machine
 import lib.state_machine.LCDmenu as LCDmenu
 from lib.state_machine import pumps
-
-import warnings
 
 try:
     # for testing w/o buttons. simulates button input through keyboard
@@ -39,39 +37,40 @@ try:
 except pygame.error as e:
     print("Pygame has not been loaded as it does not work headlessly.")
 
-done = False
-
 # Button wire colors: 
 # Blue is a or down, yellow is b, white is up or left, green is right
+# pumpm/uv is green/black solid, valve 1 is yellow/red stranded, valve 2 is blue/red solid
+# pumpN is white, pumpB is green, pumpA is blue
 PINS = {"res_trig": 23, 'res_echo': 24, 'A_B': 'GPIO20',
 'B_B': 'GPIO0', 'L_B': 'GPIO5', 'U_B': 'GPIO21', 'D_B': 'GPIO25', 'R_B': 'GPIO16',
 'pumpM': 'GPIO13', 'pumpA': 'GPIO22', 'pumpB': 'GPIO27', 'pumpN': 'GPIO17',
 'valve1': 'GPIO12', 'valve2': 'GPIO1', 'uv_filter': 'GPIO6'}
 
-pumpM = GZ.PWMLED(PINS['pumpM'])
-pumpA = GZ.LED(PINS['pumpA'])
-pumpB = GZ.LED(PINS['pumpB'])
-pumpN = GZ.LED(PINS['pumpN'])
+pumpM = PWMLED(PINS['pumpM'])
+pumpA = LED(PINS['pumpA'])
+pumpB = LED(PINS['pumpB'])
+pumpN = LED(PINS['pumpN'])
 condP = [pumpA, pumpB, pumpN]  
-UV = GZ.LED(PINS['uv_filter'])         
+UV = LED(PINS['uv_filter'])         
 
-buttons = []  # list of button instances
-for k, v in PINS.items():
-    if k[1:3] == '_B':
-        buttons.append(GZ.Button(v))
+buttons = [Button(v) for k, v in PINS.items() if k[1:3] == '_B']
+valves = [LED(PINS['valve1']), LED(PINS['valve2'])]
 
-valves = [GZ.LED(PINS['valve1']), GZ.LED(PINS['valve2'])]
-
-# initialize i2c bus to use with ADC for analog input and send communicate with LCD
-i2c = busio.I2C(board.SCL, board.SDA)
-with i2c:
-    print("I2C addresses found:",
-        [hex(device_address) for device_address in i2c.scan()])
-        
+# testing parameters
+test2 = False  # show sensor value periodically in normal operation
+if test2:
+    test_timer = LCDmenu.timer(4)
+    test_timer.timer_set()
+    i2c = IIC(SCL, SDA)
+    with i2c:
+        print("I2C addresses found:",
+            [hex(device_address) for device_address in i2c.scan()])   
+print_time = 7
+# initialize i2c bus to use with ADC for analog input and send communicate with LCD   
 try:
-    LCD = LCD(I2CPCF8574Interface(board.I2C(), 0x27), num_rows=4, num_cols=20)
+    LCD = LCD(I2CPCF8574Interface(I2C(), 0x27), num_rows=4, num_cols=20)
 except (OSError, ValueError, AttributeError) as e:
-    warnings.warn("LCD at 0x27 not detected.")
+    print("LCD at 0x27 not detected.")
     '''
     from os import system
     sleep(4)
@@ -79,9 +78,8 @@ except (OSError, ValueError, AttributeError) as e:
     quit()'''
     LCD = LCDmenu.LCDdummy()
 
-
 try:
-    ads = ADS.ADS1015(board.I2C())
+    ads = ADS.ADS1015(I2C())
     pHsens = AnalogIn(ads, ADS.P0)  # signal at pin 0
     ECsens = AnalogIn(ads, ADS.P1)  # signal at pin 1
 except (OSError, ValueError, AttributeError) as e:
@@ -90,7 +88,7 @@ except (OSError, ValueError, AttributeError) as e:
     pHsens = "dummy"
     ECsens = "dummy"
 
-sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'], temperature=20)  # example code, 20 C
+sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'])
 
 try:
     tempSens = TempReader()
@@ -108,18 +106,12 @@ except IndexError as e:
     # TODO output file to document this for better troubleshooting
     tempSens = "dummy instance"
 
-# testing parameters
-test2 = True  # show sensor value periodically in normal operation
-if test2:
-    test_timer = LCDmenu.timer(4)
-    test_timer.timer_set()
-print_time = 7
 
 # creating instance of state machine
 shrub = pumps.hydro(pumpM, sonar, valves, UV, test=test2)
 condition = pumps.conditioner(condP, shrub, pHsens, ECsens, tempSens, test=test2)
+shrub.conditioner = condition
 menu = LCDmenu.menu(LCD, shrub, condition, test=test2)
-
 
 # initializing variables
 button_timer = LCDmenu.timer(.15)
@@ -130,9 +122,10 @@ print("Now expecting user input")
 menu.idle()
 button_timer.timer_set()
 
+done = False
+
 # TODO when finished, reduce loop time for easier user input
 while (not done):
-    # grab all sensor values to pass to butterworth filter with higher frequency
     
     if test2:
         a = str(condition)
@@ -141,6 +134,7 @@ while (not done):
             print(a)
             print(b)
             test_timer.timer_set()
+    
     # prevent repeat events for one press
     if button_timer.event_no_reset():
         # press A and B to turn on all outputs for a short period
@@ -149,24 +143,36 @@ while (not done):
             button_timer.timer_set()
         # detect user input
         elif buttons[0].is_pressed:
+            #start_time = time()
             menu.evt_handler(evt='A_B')
             button_timer.timer_set()
+            #print(f'Execution time of menu event handler: {time()-start_time}')
         elif buttons[1].is_pressed:
+            #start_time = time()
             menu.evt_handler(evt='B_B')
             button_timer.timer_set()
+            #print(f'Execution time of menu event handler: {time()-start_time}')
         elif buttons[2].is_pressed:
-            menu.evt_handler(evt='U_B')
-            button_timer.timer_set()
-        elif buttons[3].is_pressed:
+            #start_time = time()
             menu.evt_handler(evt='L_B')
             button_timer.timer_set()
-        elif buttons[4].is_pressed:
-            menu.evt_handler(evt='D_B')
-            button_timer.timer_set()
-        elif buttons[5].is_pressed:
+            #print(f'Execution time of menu event handler: {time()-start_time}')
+        elif buttons[3].is_pressed:
+            #start_time = time()
             menu.evt_handler(evt='R_B')
             button_timer.timer_set()
-        try:
+            #print(f'Execution time of menu event handler: {time()-start_time}')
+        elif buttons[4].is_pressed:
+            #start_time = time()
+            menu.evt_handler(evt='D_B')
+            button_timer.timer_set()
+            #print(f'Execution time of menu event handler: {time()-start_time}')
+        elif buttons[5].is_pressed:
+            #start_time = time()
+            menu.evt_handler(evt='U_B')
+            button_timer.timer_set()
+            #print(f'Execution time of menu event handler: {time()-start_time}')
+        '''try:
             # simulate button presses w/ keyboard input
             for event in pygame.event.get():
                 if (event.type == pygame.QUIT):
@@ -198,7 +204,7 @@ while (not done):
                         print("Esc exits program. Goodbye")
                         LCD.print("Esc exits program. Goodbye")
         except Exception as e:
-            pass  # headless running of pi prevents use of pygame
+            pass  # headless running of pi prevents use of pygame'''
     
     # wait for lack of user input to set menu to idle
     if menu.idle_timer.timer_event():
@@ -212,13 +218,17 @@ while (not done):
     if condition.on_timer.timer_event():
         shrub.evt_handler(evt='ON TIMER')
     
+    #start_time = time()
+    # grab all sensor values to pass to butterworth filter with higher frequency
     temp = condition.sensOutOfRange()
     if condition.wait_timer.event_no_reset():
+        # timer is reset in event handler as long as the pumps are not being paused
         for event in temp:
             if event is not None:
                 condition.evt_handler(evt=event)
+    #print(f'Execution time of sensor checks: {time()-start_time}')
 
-    # if the reservoir is dangerously full, stop valves. 
+    # use sonar to see if the reservoir is dangerously full, stop valves. 
     # should hopefully prevent repeat events
     test_overflow = shrub.overflow_det()
     if test_overflow and (shrub.overflowCondition != "OVERFLOW"):

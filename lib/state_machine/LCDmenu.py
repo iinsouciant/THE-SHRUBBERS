@@ -90,7 +90,7 @@ class menu():
     start = "IDLE"
     # TODO incorporate operation to turn on all outputs
     ops = ("Flood timer", "Channel Pump timer", "Empty timer",
-        "Gap from top", "pH thresholds", "EC thresholds", 
+        "Max water level", "pH thresholds", "EC thresholds", 
         "Calibrate pH", "Calibrate EC", "Shut off pump+UV+valve", 
         "Shut off nutrient conditioners", "Test outputs")
     parent = start
@@ -192,7 +192,7 @@ class menu():
             rows = [['Flood Timer', self.settings[0]], 
                 ['Drain Timer', self.settings[1]], 
                 ['Active Pump Timer', self.settings[2]], 
-                ['Gap from top', self.settings[3]],
+                ['Max water level', self.settings[3]],
                 ['pH High Threshold', self.settings[4]], 
                 ['pH Low Threshold', self.settings[5]], 
                 ['EC High Threshold', self.settings[6]], 
@@ -310,7 +310,7 @@ class menu():
 
                 return self.settings[self.m1_hover]
             
-            # get allowable water height in reservoir setting and allow user to change it
+            # get allowable max water height in reservoir setting and allow user to change it
             if self.m1_hover == 3:
                 # 3 sigfigs, e.g. 123 choice of which digit to increase
                 self.m2_hover = 2
@@ -400,7 +400,8 @@ class menu():
         
         # showing message to be cleared and send user to start after user input
         elif self.child == 'WAIT':
-            if (evt == 'A_B') or (evt == "R_B"):
+            if (evt == 'A_B') or (evt == "R_B") or (evt == "D_B") \
+                (evt == "B_B") or (evt == "L_B") or (evt == "U_B"):
                 self.startMenu()
 
         # first level of menu showing configuration options
@@ -696,7 +697,7 @@ class menu():
                         self.child = 'EC THRESH'
                         self.LCD.clear()
                         self.LCD.set_cursor_mode(CursorMode.HIDE)
-                        self.LCD.print('EC High Threshold\nEC Low Threshold')
+                        self.LCD.print('^ EC High Threshold\nv EC Low Threshold')
                     # increase the EC based on hover position. want it to be to two decimal places X.XX
                     if (evt == "U_B"):
                         if self.m2_hover == 0:
@@ -742,7 +743,7 @@ class menu():
                         self.child = 'EC THRESH'
                         self.LCD.clear()
                         self.LCD.set_cursor_mode(CursorMode.HIDE)
-                        self.LCD.print('EC High Threshold\nEC Low Threshold')
+                        self.LCD.print('^ EC High Threshold\nv EC Low Threshold')
                     if (evt == "U_B"):
                         if self.m2_hover == 0:
                             self.param2change += 1

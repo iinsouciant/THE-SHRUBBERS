@@ -26,7 +26,7 @@ class hydro():
     '''Part of the Shrubber state machine that handles
     events passed to it, and defines and run the states as needed.'''
     # channel flooded, drained, and  pump active times
-    ptimes = [60*60*3, 60*60*3.5, 60*20]
+    ptimes = [60*60*.001, 60*60*3.5, 60*20]
     valveDrainTime = 60*20
     actual_times = [ptimes[2], 0, 0, 0, 0]
     # sequences to cycle through for valve opening
@@ -44,7 +44,7 @@ class hydro():
     hydroTimer = timer(actual_times[hydro_state])
 
     # limits how often the sonar sensor is grabbed to reduce use of sleep
-    sonar_timer = timer(1.25)
+    sonar_timer = timer(2)
     sonar_timer.timer_set()
     last_sonar = 0
 
@@ -82,11 +82,10 @@ class hydro():
     def __error(err_string):
         raise Exception(err_string)
 
-    # TODO test
-    def update_settings(self, ptimes, sonar_thresh):
+    def update_settings(self, ptimes, max_level):
         self.__ptimes2actual(ptimes)
         self.hydroTimer.new_interval_timer(self.actual_times[self.hydro_state])
-        self.s_thresh = sonar_thresh
+        self.s_thresh = self.hole_depth-max_level
     
     # TODO test
     def __ptimes2actual(self, ptimes):
@@ -110,13 +109,19 @@ class hydro():
         # getting stuck on no overflow even when it should be overflow
         if evt is not None:
             if evt == 'TEST':
-                self.topValve.on
-                self.botValve.on
+                self.topValve.on()
+                self.botValve.on()
                 self.active()
                 sleep(6)
-                self.topValve.off
-                self.botValve.off
+                self.topValve.off()
+                self.botValve.off()
                 self.active(pwr=0)
+                if self.pumpVal:
+                    self.active()
+                if self.topValveVal:
+                    self.topValve.on()
+                if self.botValveVal:
+                    self.botValve.on()
 
             elif evt == "OVERFLOW":
                 valvePause = True
@@ -166,13 +171,13 @@ class hydro():
                     self.active(pwr=0)
                 if (not self.vPause) and (self.overflowCondition != "OVERFLOW"):
                     if self.topValveVal:
-                        self.topValve.on
+                        self.topValve.on()
                     else:
-                        self.topValve.off
+                        self.topValve.off()
                     if self.botValveVal:
-                        self.botValve.on
+                        self.botValve.on()
                     else:
-                        self.botValve.off
+                        self.botValve.off()
         
         if self.test:
             print(f'new user shut off: {self.userToggle}')
@@ -182,8 +187,8 @@ class hydro():
     
     # TODO test. any reason to use this?
     def hydro_restart(self):
-        self.topValve.off
-        self.botValve.off
+        self.topValve.off()
+        self.botValve.off()
         self.hydro_state = 0
         self.overflowCondition = False
         self.userToggle = False
@@ -222,6 +227,7 @@ class hydro():
         if self.sonar_timer.timer_event():
             try:
                 # might want to lower sample_wait to reduce loop time of menu for better user input
+                self.s.temperature = self.conditioner.grab_temp(unit='C')
                 dist = self.s.raw_distance(sample_size=5, sample_wait=0.01)
             except (SystemError, UnboundLocalError) as e:
                 print(f"The sonar is not detected: {e}")
@@ -269,6 +275,7 @@ class conditioner():
     pPause = False
     therm_timer = timer(5)
     therm_timer.timer_set()
+    last_therm_val = 0
     EC_print = timer(5)
     EC_print.timer_set()
     ph_print = timer(5)
@@ -344,6 +351,8 @@ class conditioner():
                     pumpPause = True
                 elif not self.userToggle:
                     pumpPause = False
+
+            # when user does?
             elif evt == "ON TIMER":
                 for pump in self.pumps:
                     self.pump_active(pump, pwr=0)
@@ -422,7 +431,7 @@ acid: {self.pumpA.is_active} base: {self.pumpB.is_active}')
             dist = 0
         return self.fpH.filter(dist)
 
-    def grab_EC(self, test=False):
+    def grab_EC(self, test=False) -> float:
         '''Tries to grab the conductivity sensor value 
         without raising an exception halting the program'''
         try:
@@ -442,22 +451,25 @@ acid: {self.pumpA.is_active} base: {self.pumpB.is_active}')
     def grab_temp(self, unit="F") -> float:
         '''Tries to grab the temperature sensor value 
         without raising an exception halting the program'''
-        try:
-            if unit == 'C':
-                dist = float(self.temp.read_temp()['temp_c'])
-            elif unit == 'F':
-                dist = float(self.temp.read_temp()['temp_f'])
-            else:
-                print("invalid unit. Try 'F' or 'C'")
-        except Exception as e:
-            # TODO maybe have a protocol to restart the system to relaunch the 1-wire 
-            # or try to cd back into the sensor and get readings again. currently,
-            # once it disconnects it stays disconnected until program rescans
-            if self.therm_timer.timer_event():
+        if self.therm_timer.timer_event():
+            self.therm_timer.timer_set()
+            try:
+                if unit == 'C':
+                    dist = float(self.temp.read_temp()['temp_c'])
+                elif unit == 'F':
+                    dist = float(self.temp.read_temp()['temp_f'])
+                else:
+                    print("invalid unit. Try 'F' or 'C'")
+            except Exception as e:
+                # TODO maybe have a protocol to restart the system to relaunch the 1-wire 
+                # or try to cd back into the sensor and get readings again. currently,
+                # once it disconnects it stays disconnected until program rescans
                 print(f"The temperature sensor is not detected: {e}")
                 warnings.warn("The temperature sensor is not detected")
-                self.therm_timer.timer_set()
-            dist = 0
+                dist = 0
+            self.last_therm_val = dist
+        else:
+            dist = self.last_therm_val
         if unit == 'F':
             return self.fTemp_F.filter(dist)
         elif unit == 'C':
