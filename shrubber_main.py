@@ -9,7 +9,7 @@
 
 # TODO automate run on boot with pkg install script
 # https://www.tomshardware.com/how-to/run-script-at-boot-raspberry-pi
-
+#pip install GitPython
 from gpiozero import Button, PWMLED, LED
 from lib.hcsr04sensor import sensor as hcsr04
 from lib.DS18B20 import TempReader
