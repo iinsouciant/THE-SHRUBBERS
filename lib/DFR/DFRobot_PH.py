@@ -33,11 +33,11 @@ class DFRobot_PH():
 	def readPH(self, voltage, temperature=0):
 		slope = -5.6548
 		intercept = 15.509
-		_phValue  = slope*(voltage)+intercept
+		_phValue = slope*(voltage)+intercept
 		round(_phValue, 3)
 		return _phValue
 
-	# TODO adapt ph calibration from arduino
+	# TODO adapt ph calibration from arduino code
 	def calibration(self, voltage):
 		if (voltage == 0):
 			return ">>Invalid sensor reading. Check wires & sensor initialization.<<"
@@ -65,7 +65,7 @@ class DFRobot_PH():
 				#time.sleep(2.0)
 				return ">>>PH:4.0 Calibration completed"
 			else:
-				return "New calibration not translated from C++ to Python. WIP"
+				return ">>New calibration not translated from C++ to Python. WIP<<"
 				#return ">>>Buffer solution out of range. Measurement discarded<<<"
 
 	def reset(self):

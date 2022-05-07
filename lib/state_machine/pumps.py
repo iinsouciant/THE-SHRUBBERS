@@ -26,7 +26,7 @@ class hydro():
     '''Part of the Shrubber state machine that handles
     events passed to it, and defines and run the states as needed.'''
     # channel flooded, drained, and  pump active times
-    ptimes = [60*60*.001, 60*60*3.5, 60*20]
+    ptimes = [60*60*3, 60*60*3.5, 60*20]
     valveDrainTime = 60*20
     actual_times = [ptimes[2], 0, 0, 0, 0]
     # sequences to cycle through for valve opening
@@ -116,12 +116,9 @@ class hydro():
                 self.topValve.off()
                 self.botValve.off()
                 self.active(pwr=0)
-                if self.pumpVal:
-                    self.active()
-                if self.topValveVal:
-                    self.topValve.on()
-                if self.botValveVal:
-                    self.botValve.on()
+                if self.pumpVal: self.active()
+                if self.topValveVal:  self.topValve.on()
+                if self.botValveVal: self.botValve.on()
 
             elif evt == "OVERFLOW":
                 valvePause = True
@@ -134,7 +131,7 @@ class hydro():
                 # prevent overflow condition from overriding the user toggling our outputs
                 if self.userToggle is False:
                     valvePause = False
-                    #pumpPause = False
+                    pumpPause = False
 
             # user toggle overrides overflow until next loop where overflow event is passed. change this?
             elif evt == "USER TOGGLE":
@@ -148,14 +145,8 @@ class hydro():
 
             # to stop the valves and pumps in case of emergency. 
             # stored in values to retain behavior across multiple events
-            if pumpPause:
-                self.pPause = True
-            elif pumpPause is False:
-                self.pPause = False
-            if valvePause:
-                self.vPause = True
-            elif valvePause is False:
-                self.vPause = False
+            self.pPause = True if pumpPause else False
+            self.vPause = True if valvePause else False
             
             # go to next pump and valve state
             if evt == "TIME":
@@ -165,19 +156,10 @@ class hydro():
                 [self.topValveVal, self.botValveVal] = self.vVals[self.hydro_state]
                 self.hydroTimer.timer_set(new=self.actual_times[self.hydro_state])
 
-                if self.pumpVal and not self.pPause:
-                    self.active()
-                else:
-                    self.active(pwr=0)
+                self.active if (self.pumpVal and (not self.pPause)) else self.active(pwr=0)
                 if (not self.vPause) and (self.overflowCondition != "OVERFLOW"):
-                    if self.topValveVal:
-                        self.topValve.on()
-                    else:
-                        self.topValve.off()
-                    if self.botValveVal:
-                        self.botValve.on()
-                    else:
-                        self.botValve.off()
+                    self.topValve.on() if self.topValveVal else self.topValve.off()
+                    self.botValve.on() if self.botValveVal else self.botValve.off()
         
         if self.test:
             print(f'new user shut off: {self.userToggle}')
@@ -185,38 +167,31 @@ class hydro():
             print(f'top valve state: {self.topValveVal}')
             print(f'bot valve state: {self.botValveVal}')
     
-    # TODO test. any reason to use this?
+    #  any reason to use this?
     def hydro_restart(self):
         self.topValve.off()
         self.botValve.off()
         self.hydro_state = 0
         self.overflowCondition = False
         self.userToggle = False
-        if self.test:
-            print("Top valve: off")
-            print("Bottom valve: off")
+        if self.test: print("Top valve: off\nBottom valve: off") 
 
-    def active(self, pwr=30):
+    def active(self, pwr=40):
         if pwr >= 100:
-            pwr = 100
+            pwr = 100 
+        elif pwr <= 0:
+            pwr = 0
         self.pump.value = pwr/100  # TODO set default value to match 1 GPM 
-        if pwr <= 0:
-            self.UV.value = 0
-        else:
-            self.UV.value = 1
+        self.UV.value = 0 if pwr == 0 else 1
 
     def water_height(self):  # in cm, good for ~9 to ~30
         return self.s.depth(self.grab_sonar(), self.hole_depth)
 
     def overflow_det(self, height_thresh=None):  # in case water level is too high?
-        if height_thresh is None:
-            height_thresh = self.hole_depth - self.s_thresh
+        height_thresh = (self.hole_depth - self.s_thresh) if height_thresh is None else height_thresh
         height = self.water_height()
         try:
-            if height >= height_thresh:
-                return True
-            else:
-                return False
+            return True if height >= height_thresh else False
         except TypeError as e:
             print(e)
             return True
@@ -224,11 +199,11 @@ class hydro():
     def grab_sonar(self):
         '''Tries to grab the sonar sensor value without 
         raising an exception halting the program. The reliable range is 9 to 32 cm.'''
+        # timer to limit sample rate for faster loop time
         if self.sonar_timer.timer_event():
             try:
-                # might want to lower sample_wait to reduce loop time of menu for better user input
                 self.s.temperature = self.conditioner.grab_temp(unit='C')
-                dist = self.s.raw_distance(sample_size=5, sample_wait=0.01)
+                dist = self.s.raw_distance(sample_size=10, sample_wait=0.01)
             except (SystemError, UnboundLocalError) as e:
                 print(f"The sonar is not detected: {e}")
                 warnings.warn("The sonar sensor is not detected.")
@@ -283,7 +258,7 @@ class conditioner():
     evt_print = timer(1.5)
     evt_print.timer_set()
 
-    def __init__(self, conditioning_pumps, shrub, pHsens, ECsens, temp, filters=[200, 200, 200], test=False):
+    def __init__(self, conditioning_pumps, shrub, pHsens, ECsens, temp, filters=[200, 200, .5], test=False):
         self.pumps = conditioning_pumps
         self.pumpA = conditioning_pumps[0]
         self.pumpB = conditioning_pumps[1]
