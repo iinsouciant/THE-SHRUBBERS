@@ -117,7 +117,7 @@ class hydro():
                 self.botValve.off()
                 self.active(pwr=0)
                 if self.pumpVal: self.active()
-                if self.topValveVal:  self.topValve.on()
+                if self.topValveVal: self.topValve.on()
                 if self.botValveVal: self.botValve.on()
 
             elif evt == "OVERFLOW":
@@ -280,7 +280,7 @@ class conditioner():
         return "state_machine({}, {}, {}, {}, {}, {})".format(self.pumpA, self.pumpB, self.pumpC, 
         self.pHsens, self.ECsens, self.temp)
 
-    def __str__(self):  # TODO check if we need to update this
+    def __str__(self):
         '''Provides formatted sensor values connected to state machine'''
         return "Pump States: {:.2f} A {:.2f} B {:.2f} N\nWater level: {} cm\npH: {}\
         \nEC: {} mS\nTemp: {} C".format(
@@ -327,7 +327,7 @@ class conditioner():
                 elif not self.userToggle:
                     pumpPause = False
 
-            # when user does?
+            # when pump is done pumping, turn all off
             elif evt == "ON TIMER":
                 for pump in self.pumps:
                     self.pump_active(pump, pwr=0)
@@ -453,10 +453,10 @@ acid: {self.pumpA.is_active} base: {self.pumpB.is_active}')
     def sensOutOfRange(self):
         solutions = [None, None, None]
         pH_val = self.grab_pH()
-        if pH_val >= self.pH_High:
+        if (pH_val >= self.pH_High) and (self.on_timer.time_remaining() is not None):
             solutions[0] = 'HIGH PH'
-        if pH_val <= self.ph_Low:
+        elif (pH_val <= self.ph_Low) and (self.on_timer.time_remaining() is not None):
             solutions[1] = 'LOW PH'
-        if self.grab_EC() <= self.EC_Low:
-            solutions[2] = 'LOW EC'
+        solutions[2] = 'LOW EC' if (self.grab_EC() <= self.EC_Low) \
+            and (self.on_timer.time_remaining() is not None) else None
         return solutions

@@ -11,10 +11,9 @@
 #   v1.15 13-Apr-2022 Add functionality to have menu to send settings to other state machines.
 #                     Timer functionality increased to handle None exceptions and other use cases.
 
-# TODO import only stuff we need from library
-from time import sleep, monotonic
-import csv
-import warnings
+from time import monotonic
+from csv import reader, writer
+from warnings import warn
 from lib.lcd.lcd import CursorMode
 
 class timer():
@@ -26,7 +25,7 @@ class timer():
         try:
             self.TIMER_INTERVAL = float(interval)
         except ValueError as e:
-            warnings.warn(f'Invalid timer input: {e}\nSetting interval to None')
+            warn(f'Invalid timer input: {e}\nSetting interval to None')
             self.TIMER_INTERVAL = None
 
     def timer_event(self):
@@ -88,7 +87,6 @@ class menu():
     configure the shrubber state machine without blocking operations elsewhere
     and simultaneously output information to the LCD screen.'''
     start = "IDLE"
-    # TODO incorporate operation to turn on all outputs
     ops = ("Flood timer", "Channel Pump timer", "Empty timer",
         "Max water level", "pH thresholds", "EC thresholds", 
         "Calibrate pH", "Calibrate EC", "Shut off pump+UV+valve", 
@@ -125,7 +123,7 @@ class menu():
         # on boot, check to see if state machine settings exist. if not create w/ default settings
         try:
             with open('Settings.csv', 'r') as f:
-                settings = csv.reader(f)
+                settings = reader(f)
                 rows = [row for row in settings if True]
                 self.ft = int(rows[0][1])
                 self.ap = int(rows[1][1])
@@ -150,7 +148,7 @@ class menu():
                     ['EC High Threshold', self.ECH], 
                     ['EC Low Threshold', self.ECL],
                 ] 
-                settings = csv.writer(f)
+                settings = writer(f)
                 settings.writerows(rows)
         
         # list of operation settings
@@ -194,7 +192,7 @@ class menu():
                 ['EC High Threshold', self.settings[6]], 
                 ['EC Low Threshold', self.settings[7]],
             ] 
-            new_settings = csv.writer(f)
+            new_settings = writer(f)
             new_settings.writerows(rows)
 
         # save change to shrub state machine
@@ -336,6 +334,7 @@ class menu():
             return None
 
         # TODO test
+        # user toggle the main pump, uv, valves
         elif self.m1_hover == 8:
             self.shrub.evt_handler(evt="USER TOGGLE")
             if self.shrub.userToggle:
@@ -345,6 +344,7 @@ class menu():
             self.child = "WAIT"
 
         # TODO test toggle works
+        # user toggles conditioning pumps
         elif self.m1_hover == 9:
             self.conditioner.evt_handler(evt="USER TOGGLE")
             if self.conditioner.userToggle:
@@ -359,7 +359,6 @@ class menu():
             self.conditioner.evt_handler(evt="TEST")
             self.shrub.evt_handler(evt="TEST")
             
-    # TODO see if i can segment this to reduce loop time?
     def evt_handler(self, evt=None, timer=False):
         if self.test:
             print(f"child: {self.child}\nparent: {self.parent}")
@@ -389,7 +388,7 @@ class menu():
         # showing message to be cleared and send user to start after user input
         elif self.child == 'WAIT':
             if (evt == 'A_B') or (evt == "R_B") or (evt == "D_B") \
-                (evt == "B_B") or (evt == "L_B") or (evt == "U_B"): self.startMenu()
+                or (evt == "B_B") or (evt == "L_B") or (evt == "U_B"): self.startMenu()
 
         # first level of menu showing configuration options
         elif self.child in self.ops:
