@@ -266,4 +266,4 @@ except Exception as e:
     LCD.print(f'Fatal error: {e}')
     sleep(4)
     # TODO insert save all settings, states, and timer values to file before reboot
-    system("sudo reboot")
+    #system("sudo reboot")
