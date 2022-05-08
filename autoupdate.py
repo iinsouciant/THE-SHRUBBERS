@@ -1,11 +1,23 @@
 from git import Repo
+import requests
 
-shrubRepoDir ='/home/pi/THE-SHRUBBERS'
+# initializing test URL
+url = "https://www.geeksforgeeks.org"
+#shrubRepoDir = '/home/pi/THE-SHRUBBERS'
+myRepoDir = '/Users/sands/OneDrive/Documents/School/SJSU/Senior project - Urban or Vertical Farming/Shrubbers Repository/THE-SHRUBBERS-1'
+timeout = 10
 
-shrubRepo = Repo(shrubRepoDir)
-assert not shrubRepo.bare
+try:
+    # requesting URL
+    request = requests.get(url, timeout=timeout)
+    print("Internet is on")
 
-shrubRepo.config_reader()             # get a config reader for read-only access
-with shrubRepo.config_writer():       # get a config writer to change configuration
-    pass                         # call release() to be sure changes are written and locks are released
+    # get latest commit
+    shrubRepo = Repo(shrubRepoDir)
+    assert not shrubRepo.bare
 
+    o = shrubRepo.remotes.origin
+    o.puil()
+# catching exception
+except (requests.ConnectionError, requests.Timeout) as exception:
+    print("Internet is off")
