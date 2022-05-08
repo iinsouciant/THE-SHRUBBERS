@@ -99,11 +99,14 @@ class menu():
     et = 6*60  # empty timer
     ap = 120  # active pump timer to flood channels
     # Sensor threshold values
-    pHH = 9
-    pHL = 4
-    ECH = 2
-    ECL = 0.01
+    pHH = 9  # high pH threshhold
+    pHL = 4  # low pH threshhold
+    ECH = 2  # high EC threshhold
+    ECL = 0.01  # low EC threshhold
     sT = 16  # sonar threshold
+    # to help track program cycle between power shutoff
+    __cycleIndex = 0
+    __cycleTime = ap
     # independent timer event
     idle_timer = timer(3*60)
     idle_timer.timer_set()
@@ -133,6 +136,8 @@ class menu():
                 self.pHL = float(rows[5][1])
                 self.ECH = float(rows[6][1])
                 self.ECL = float(rows[7][1])
+                self.__cycleIndex = int(rows[8][1])
+                self.__cycleTime = int(rows[9][1])
                 print("Settings loaded")
 
         except (IOError) as e:
@@ -147,14 +152,19 @@ class menu():
                     ['pH Low Threshold', self.pHL], 
                     ['EC High Threshold', self.ECH], 
                     ['EC Low Threshold', self.ECL],
+                    ['Pump cycle stage', self.__cycleIndex]
+                    ['Cycle time remaining', self.__cycleTime]
                 ] 
                 settings = writer(f)
                 settings.writerows(rows)
         
         # list of operation settings
-        self.settings = [self.ft, self.ap, self.et, self.sT, self.pHH, self.pHL, self.ECH, self.ECL, ]
-        self.shrub.update_settings([self.settings[0], self.settings[1], self.settings[2]], self.settings[3])
-        self.conditioner.update_settings(self.settings[4], self.settings[5], self.settings[6], self.settings[7])
+        self.settings = [self.ft, self.ap, self.et, self.sT, self.pHH, self.pHL,\
+            self.ECH, self.ECL, self.__cycleIndex, self.__cycleTime]
+        self.shrub.update_settings([self.settings[0], self.settings[1], self.settings[2]], \
+            self.settings[3], cycle=[self.settings[8], self.settings[9]])
+        self.conditioner.update_settings(self.settings[4], self.settings[5], self.settings[6],\
+            self.settings[7])
         self.conditioner.pH_High = self.pHH
         self.conditioner.pH_Low = self.pHL
         self.conditioner.EC_High = self.ECH
@@ -164,24 +174,29 @@ class menu():
         self.shrub.ptimes = [self.settings[0], self.settings[1], self.settings[2]]
 
     # TODO figure out more efficient way to save?
-    def saveParamChange(self):
+    def saveParamChange(self, cycle=False):
         '''Save the new user defined value to the settings file'''
-        if type(self.parent) is int:
-            if (self.parent <= 3) and (self.parent >= 0):
-                i = self.parent
-            if (self.parent >= 8) or (self.parent < 0):
-                self.LCD.print("The parent variable does not correspond to a valid save location in the settings")
-                raise LookupError("The parent variable does not correspond to a valid save location in the settings")
-        elif (self.parent == 'pH THRESH'):
-            # assume child is ph LOW if not ph HIGH
-            i = 4 if (self.child == 'pH HIGH') else 5
-        elif (self.parent == 'EC THRESH'):
-            # assume child is EC LOW if not EC HIGH
-            i = 6 if (self.child == 'EC HIGH') else 7
-        else:
-            raise LookupError("Invalid parent setting to save")
+        if not cycle:
+            if type(self.parent) is int:
+                if (self.parent <= 3) and (self.parent >= 0):
+                    i = self.parent
+                if (self.parent >= 8) or (self.parent < 0):
+                    self.LCD.print("The parent variable does not correspond to a valid save location in the settings")
+                    raise LookupError("The parent variable does not correspond to a valid save location in the settings")
+            elif (self.parent == 'pH THRESH'):
+                # assume child is ph LOW if not ph HIGH
+                i = 4 if (self.child == 'pH HIGH') else 5
+            elif (self.parent == 'EC THRESH'):
+                # assume child is EC LOW if not EC HIGH
+                i = 6 if (self.child == 'EC HIGH') else 7
+            else:
+                raise LookupError("Invalid parent setting to save")
 
-        self.settings[i] = self.param2change
+            self.settings[i] = self.param2change
+            
+        else:
+            self.settings[8], self.settings[9] = self.getCycle()
+
         with open(r"Settings.csv", 'w') as f:
             rows = [['Flood Timer', self.settings[0]], 
                 ['Drain Timer', self.settings[1]], 
@@ -191,6 +206,8 @@ class menu():
                 ['pH Low Threshold', self.settings[5]], 
                 ['EC High Threshold', self.settings[6]], 
                 ['EC Low Threshold', self.settings[7]],
+                ['Pump cycle stage', self.settings[8]]
+                ['Cycle time remaining', self.settings[9]]
             ] 
             new_settings = writer(f)
             new_settings.writerows(rows)
@@ -202,12 +219,18 @@ class menu():
         self.conditioner.pH_Low = self.settings[5]
         self.conditioner.EC_High = self.settings[6]
         self.conditioner.EC_Low = self.settings[7]
-        self.LCD.clear()
-        self.LCD.set_cursor_mode(CursorMode.HIDE)
-        self.LCD.print("Settings saved!")
-        # show message until user input
-        self.child = "WAIT"
-        self.parent = None
+        if not cycle:
+            self.LCD.clear()
+            self.LCD.set_cursor_mode(CursorMode.HIDE)
+            self.LCD.print("Settings saved!")
+            # show message until user input
+            self.child = "WAIT"
+            self.parent = None
+
+    def getCycle(self) -> list:
+        self.__cycleIndex = self.shrub.hydro_state
+        self.__cycleTime = self.shrub.hydroTimer.time_remaining()
+        return [self.__cycleIndex, self.__cycleTime]
 
     def startMenu(self, hover=0):
         '''Send the menu back to the first level menu'''
@@ -275,7 +298,7 @@ class menu():
             self.LCD.set_cursor_pos(row, 0)
             self.LCD.print(c)
 
-    def timeFormat(self, sec):
+    def timeFormat(self, sec) -> str:
         '''automatically convert seconds to HH:MM:SS format for user to read'''
         m, s = divmod(sec, 60)
         h, m = divmod(m, 60)

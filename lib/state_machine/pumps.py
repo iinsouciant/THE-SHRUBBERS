@@ -82,10 +82,15 @@ class hydro():
     def __error(err_string):
         raise Exception(err_string)
 
-    def update_settings(self, ptimes, max_level):
+    def update_settings(self, ptimes, max_level, cycle=None):
         self.__ptimes2actual(ptimes)
         self.hydroTimer.new_interval_timer(self.actual_times[self.hydro_state])
         self.s_thresh = self.hole_depth-max_level
+        # TODO test
+        if cycle is not None:
+            self.hydro_state = cycle[0]
+            self.hydroTimer = timer(cycle[1])
+            self.hydroTimer.timer_set()
     
     # TODO test
     def __ptimes2actual(self, ptimes):
@@ -184,10 +189,10 @@ class hydro():
         self.pump.value = pwr/100  # TODO set default value to match 1 GPM 
         self.UV.value = 0 if pwr == 0 else 1
 
-    def water_height(self):  # in cm, good for ~9 to ~30
+    def water_height(self) -> float:  # in cm, good for ~9 to ~30
         return self.s.depth(self.grab_sonar(), self.hole_depth)
 
-    def overflow_det(self, height_thresh=None):  # in case water level is too high?
+    def overflow_det(self, height_thresh=None) -> bool:  # in case water level is too high?
         height_thresh = (self.hole_depth - self.s_thresh) if height_thresh is None else height_thresh
         height = self.water_height()
         try:
@@ -196,7 +201,7 @@ class hydro():
             print(e)
             return True
     
-    def grab_sonar(self):
+    def grab_sonar(self) -> float:
         '''Tries to grab the sonar sensor value without 
         raising an exception halting the program. The reliable range is 9 to 32 cm.'''
         # timer to limit sample rate for faster loop time

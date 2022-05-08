@@ -116,14 +116,13 @@ condition = pumps.conditioner(condP, shrub, pHsens, ECsens, tempSens, test=test2
 shrub.conditioner = condition
 menu = LCDmenu.menu(LCD, shrub, condition, test=test2)
 
-# initializing variables
 button_timer = LCDmenu.timer(.15)
-
-# shrub.state used to track what state pump/uv is in
+saveCycleTime = LCDmenu.timer(60*7.5)
 
 print("Now expecting user input")
 menu.idle()
 button_timer.timer_set()
+saveCycleTime.timer_set()
 
 done = False
 
@@ -256,6 +255,9 @@ try:
             menu.LCD.set_cursor_pos(1, menu.m2_hover)
         else:
             LCD.set_cursor_mode(CursorMode.HIDE)
+        
+        if saveCycleTime.timer_event():
+            menu.saveParamChange(cycle=True)
                 
     print("Something caused the state machine to break. Exiting program")
     LCD.print("Something caused the state machine to break. Exiting program and rebooting")
@@ -264,6 +266,6 @@ try:
     system("sudo reboot")
 except Exception as e:
     LCD.print(f'Fatal error: {e}')
-    sleep(4)
+    sleep(20)
     # TODO insert save all settings, states, and timer values to file before reboot
     #system("sudo reboot")
