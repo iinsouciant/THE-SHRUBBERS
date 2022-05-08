@@ -1,4 +1,4 @@
-from git import Repo
+import git
 import requests
 
 # initializing test URL
@@ -16,11 +16,8 @@ try:
     #shrubRepo = Repo(shrubRepoDir)
     #assert not shrubRepo.bare
     # get latest commit
-    myRepo = Repo(myRepoDir)
-    assert not myRepo.bare
-
-    o = myRepo.remotes.origin
-    o.pull()
+    myRepo = git.Git(myRepoDir)
+    myRepo.pull('origin', 'main')
     print('pulled latest program version')
 # catching exception
 except (requests.ConnectionError, requests.Timeout) as exception:
