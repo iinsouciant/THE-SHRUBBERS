@@ -13,11 +13,15 @@ try:
     print("Internet is on")
 
     # get latest commit
-    shrubRepo = Repo(shrubRepoDir)
-    assert not shrubRepo.bare
+    #shrubRepo = Repo(shrubRepoDir)
+    #assert not shrubRepo.bare
+    # get latest commit
+    myRepo = Repo(myRepoDir)
+    assert not myRepo.bare
 
-    o = shrubRepo.remotes.origin
-    o.puil()
+    o = myRepo.remotes.origin
+    o.pull()
+    print('pulled latest program version')
 # catching exception
 except (requests.ConnectionError, requests.Timeout) as exception:
     print("Internet is off")
