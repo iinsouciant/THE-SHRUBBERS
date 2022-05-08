@@ -1,10 +1,11 @@
-import git
+from git import Git, Repo
 import requests
+from pathlib import Path
 
 # initializing test URL
 url = "https://www.geeksforgeeks.org"
-#shrubRepoDir = '/home/pi/THE-SHRUBBERS'
-myRepoDir = '/Users/sands/OneDrive/Documents/School/SJSU/Senior project - Urban or Vertical Farming/Shrubbers Repository/THE-SHRUBBERS-1'
+file = Path('shrubber_main.py')
+myRepoDir = file.parent.absolute()
 timeout = 10
 
 try:
@@ -12,10 +13,11 @@ try:
     request = requests.get(url, timeout=timeout)
     print("Internet is on")
 
+    resetter = Repo(myRepoDir)
+    myRepo = Git(myRepoDir)
+    # revert local unsaved changes
+    resetter.git.reset('--hard')
     # get latest commit
-    #shrubRepo = Repo(shrubRepoDir)
-    #assert not shrubRepo.bare
-    myRepo = git.Git(myRepoDir)
     myRepo.fetch()
     myRepo.pull('origin', 'main')
     print('pulled latest program version')
