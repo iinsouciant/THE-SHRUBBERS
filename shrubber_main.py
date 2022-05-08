@@ -7,9 +7,13 @@
 #   v0.85 13-Apr-2022 Included libraries for all sensors, final pin assignments, keyboard input option,
 #                     input and output instances, error handling in case of sensor not workingm
 
-# TODO automate run on boot with pkg install script
-# https://www.tomshardware.com/how-to/run-script-at-boot-raspberry-pi
-#pip install GitPython
+# pip install GitPython
+
+from time import sleep, time
+from os import system
+
+system('python3 autoupdate.py')
+
 from gpiozero import Button, PWMLED, LED
 from lib.hcsr04sensor import sensor as hcsr04
 from lib.DS18B20 import TempReader
@@ -30,10 +34,6 @@ from lib.state_machine import pumps
 
 # import numpy as np
 # import math
-from time import sleep, time
-from os import system
-
-system('python3 autoupdate.py')
 
 try:
     # for testing w/o buttons. simulates button input through keyboard
