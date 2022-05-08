@@ -33,6 +33,8 @@ from lib.state_machine import pumps
 from time import sleep, time
 from os import system
 
+system('python3 autoupdate.py')
+
 try:
     # for testing w/o buttons. simulates button input through keyboard
     import pygame
