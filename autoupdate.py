@@ -15,10 +15,10 @@ try:
     # get latest commit
     #shrubRepo = Repo(shrubRepoDir)
     #assert not shrubRepo.bare
-    # get latest commit
     myRepo = git.Git(myRepoDir)
+    myRepo.fetch()
     myRepo.pull('origin', 'main')
     print('pulled latest program version')
-# catching exception
+    
 except (requests.ConnectionError, requests.Timeout) as exception:
     print("Internet is off")
