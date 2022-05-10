@@ -1,4 +1,3 @@
-from ast import Index
 from git import Git, Repo
 import requests
 from pathlib import Path
