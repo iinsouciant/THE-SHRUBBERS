@@ -220,4 +220,4 @@ for _ in range(5):
     except Exception as e:
         LCD.print(f'Fatal error: {e}')
         sleep(60)
-        LCD.print(f'Reboot system')
+        LCD.print('Reboot system and check wire connections')
