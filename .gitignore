@@ -131,3 +131,5 @@ dmypy.json
 /.vs/ProjectSettings.json
 /.vs/slnx.sqlite
 /.vs/VSWorkspaceState.json
+
+raspi-blinka.py
