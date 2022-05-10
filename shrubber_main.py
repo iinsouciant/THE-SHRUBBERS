@@ -221,3 +221,4 @@ for _ in range(5):
         LCD.print(f'Fatal error: {e}')
         sleep(60)
         LCD.print('Reboot system and check wire connections')
+        system('sudo python autoupdate.py --no-shrub')

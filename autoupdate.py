@@ -1,7 +1,9 @@
+from ast import Index
 from git import Git, Repo
 import requests
 from pathlib import Path
 from os import system
+from sys import argv
 
 # initializing test URL
 url = "https://www.geeksforgeeks.org"
@@ -28,5 +30,8 @@ for _ in range(3):
     except (requests.ConnectionError, requests.Timeout) as exception:
         print("Internet is off")
 
-
-system('python3 shrubber_main.py')
+try:
+    if argv[1] == '--no-shrub':
+        pass
+except (IndexError, Exception) as e:
+    system('python3 shrubber_main.py')
