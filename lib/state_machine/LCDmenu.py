@@ -64,11 +64,14 @@ class timer():
 
     def time_remaining(self):
         '''Checks to see if the time has passed. If it not, returns float of difference. No reset if time has passed'''
-        if (self.timer_time is not None) and monotonic() >= self.timer_time:
-            return None
+        if (self.timer_time is not None):
+            if monotonic() >= self.timer_time:
+                return None
+            else:
+                return self.timer_time - monotonic()
         else:
-            return self.timer_time - monotonic()
-    
+            return None
+
     def new_interval_timer(self, new_interval):
         '''Adjusts the remaining time of the timer to fit new interval'''
         if (new_interval is not None) and (self.TIMER_INTERVAL is not None):
@@ -140,8 +143,8 @@ class menu():
                 self.__cycleTime = int(rows[9][1])
                 print("Settings loaded")
 
-        except (IOError) as e:
-            if e is IOError:
+        except (IOError, IndexError) as e:
+            if (e is IOError) or (e is IndexError):
                 print("Settings.csv does not exist. Creating file with default settings.")
             with open(r"Settings.csv", 'w') as f:
                 rows = [[self.ops[0], self.ft], 
@@ -152,8 +155,8 @@ class menu():
                     ['pH Low Threshold', self.pHL], 
                     ['EC High Threshold', self.ECH], 
                     ['EC Low Threshold', self.ECL],
-                    ['Pump cycle stage', self.__cycleIndex]
-                    ['Cycle time remaining', self.__cycleTime]
+                    ['Pump cycle stage', self.__cycleIndex],
+                    ['Cycle time remaining', self.__cycleTime],
                 ] 
                 settings = writer(f)
                 settings.writerows(rows)
@@ -206,8 +209,8 @@ class menu():
                 ['pH Low Threshold', self.settings[5]], 
                 ['EC High Threshold', self.settings[6]], 
                 ['EC Low Threshold', self.settings[7]],
-                ['Pump cycle stage', self.settings[8]]
-                ['Cycle time remaining', self.settings[9]]
+                ['Pump cycle stage', self.settings[8]],
+                ['Cycle time remaining', self.settings[9]],
             ] 
             new_settings = writer(f)
             new_settings.writerows(rows)
