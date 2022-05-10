@@ -23,6 +23,7 @@ for _ in range(3):
         myRepo.fetch()
         myRepo.pull('origin', 'main')
         print('pulled latest program version')
+        break
     
     except (requests.ConnectionError, requests.Timeout) as exception:
         print("Internet is off")
