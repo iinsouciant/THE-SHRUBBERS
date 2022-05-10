@@ -196,7 +196,7 @@ class menu():
                 raise LookupError("Invalid parent setting to save")
 
             self.settings[i] = self.param2change
-            
+        # if cycle, check cycle state of shrub and save to file
         else:
             self.settings[8], self.settings[9] = self.getCycle()
 
