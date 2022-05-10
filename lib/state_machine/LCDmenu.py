@@ -162,11 +162,11 @@ class menu():
                 settings.writerows(rows)
         
         # list of operation settings
-        self.settings = [self.ft, self.ap, self.et, self.sT, self.pHH, self.pHL,\
+        self.settings = [self.ft, self.ap, self.et, self.sT, self.pHH, self.pHL,
             self.ECH, self.ECL, self.__cycleIndex, self.__cycleTime]
-        self.shrub.update_settings([self.settings[0], self.settings[1], self.settings[2]], \
+        self.shrub.update_settings([self.settings[0], self.settings[1], self.settings[2]], 
             self.settings[3], cycle=[self.settings[8], self.settings[9]])
-        self.conditioner.update_settings(self.settings[4], self.settings[5], self.settings[6],\
+        self.conditioner.update_settings(self.settings[4], self.settings[5], self.settings[6],
             self.settings[7])
         self.conditioner.pH_High = self.pHH
         self.conditioner.pH_Low = self.pHL
