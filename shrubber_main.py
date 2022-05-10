@@ -37,9 +37,9 @@ from lib.state_machine import pumps
 
 try:
     # for testing w/o buttons. simulates button input through keyboard
-    import pygame
-    pygame.init()
-    screen = pygame.display.set_mode((100, 100))
+    #import pygame
+    #pygame.init()
+    #screen = pygame.display.set_mode((100, 100))
 except pygame.error as e:
     print("Pygame has not been loaded as it does not work w/o a monitor.")
 

@@ -133,3 +133,4 @@ dmypy.json
 /.vs/VSWorkspaceState.json
 
 raspi-blinka.py
+Settings.csv
