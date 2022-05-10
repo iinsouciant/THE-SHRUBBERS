@@ -6,7 +6,7 @@ from sys import argv
 
 # initializing test URL
 url = "https://www.geeksforgeeks.org"
-file = Path('shrubber_main.py')
+file = Path('/home/pi/THE-SHRUBBERS/shrubber_main.py')
 myRepoDir = file.parent.absolute()
 timeout = 10
 
@@ -33,4 +33,4 @@ try:
     if argv[1] == '--no-shrub':
         pass
 except (IndexError, Exception) as e:
-    system('python3 shrubber_main.py')
+    system(f'python3 {file}')
