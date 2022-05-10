@@ -30,18 +30,6 @@ from adafruit_ads1x15.analog_in import AnalogIn
 import lib.state_machine.LCDmenu as LCDmenu
 from lib.state_machine import pumps
 
-# import numpy as np
-# import math
-
-try:
-    # for testing w/o buttons. simulates button input through keyboard
-    #import pygame
-    #pygame.init()
-    #screen = pygame.display.set_mode((100, 100))
-    no = 'yes'
-except pygame.error as e:
-    print("Pygame has not been loaded as it does not work w/o a monitor.")
-
 # Button wire colors: 
 # Blue is a or down, yellow is b, white is up or left, green is right
 # pumpm/uv is green/black solid, valve 1 is yellow/red stranded, valve 2 is blue/red solid
@@ -71,18 +59,14 @@ if test2:
         print("I2C addresses found:",
             [hex(device_address) for device_address in i2c.scan()])   
 print_time = 7
-# initialize i2c bus to use with ADC for analog input and send communicate with LCD   
+# initialize i2c bus to use with  LCD   
 try:
     LCD = LCD(I2CPCF8574Interface(I2C(), 0x27), num_rows=4, num_cols=20)
 except (OSError, ValueError, AttributeError) as e:
     print("LCD at 0x27 not detected.")
-    '''
-    from os import system
-    sleep(4)
-    system("sudo reboot")
-    quit()'''
     LCD = LCDmenu.LCDdummy()
 
+# connect to ADC through I2C bus
 try:
     ads = ADS.ADS1015(I2C())
     pHsens = AnalogIn(ads, ADS.P0)  # signal at pin 0
@@ -93,31 +77,33 @@ except (OSError, ValueError, AttributeError) as e:
     pHsens = "dummy"
     ECsens = "dummy"
 
+# create sonar sensor instance
 sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'])
 
+# check temp sensor connecton
 try:
     tempSens = TempReader()
 except IndexError as e:
-    #print("1-Wire connection is bad.\
-    #    Try checkng connection. Attempting reboot to fix.")
+    print("1-Wire connection is bad.\
+        Try checkng connection. Attempting reboot to fix.")
     print(e)
     LCD.print(
-        "1-Wire connection is bad. Try checkng connection. " +
-        "Attempting reboot to fix."
+        "1-Wire connection is bad. Try checkng connection. "
     )
     sleep(5)
-    #system("sudo reboot")
-    # TODO output file to document this for better troubleshooting
     tempSens = "dummy instance"
 
 
-# creating instance of state machine
+# creating instance of state machines
 shrub = pumps.hydro(pumpM, sonar, valves, UV, test=test2)
 condition = pumps.conditioner(condP, shrub, pHsens, ECsens, tempSens, test=test2)
+# pass in instance of conditioner to have them communicate
 shrub.conditioner = condition
 menu = LCDmenu.menu(LCD, shrub, condition, test=test2)
 
-button_timer = LCDmenu.timer(.15)
+# timer to wait between accepting button presses to prevent repeats
+button_timer = LCDmenu.timer(.175)
+# timer to automatically save pump cycle timings to file
 saveCycleTime = LCDmenu.timer(60*7.5)
 
 print("Now expecting user input")
@@ -177,39 +163,6 @@ for _ in range(5):
                     menu.evt_handler(evt='U_B')
                     button_timer.timer_set()
                     #print(f'Execution time of menu event handler: {time()-start_time}')
-                '''try:
-                    # simulate button presses w/ keyboard input
-                    for event in pygame.event.get():
-                        if (event.type == pygame.QUIT):
-                            done = True
-                            break
-                        elif event.type == pygame.KEYDOWN:
-                            print("key is pressed")
-                            if (event.key == pygame.K_w) or (event.key == pygame.K_UP):
-                                menu.evt_handler(evt='U_B')
-                                button_timer.timer_set()
-                            if event.key == pygame.K_s or (event.key == pygame.K_DOWN):
-                                menu.evt_handler(evt='D_B')
-                                button_timer.timer_set()
-                            if event.key == pygame.K_d or (event.key == pygame.K_RIGHT):
-                                menu.evt_handler(evt='R_B')
-                                button_timer.timer_set()
-                            if event.key == pygame.K_a or (event.key == pygame.K_LEFT):
-                                menu.evt_handler(evt='L_B')
-                                button_timer.timer_set()
-                            if event.key == pygame.K_q or (event.key == pygame.K_z):
-                                menu.evt_handler(evt='A_B')
-                                button_timer.timer_set()
-                            if event.key == pygame.K_e or (event.key == pygame.K_x):
-                                menu.evt_handler(evt='B_B')
-                                button_timer.timer_set()
-                            if (event.key == pygame.K_ESCAPE):
-                                done = True
-                                LCD.clear()
-                                print("Esc exits program. Goodbye")
-                                LCD.print("Esc exits program. Goodbye")
-                except Exception as e:
-                    pass  # headless running of pi prevents use of pygame'''
             
             # wait for lack of user input to set menu to idle
             if menu.idle_timer.timer_event():
@@ -223,7 +176,6 @@ for _ in range(5):
             if condition.on_timer.timer_event():
                 shrub.evt_handler(evt='ON TIMER')
             
-            #start_time = time()
             # grab all sensor values to pass to butterworth filter with higher frequency
             temp = condition.sensOutOfRange()
             if condition.wait_timer.event_no_reset():
@@ -231,19 +183,19 @@ for _ in range(5):
                 for event in temp:
                     if event is not None:
                         condition.evt_handler(evt=event)
-            #print(f'Execution time of sensor checks: {time()-start_time}')
 
-            # use sonar to see if the reservoir is dangerously full, stop valves. 
-            # should hopefully prevent repeat events
+            # use sonar to see if the reservoir is dangerously full, stop valves.
             test_overflow = shrub.overflow_det()
+            # check to see if the shrub already detects overflow to prevent repeated events
             if test_overflow and (shrub.overflowCondition != "OVERFLOW"):
                 shrub.evt_handler(evt="OVERFLOW")
                 condition.evt_handler(evt="OVERFLOW")
-            # allow valves to open up again
+            # allow valves to open up again if not overflowing
             elif (shrub.overflowCondition == "OVERFLOW") and (not test_overflow):
                 shrub.evt_handler(evt="NO OVERFLOW")
                 condition.evt_handler(evt="NO OVERFLOW")
-                
+            
+            # if menu is idle then print next sensor data to LCD
             if menu.state == "IDLE" and menu.idle_printer.timer_event():
                 menu.idle_print()
 
@@ -258,16 +210,14 @@ for _ in range(5):
             else:
                 LCD.set_cursor_mode(CursorMode.HIDE)
             
+            # save pump cycle state after some time
             if saveCycleTime.timer_event():
                 menu.saveParamChange(cycle=True)
                     
-        print("Something caused the state machine to break. Exiting program")
-        LCD.print("Something caused the state machine to break. Exiting program and rebooting")
+        print("State machine loop broken. Attempting relaunch")
+        LCD.print("State machine loop broken. Attempting relaunch")
         sleep(4)
-        # TODO insert save all settings, states, and timer values to file before reboot
-        system("sudo reboot")
     except Exception as e:
         LCD.print(f'Fatal error: {e}')
-        sleep(15)
-        # TODO insert save all settings, states, and timer values to file before reboot
-        #system("sudo reboot")
+        sleep(60)
+        LCD.print(f'Reboot system')
