@@ -12,8 +12,6 @@
 from time import sleep, time
 from os import system
 
-system('python3 autoupdate.py')
-
 from gpiozero import Button, PWMLED, LED
 from lib.hcsr04sensor import sensor as hcsr04
 from lib.DS18B20 import TempReader

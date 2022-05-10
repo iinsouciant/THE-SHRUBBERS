@@ -1,6 +1,7 @@
 from git import Git, Repo
 import requests
 from pathlib import Path
+from os import system
 
 # initializing test URL
 url = "https://www.geeksforgeeks.org"
@@ -24,3 +25,6 @@ try:
     
 except (requests.ConnectionError, requests.Timeout) as exception:
     print("Internet is off")
+
+
+system('python3 shrubber_main.py')
