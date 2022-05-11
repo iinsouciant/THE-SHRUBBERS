@@ -254,6 +254,7 @@ class hydro():
         self.topValve.off()
         self.botValve.off()
         self.active(pwr=0)
+        sleep(2)
         if self.pumpVal: self.active()
         if self.topValveVal: self.topValve.on()
         if self.botValveVal: self.botValve.on()
