@@ -49,7 +49,7 @@ class hydro():
 
     # TODO update w/ actual measurement
     hole_depth = 35*2.54  # 35in to cm
-    s_thresh = 14  # cm
+    s_thresh = 8  # cm
 
     str_timer = timer(10)
     str_timer.timer_set()
@@ -60,7 +60,7 @@ class hydro():
     def __init__(self, pump, sonar, valves, UV, filter=200, test=False):
         self.pump = pump
         self.s = sonar
-        self.fs = BF.LowPassFilter(filter)
+        self.fs = BF.LowPassFilter(.5)
         self.topValve = valves[0]
         self.botValve = valves[1]
         self.UV = UV
@@ -229,7 +229,7 @@ class hydro():
                 dist = self.hole_depth
             elif dist < 0:
                 dist = 0
-            self.last_sonar = self.fs.filter(dist)
+            self.last_sonar = dist
             self.sonar_timer.timer_set()
             if self.test:
                 print(f'New sonar value: {self.last_sonar}')
