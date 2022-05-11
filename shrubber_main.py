@@ -46,7 +46,7 @@ pumpN = LED(PINS['pumpN'])
 condP = [pumpA, pumpB, pumpN]  
 UV = LED(PINS['uv_filter'])         
 
-buttons = [Button(v) for k, v in PINS.items() if k[1:3] == '_B']
+buttons = {k: Button(v) for k, v in PINS.items() if k[1:3] == '_B'}
 valves = [LED(PINS['valve1']), LED(PINS['valve2'])]
 
 # testing parameters
@@ -129,36 +129,36 @@ for _ in range(5):
             # prevent repeat events for one press
             if button_timer.event_no_reset():
                 # press A and B to turn on all outputs for a short period
-                if buttons[0].is_pressed and buttons[1].is_pressed:
+                if buttons['A_B'].is_pressed and buttons['B_B'].is_pressed:
                     menu.evt_handler(evt="TEST")
                     button_timer.timer_set()
                 # detect user input
-                elif buttons[0].is_pressed:
+                elif buttons['A_B'].is_pressed:
                     #start_time = time()
                     menu.evt_handler(evt='A_B')
                     button_timer.timer_set()
                     #print(f'Execution time of menu event handler: {time()-start_time}')
-                elif buttons[1].is_pressed:
+                elif buttons['B_B'].is_pressed:
                     #start_time = time()
                     menu.evt_handler(evt='B_B')
                     button_timer.timer_set()
                     #print(f'Execution time of menu event handler: {time()-start_time}')
-                elif buttons[2].is_pressed:
+                elif buttons['L_B'].is_pressed:
                     #start_time = time()
                     menu.evt_handler(evt='L_B')
                     button_timer.timer_set()
                     #print(f'Execution time of menu event handler: {time()-start_time}')
-                elif buttons[3].is_pressed:
+                elif buttons['R_B'].is_pressed:
                     #start_time = time()
                     menu.evt_handler(evt='R_B')
                     button_timer.timer_set()
                     #print(f'Execution time of menu event handler: {time()-start_time}')
-                elif buttons[4].is_pressed:
+                elif buttons['D_B'].is_pressed:
                     #start_time = time()
                     menu.evt_handler(evt='D_B')
                     button_timer.timer_set()
                     #print(f'Execution time of menu event handler: {time()-start_time}')
-                elif buttons[5].is_pressed:
+                elif buttons['U_B'].is_pressed:
                     #start_time = time()
                     menu.evt_handler(evt='U_B')
                     button_timer.timer_set()
