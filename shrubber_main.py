@@ -133,12 +133,12 @@ for _ in range(5):
                     menu.evt_handler(evt="TEST")
                     button_timer.timer_set()
                 # detect user input
-                elif buttons[2].is_pressed:
+                elif buttons[1].is_pressed:
                     #start_time = time()
                     menu.evt_handler(evt='A_B')
                     button_timer.timer_set()
                     #print(f'Execution time of menu event handler: {time()-start_time}')
-                elif buttons[1].is_pressed:
+                elif buttons[2].is_pressed:
                     #start_time = time()
                     menu.evt_handler(evt='B_B')
                     button_timer.timer_set()
