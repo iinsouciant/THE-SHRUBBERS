@@ -54,6 +54,9 @@ class hydro():
     str_timer = timer(10)
     str_timer.timer_set()
 
+    # counter to initialize stuff on startup
+    n = 0
+
     def __init__(self, pump, sonar, valves, UV, filter=200, test=False):
         self.pump = pump
         self.s = sonar
@@ -87,6 +90,18 @@ class hydro():
             self.hydro_state = cycle[0]
             self.hydroTimer = timer(cycle[1])
             self.hydroTimer.timer_set()
+        if self.n == 0:
+            self.n += 1
+            self.pumpVal = self.pVals[self.hydro_state]
+            [self.topValveVal, self.botValveVal] = self.vVals[self.hydro_state]
+            self.hydroTimer = timer(self.actual_times[self.hydro_state])
+            self.hydroTimer.timer_set()
+            
+            if self.pumpVal: self.active()
+            self.topValve.on() if self.topValveVal else self.topValve.off()
+            self.botValve.on() if self.botValveVal else self.botValve.off()
+
+
     
     def __ptimes2actual(self, ptimes):
         '''Convert condensed list from user settings to list for timers to use'''
