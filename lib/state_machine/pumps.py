@@ -49,15 +49,18 @@ class hydro():
 
     # TODO update w/ actual measurement
     hole_depth = 35*2.54  # 35in to cm
-    s_thresh = 14  # cm
+    s_thresh = 8  # cm
 
     str_timer = timer(10)
     str_timer.timer_set()
 
+    # counter to initialize stuff on startup
+    n = 0
+
     def __init__(self, pump, sonar, valves, UV, filter=200, test=False):
         self.pump = pump
         self.s = sonar
-        self.fs = BF.LowPassFilter(filter)
+        self.fs = BF.LowPassFilter(.5)
         self.topValve = valves[0]
         self.botValve = valves[1]
         self.UV = UV
@@ -87,6 +90,18 @@ class hydro():
             self.hydro_state = cycle[0]
             self.hydroTimer = timer(cycle[1])
             self.hydroTimer.timer_set()
+        if self.n == 0:
+            self.n += 1
+            self.pumpVal = self.pVals[self.hydro_state]
+            [self.topValveVal, self.botValveVal] = self.vVals[self.hydro_state]
+            self.hydroTimer = timer(self.actual_times[self.hydro_state])
+            self.hydroTimer.timer_set()
+            
+            if self.pumpVal: self.active()
+            self.topValve.on() if self.topValveVal else self.topValve.off()
+            self.botValve.on() if self.botValveVal else self.botValve.off()
+
+
     
     def __ptimes2actual(self, ptimes):
         '''Convert condensed list from user settings to list for timers to use'''
@@ -171,11 +186,13 @@ class hydro():
     def active(self, pwr=40):
         '''Sets the pump and UV power level'''
         if pwr >= 100:
-            pwr = 100 
+            val = 100 
         elif pwr <= 0:
-            pwr = 0
-        self.pump.value = pwr/100  # TODO set default value to match 1 GPM 
-        self.UV.value = 0 if pwr == 0 else 1
+            val = 0
+        else:
+            val = pwr
+        self.pump.value = val/100  # TODO set default value to match 1 GPM 
+        self.UV.value = 0 if val == 0 else 1
 
     def water_height(self, hole_depth=None) -> float:
         '''Estimate the water level (cm) in the reservoir given the hole depth.
@@ -212,7 +229,7 @@ class hydro():
                 dist = self.hole_depth
             elif dist < 0:
                 dist = 0
-            self.last_sonar = self.fs.filter(dist)
+            self.last_sonar = dist
             self.sonar_timer.timer_set()
             if self.test:
                 print(f'New sonar value: {self.last_sonar}')
