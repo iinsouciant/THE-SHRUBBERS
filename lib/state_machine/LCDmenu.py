@@ -140,7 +140,7 @@ class menu():
                 self.ECH = float(rows[6][1])
                 self.ECL = float(rows[7][1])
                 self.__cycleIndex = int(rows[8][1])
-                self.__cycleTime = int(rows[9][1])
+                self.__cycleTime = float(rows[9][1])
                 print("Settings loaded")
 
         except (IOError, IndexError) as e:
