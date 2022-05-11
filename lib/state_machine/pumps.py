@@ -171,11 +171,13 @@ class hydro():
     def active(self, pwr=40):
         '''Sets the pump and UV power level'''
         if pwr >= 100:
-            pwr = 100 
+            val = 100 
         elif pwr <= 0:
-            pwr = 0
-        self.pump.value = pwr/100  # TODO set default value to match 1 GPM 
-        self.UV.value = 0 if pwr == 0 else 1
+            val = 0
+        else:
+            val = pwr
+        self.pump.value = val/100  # TODO set default value to match 1 GPM 
+        self.UV.value = 0 if val == 0 else 1
 
     def water_height(self, hole_depth=None) -> float:
         '''Estimate the water level (cm) in the reservoir given the hole depth.
