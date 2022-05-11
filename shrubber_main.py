@@ -11,6 +11,7 @@
 
 from time import sleep, time
 from os import system
+from sys import argv
 
 from gpiozero import Button, PWMLED, LED
 from lib.hcsr04sensor import sensor as hcsr04
@@ -50,7 +51,11 @@ buttons = [Button(v) for k, v in PINS.items() if k[1:3] == '_B']
 valves = [LED(PINS['valve1']), LED(PINS['valve2'])]
 
 # testing parameters
-test2 = False  # show sensor value periodically in normal operation
+try:
+    if argv[1] == '--test':
+        test2 = True
+except (IndexError, Exception) as e:
+    test2 = False
 if test2:
     test_timer = LCDmenu.timer(4)
     test_timer.timer_set()
