@@ -133,7 +133,7 @@ for _ in range(5):
                     menu.evt_handler(evt="TEST")
                     button_timer.timer_set()
                 # detect user input
-                elif buttons[0].is_pressed:
+                elif buttons[2].is_pressed:
                     #start_time = time()
                     menu.evt_handler(evt='A_B')
                     button_timer.timer_set()
@@ -143,12 +143,12 @@ for _ in range(5):
                     menu.evt_handler(evt='B_B')
                     button_timer.timer_set()
                     #print(f'Execution time of menu event handler: {time()-start_time}')
-                elif buttons[2].is_pressed:
+                elif buttons[0].is_pressed:
                     #start_time = time()
                     menu.evt_handler(evt='L_B')
                     button_timer.timer_set()
                     #print(f'Execution time of menu event handler: {time()-start_time}')
-                elif buttons[3].is_pressed:
+                elif buttons[5].is_pressed:
                     #start_time = time()
                     menu.evt_handler(evt='R_B')
                     button_timer.timer_set()
@@ -158,7 +158,7 @@ for _ in range(5):
                     menu.evt_handler(evt='D_B')
                     button_timer.timer_set()
                     #print(f'Execution time of menu event handler: {time()-start_time}')
-                elif buttons[5].is_pressed:
+                elif buttons[3].is_pressed:
                     #start_time = time()
                     menu.evt_handler(evt='U_B')
                     button_timer.timer_set()
