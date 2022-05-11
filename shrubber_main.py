@@ -36,7 +36,7 @@ from lib.state_machine import pumps
 # pumpm/uv is green/black solid, valve 1 is yellow/red stranded, valve 2 is blue/red solid
 # pumpN is white, pumpB is green, pumpA is blue
 PINS = {"res_trig": 23, 'res_echo': 24, 'A_B': 'GPIO20',
-'B_B': 'GPIO0', 'L_B': 'GPIO5', 'U_B': 'GPIO21', 'D_B': 'GPIO25', 'R_B': 'GPIO16',
+'B_B': 'GPIO0', 'L_B': 'GPIO21', 'U_B': 'GPIO5', 'D_B': 'GPIO25', 'R_B': 'GPIO16',
 'pumpM': 'GPIO13', 'pumpA': 'GPIO22', 'pumpB': 'GPIO27', 'pumpN': 'GPIO17',
 'valve1': 'GPIO12', 'valve2': 'GPIO1', 'uv_filter': 'GPIO6'}
 
