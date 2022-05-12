@@ -28,7 +28,7 @@ class timer():
             warn(f'Invalid timer input: {e}\nSetting interval to None')
             self.TIMER_INTERVAL = None
 
-    def timer_event(self):
+    def timer_event(self) -> bool:
         '''Checks to see if the time has passed. If it has, turns off timer and returns True. If the timer was not set,
         returns None'''
         if (self.timer_time is not None) and monotonic() >= self.timer_time:
@@ -39,7 +39,7 @@ class timer():
         else:
             return False
 
-    def event_no_reset(self):
+    def event_no_reset(self) -> bool:
         '''Checks to see if the time has passed. If it has, returns True. Must be manually stopped/reset'''
         if (self.timer_time is not None) and monotonic() >= self.timer_time:
             # self.timer_time = None
@@ -62,7 +62,7 @@ class timer():
             else:
                 pass
 
-    def time_remaining(self):
+    def time_remaining(self) -> float:
         '''Checks to see if the time has passed. If it not, returns float of difference. No reset if time has passed'''
         if (self.timer_time is not None):
             if monotonic() >= self.timer_time:
@@ -100,7 +100,7 @@ class menu():
     m2_hover = 0
     ft = 19*60  # flood timer
     et = 6*60  # empty timer
-    ap = 120  # active pump timer to flood channels
+    ap = 60*15  # active pump timer to flood channels
     # Sensor threshold values
     pHH = 9  # high pH threshhold
     pHL = 4  # low pH threshhold
@@ -257,7 +257,8 @@ class menu():
         self.LCD.print("Menu is now idle.")
     
     def idle_print(self):
-        # save old strings printed for scrolling effect
+        '''Print the next set of sensor values on the LCD screen
+        when called by program. Lists up to 3 of the previously measured values'''
         try:
             c = self._b
         except Exception as e:
@@ -308,7 +309,7 @@ class menu():
         return f"{h:02d}:{m:02d}:{s:02d}"
 
     def A_at_m1(self):
-        '''handle the menu change when the user selects an operation'''
+        '''handle the menu change when the user selects an operation at first level'''
         self.parent = self.m1_hover
         self.LCD.clear()
         # for  flood timer, drain active pump timer, 
@@ -386,6 +387,7 @@ class menu():
             self.shrub.evt_handler(evt="TEST")
             
     def evt_handler(self, evt=None, timer=False):
+        '''Handles event passed to the menu'''
         if self.test:
             print(f"child: {self.child}\nparent: {self.parent}")
             try:

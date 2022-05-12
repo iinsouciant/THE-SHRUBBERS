@@ -54,7 +54,7 @@ class hydro():
     str_timer = timer(10)
     str_timer.timer_set()
 
-    # counter to initialize stuff on startup
+    # counter to trigger outputs during startup process
     n = 0
 
     def __init__(self, pump, sonar, valves, UV, filter=200, test=False):
@@ -81,6 +81,7 @@ class hydro():
             self.pumpVal, self.botValveVal, self.topValveVal, self.water_height(), self.vPause
         )
 
+    # called once w/ startup of LCDmenu reading Settings.csv
     def update_settings(self, ptimes, max_level, cycle=None):
         self.__ptimes2actual(ptimes)
         self.hydroTimer.new_interval_timer(self.actual_times[self.hydro_state])
@@ -100,8 +101,6 @@ class hydro():
             if self.pumpVal: self.active()
             self.topValve.on() if self.topValveVal else self.topValve.off()
             self.botValve.on() if self.botValveVal else self.botValve.off()
-
-
     
     def __ptimes2actual(self, ptimes):
         '''Convert condensed list from user settings to list for timers to use'''
@@ -183,7 +182,7 @@ class hydro():
         self.userToggle = False
         if self.test: print("Top valve: off\nBottom valve: off") 
 
-    def active(self, pwr=40):
+    def active(self, pwr=45):
         '''Sets the pump and UV power level'''
         if pwr >= 100:
             val = 100 
