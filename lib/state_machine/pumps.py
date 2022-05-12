@@ -11,12 +11,12 @@
 #                     only checks for values out of range or potentially harmful conditions before 
 #                     operation. Next steps: save state to file periodically in case of brief shutoff
 
-# Butterworth lowpass filter
+
 from lib.butterworth import b_filter as BF
 from lib.DFR import DFRobot_EC as EC
 from lib.DFR import DFRobot_PH as PH   
 from lib.state_machine.LCDmenu import timer
-from time import sleep, monotonic
+from time import sleep
 import warnings
 
 class hydro():
@@ -42,7 +42,7 @@ class hydro():
     [topValveVal, botValveVal] = vVals[hydro_state]
     hydroTimer = timer(actual_times[hydro_state])
 
-    # limits how often the sonar sensor is grabbed to reduce use of sleep
+    # limits how often the sonar sensor is grabbed to reduce loop time
     sonar_timer = timer(2)
     sonar_timer.timer_set()
     last_sonar = 0
@@ -91,6 +91,7 @@ class hydro():
             self.hydro_state = cycle[0]
             self.hydroTimer = timer(cycle[1])
             self.hydroTimer.timer_set()
+        # enable outputs on startup once new operating values are passed in from LCDmenu
         if self.n == 0:
             self.n += 1
             self.pumpVal = self.pVals[self.hydro_state]
@@ -261,23 +262,30 @@ class hydro():
 
 class conditioner():
     '''Class to handle the state machine behavior of the nutrient solution conditioning pumps'''
+    # default threshold values
     pH_High = 9
     ph_Low = 4
     EC_High = 2
     EC_Low = 0
+    # how long to run the conditioning pumps for
     on_timer = timer(3)
+    # wait for the reservoir to mix before checking if values are out of range
     wait_timer = timer(15)
     wait_timer.timer_set()
     userToggle = False
     overflowCondition = "NO OVERFLOW"
     pPause = False
+    # how often to check temp to increase loop time
     therm_timer = timer(5)
     therm_timer.timer_set()
     last_therm_val = 0
+    # how often to print EC values for readability during testing
     EC_print = timer(5)
     EC_print.timer_set()
+    # how often to print pH values for readability during testing
     ph_print = timer(5)
     ph_print.timer_set()
+    # how often to print event values for readability during testing
     evt_print = timer(1.5)
     evt_print.timer_set()
 
@@ -286,17 +294,21 @@ class conditioner():
         self.pumpA = conditioning_pumps[0]
         self.pumpB = conditioning_pumps[1]
         self.pumpN = conditioning_pumps[2]
+        # instance of channel pump state machine for interactions between the two state machines
         self.hydro = shrub
         self.temp = temp
+        # analog voltage readings
         self.pHsens = pHsens
         self.ECsens = ECsens
+        # sensor classes that output voltage to measurement values
         self.pH = PH.DFRobot_PH()
         self.EC = EC.DFRobot_EC()
+        
         self.fpH = BF.LowPassFilter(filters[0])
         self.fEC = BF.LowPassFilter(filters[1])
         self.fTemp_C = BF.LowPassFilter(filters[2])
         self.fTemp_F = BF.LowPassFilter(filters[2])
-        self.filters = [self.fpH, self.fEC, self.fTemp_C]
+
         self.test = test
 
     def __repr__(self):

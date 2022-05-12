@@ -17,7 +17,7 @@ Ways to run the program:
 
 from time import sleep, time
 from os import system
-from sys import argv
+from sys import argv  # TODO use better library for handling arguments
 
 from gpiozero import Button, PWMLED, LED
 from lib.hcsr04sensor import sensor as hcsr04
@@ -192,11 +192,11 @@ for _ in range(5):
             if menu.idle_timer.timer_event():
                 menu.evt_handler(timer=True)
 
-            # check for pump flood drain cycle timing
+            # check for pump flood-drain cycle progess
             if shrub.hydroTimer.timer_event():
                 shrub.evt_handler(evt='TIME')
 
-            # check for pump flood drain cycle timing
+            # turn the conditioners on or off
             if condition.on_timer.timer_event():
                 shrub.evt_handler(evt='ON TIMER')
             
