@@ -19,12 +19,18 @@ from lib.state_machine.LCDmenu import timer
 from time import sleep
 import warnings
 
+class EventError(Exception):
+    '''Invalid event received by event handler'''
+    pass
+
 class hydro():
     '''Part of the Shrubber state machine that handles
     events passed to it, and defines and run the states as needed.'''
     # channel flooded, drained, and  pump active times
     ptimes = [60*60*3, 60*60*3.5, 60*20]
+    # how long to leave each valve open to drain channels
     valveDrainTime = 60*20
+
     actual_times = [ptimes[2], 0, 0, 0, 0]
     # sequences to cycle through for valve opening
     pVals = (   1,      0,      0,      0,      0) * 2
@@ -35,6 +41,7 @@ class hydro():
     vPause = False
     overflowCondition = "NO OVERFLOW"
     userToggle = False
+    valveToggle = False
 
     # tracking current state of outputs
     hydro_state = 0
@@ -135,27 +142,36 @@ class hydro():
             elif (evt == "NO OVERFLOW") and (self.overflowCondition == "OVERFLOW"):
                 self.overflowCondition = evt
                 # prevent overflow condition from overriding the user toggling our outputs
-                if self.userToggle is False:
-                    valvePause = False
-                    pumpPause = False
+                pumpPause = self.userToggle
+                valvePause = self.userToggle
 
             # user toggle overrides overflow until next loop where overflow event is passed. change this?
             elif evt == "USER TOGGLE":
                 self.userToggle = not self.userToggle
-                if self.userToggle:
-                    pumpPause = True
-                    valvePause = True
-                elif not self.userToggle:
-                    pumpPause = False
-                    valvePause = False
+                pumpPause = self.userToggle
+                valvePause = self.userToggle
 
             # to stop the valves and pumps in case of emergency. 
             # stored in values to retain behavior across multiple events
-            self.pPause = True if pumpPause else False
-            self.vPause = True if valvePause else False
+            self.pPause = pumpPause
+            self.vPause = valvePause
+
+            if self.pPause:
+                self.active(pwr=0)
+            # if to prevent sudden switch on off
+            if evt != 'VALVE TOGGLE':
+                if self.vPause:
+                    self.topValve.off()
+                    self.botValve.off()
+
+            # user override the pause conditions
+            if evt == 'VALVE TOGGLE':
+                self.valveToggle = not self.valveToggle
+                self.topValve.on() if self.valveToggle else self.topValve.off()
+                self.botValve.on() if self.valveToggle else self.botValve.off()
             
             # go to next pump and valve state
-            if evt == "TIME":
+            elif evt == "TIME":
                 self.hydro_state += 1
                 self.hydro_state %= 10
                 self.pumpVal = self.pVals[self.hydro_state]
@@ -383,6 +399,7 @@ class conditioner():
             if self.pPause:
                 for pump in self.pumps:
                     self.pump_active(pump, pwr=0)
+
             # wait for reservoir to mix a little before turning on pumps again
             elif (self.wait_timer.event_no_reset()) and (self.pPause is False):
                 if (evt == "LOW EC"):
@@ -398,9 +415,11 @@ class conditioner():
                     self.on_timer.timer_set()
                     self.wait_timer.timer_set()
 
+            else:
+                raise EventError('Invalid event: '+evt)
         else:
-            # sanity check during operation
-            print('Invalid event: '+evt)
+            raise EventError("None is not a valid event")
+
         if self.test and self.evt_print.timer_event():
             print(f'new pump vals: \nnutrient: {self.pumpN.is_active} \
 acid: {self.pumpA.is_active} base: {self.pumpB.is_active}')

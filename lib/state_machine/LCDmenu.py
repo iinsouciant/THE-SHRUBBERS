@@ -92,14 +92,15 @@ class menu():
     start = "IDLE"
     ops = ("Flood timer", "Channel Pump timer", "Empty timer",
         "Max water level", "pH thresholds", "EC thresholds", 
-        "Calibrate pH", "Calibrate EC", "Shut off pump+UV+valve", 
-        "Shut off nutrient conditioners", "Test outputs")
+        "Calibrate pH", "Calibrate EC", "Force off pump+UV+valve", 
+        "Force off nutrient conditioners", "Test outputs",
+        "Open/close valves")
     parent = start
     child = ops
     m1_hover = 0
     m2_hover = 0
-    ft = 19*60  # flood timer
-    et = 6*60  # empty timer
+    ft = 10*60  # flood timer
+    et = 60*60*1.5  # empty timer
     ap = 60*15  # active pump timer to flood channels
     # Sensor threshold values
     pHH = 9  # high pH threshhold
@@ -309,7 +310,8 @@ class menu():
         return f"{h:02d}:{m:02d}:{s:02d}"
 
     def A_at_m1(self):
-        '''handle the menu change when the user selects an operation at first level'''
+        '''handle the menu change when the user selects an operation at first level. 
+        To add more simple operations, add an elif at the end of the method'''
         self.parent = self.m1_hover
         self.LCD.clear()
         # for  flood timer, drain active pump timer, 
@@ -369,23 +371,34 @@ class menu():
             elif self.shrub.userToggle is False:
                 self.LCD.print("Pump/UV/valve on")
             self.child = "WAIT"
+            return None  # prevent rest from being run
 
         # TODO test toggle works
         # user toggles conditioning pumps
         elif self.m1_hover == 9:
             self.conditioner.evt_handler(evt="USER TOGGLE")
             if self.conditioner.userToggle:
-                self.LCD.print("Pump/UV/valve off")
+                self.LCD.print("Pump/UV/valve is off")
             elif self.conditioner.userToggle is False:
-                self.LCD.print("Pump/UV/valve on")
+                self.LCD.print("Pump/UV/valve is on")
             self.child = "WAIT"
+            return None  # prevent rest from being run
 
         elif self.m1_hover == 10:
             self.LCD.print("Turning on all outputs for a few seconds")
             self.child = "WAIT"
             self.conditioner.evt_handler(evt="TEST")
             self.shrub.evt_handler(evt="TEST")
-            
+            return None  # prevent rest from being run
+
+        elif self.m1_hover == 11:
+            self.LCD.print("Toggled valves")
+            self.child = "WAIT"
+            self.shrub.evt_handler(evt="VALVE TOGGLE")
+            self.LCD.print("Valves are open") if self.shrub.valveToggle else self.LCD.print("Valves are closed")
+               
+            return None  # prevent rest from being run
+
     def evt_handler(self, evt=None, timer=False):
         '''Handles event passed to the menu'''
         if self.test:
@@ -394,6 +407,12 @@ class menu():
                 print('event:', evt)
             except Exception as e:
                 print('event: None', e)
+
+        # whenever there has been no user input for a while, go back to idle
+        if timer: 
+            self.idle()
+            return None  # prevent rest of evt handler being run
+
         # should restart timer for setting the menu state to idle
         if evt is not None:
             self.idle_timer.timer_set()
@@ -403,15 +422,13 @@ class menu():
                 self.conditioner.evt_handler(evt='TEST')
                 self.LCD.print("All outputs enabled for 6 seconds")
                 self.child = 'WAIT'
-
-        # whenever there has been no user input for a while, go back to idle
-        if timer: self.idle()
-        
+                return None  # prevent rest of evt handler being run
+ 
         # the idle level of the menu
         if (self.child == self.ops) and (self.parent == self.start):
             # wait for user input to start menu
             if (evt == "U_B") or (evt == "D_B") or (evt == "L_B") or (evt == "R_B") \
-                    or (evt == "A_B") or (evt == "B_B"): self.startMenu()
+                or (evt == "A_B") or (evt == "B_B"): self.startMenu()
         
         # showing message to be cleared and send user to start after user input
         elif self.child == 'WAIT':
@@ -461,6 +478,7 @@ class menu():
                     self.LCD.print(self.ops[0])'''
                 self.child = self.ops[self.m1_hover]
         
+        # if not in first level of menus
         elif self.child not in self.ops:
             # need to make sure once it goes to first submenu, it doesn't raise error
             if type(self.parent) is int:

@@ -12,7 +12,6 @@ Ways to run the program:
     python3 autoupdate.py
     python3 shrubber_main.py
     python3 shrubber_main.py --test
-    python3 shrubber_main.py --valves <time>
 '''
 
 from time import sleep, time
@@ -76,19 +75,6 @@ try:
 except (OSError, ValueError, AttributeError) as e:
     print("LCD at 0x27 not detected.")
     LCD = LCDmenu.LCDdummy()
-
-# drain channels for maintenance 
-# TODO make this a menu operation
-try:
-    if argv[1] == '--valves':
-        valves[0].on()
-        valves[1].on()
-        LCD.print(f'Valves open for {argv[2]} seconds')
-        sleep(int(argv[2]))
-        valves[0].off()
-        valves[1].off()
-except (IndexError, Exception) as e:
-    pass
 
 # connect to ADC through I2C bus
 try:
