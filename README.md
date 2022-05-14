@@ -2,7 +2,7 @@
 
 ## Project Objectives
 
-Design and fabricate a self sustaining hydroponic growing system for an urban environment. The system has been adapted for outdoor use.
+Design and fabricate a self sustaining ebb and flow hydroponic growing system for an urban environment. The system has been adapted for outdoor use.
 
 ## Project Specifications
 
