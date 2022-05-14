@@ -25,7 +25,7 @@ Raspberry Pi 4B (2 GB RAM).
 - [Gravity Analog pH sensor](https://atlas-scientific.com/kits/gravity-analog-ph-kit/ "pH kit")
 - [DS18B20 Temperature sensor](https://www.adafruit.com/product/381)
 
-All but the sonar sensor use analog signals, therefore we need to get an ADC for the RPi.
+All but the sonar and temperature sensor use analog signals, therefore we use an ADC for the RPi.
 
 - [ADS1015](https://www.adafruit.com/product/1083 "12-Bit ADC")
 
