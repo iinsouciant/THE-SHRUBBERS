@@ -381,6 +381,7 @@ class conditioner():
             elif evt == "ON TIMER":
                 for pump in self.pumps:
                     self.pump_active(pump, pwr=0)
+                self.wait_timer.timer_set()
 
             # start pump at will for testing or maintenance
             elif evt == "TEST":
