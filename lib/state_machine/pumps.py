@@ -419,7 +419,8 @@ class conditioner():
             else:
                 raise EventError('Invalid event: '+evt)
         else:
-            raise EventError("None is not a valid event")
+            # if no sensor out of range it will pass in a none event
+            pass
 
         if self.test and self.evt_print.timer_event():
             print(f'new pump vals: \nnutrient: {self.pumpN.is_active} \
