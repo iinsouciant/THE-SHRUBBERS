@@ -183,6 +183,11 @@ class hydro():
                 if (not self.vPause) and (self.overflowCondition != "OVERFLOW"):
                     self.topValve.on() if self.topValveVal else self.topValve.off()
                     self.botValve.on() if self.botValveVal else self.botValve.off()
+            
+            # re-enable outputs if they were meant to be on after overflow is cleared
+            elif evt == 'NO OVERFLOW':
+                self.topValve.on() if self.topValveVal else self.topValve.off()
+                self.botValve.on() if self.botValveVal else self.botValve.off()
         
         if self.test:
             print(f'new user shut off: {self.userToggle}')
@@ -407,15 +412,15 @@ class conditioner():
                 if (evt == "LOW EC"):
                     self.pump_active(self.pumpN)
                     self.on_timer.timer_set()
-                    self.wait_timer.timer_set()
+                    self.wait_timer.timer_event()
                 elif (evt == "LOW PH"):
                     self.pump_active(self.pumpA)
                     self.on_timer.timer_set()
-                    self.wait_timer.timer_set()
+                    self.wait_timer.timer_event()
                 elif (evt == "HIGH PH"):
                     self.pump_active(self.pumpB)
                     self.on_timer.timer_set()
-                    self.wait_timer.timer_set()
+                    self.wait_timer.timer_event()
 
             else:
                 raise EventError('Invalid event: '+evt)
