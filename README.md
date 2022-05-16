@@ -2,28 +2,32 @@
 
 ## Project Objectives
 
-Design and fabricate a self sustaining hydroponic growing system for an urban environment. The system will be designed for rooftop, balcony, or greenhouse use.
+Design and fabricate a self sustaining ebb and flow hydroponic growing system for an urban environment. The system has been adapted for outdoor use.
 
-## Project Scope (Outdated)
+## Project Specifications
 
-This system will will utilize pumps for water flow and aeration and use a pH, conductivity, and sonar sensor to monitor the system. It will fit in a 4x4x6ft space. It will operate at 0 ०C to 40 ०C and handle a corrosive or windy environment.
+| Dimensions (ft) | Weight Capacity (lbs)  | Plant Capacity | Reservoir Capacity (gal.) | Operating Conditions |
+|-----------------|------------------------|----------------|---------------------------|----------------------|
+| 8x4x7           | 300                    | 64             | 60                        | Outdoor Urban        |
 
 ## I/O
 
 ### MCU
 
-Raspberry Pi 4B (2(?) GB RAM) utilizes the main file to monitor sensor data and interface with the user.
-![imagename](./git-instructions/images/block%20diagram.png)
+Raspberry Pi 4B (2 GB RAM).
+![image](https://user-images.githubusercontent.com/17360719/168444041-78178518-1072-4ef7-aa5b-608aa64ac3ce.png "Circuit Diagram")
+
 
 ### Sensors
 
 - [HC-SR04 Sonar sensor](https://www.adafruit.com/product/3942 "Sonar sensor")
 - [DFR0300 Gravity EC sensor](https://www.dfrobot.com/product-1123.html "Analog Conductivity Sensor")
 - [Gravity Analog pH sensor](https://atlas-scientific.com/kits/gravity-analog-ph-kit/ "pH kit")
+- [DS18B20 Temperature sensor](https://www.adafruit.com/product/381)
 
-All but the sonar sensor use analog signals, therefore we need to get an ADC for the RPi.
+All but the sonar and temperature sensor use analog signals, therefore we use an ADC for the RPi.
 
-- [MCP3008](https://www.adafruit.com/product/856 "10-Bit ADC")
+- [ADS1015](https://www.adafruit.com/product/1083 "12-Bit ADC")
 
 ## User Input
 
@@ -31,9 +35,9 @@ All but the sonar sensor use analog signals, therefore we need to get an ADC for
 
 ## Outputs
 
-- 1 submerged pump (AC) to move water to the channels holding plants and through the filtration system.
-- 3 peristaltic pumps (DC) to condition solution
-- LCD display for UI
+- 1 [by-pass pump](https://www.pentair.com/en-us/products/residential/water-supply-disposal/recreational-vehicle/shurflo-revolution-4008-series-by-pass-pump.html) (12 VDC) to move water to the channels holding plants and through the filtration system.
+- 3 [peristaltic](https://www.adafruit.com/product/1150) pumps (12 VDC) to condition solution
+- [LCD display](https://www.amazon.com/SunFounder-Backlight-Raspberry-Characters-Background/dp/B01GPUMP9C/) for UI
 
 ## Libraries
 
@@ -43,7 +47,7 @@ All but the sonar sensor use analog signals, therefore we need to get an ADC for
 - [ADS 1X15](https://github.com/adafruit/Adafruit_CircuitPython_ADS1x15 "ADC Library page")
 - [CircuitPython LCD](https://github.com/dhalbert/CircuitPython_LCD)
 
-In console, navigate to the download location of the repository and run the package installer shell script for libraries not included in the repository itself. Note: the ones included in the repository are either created by us or modified versions of other libraries. Additionally, the `pkg_script.sh` file assumes you do not have CircuitPython installed on your Raspberry Pi prior to this and will attempt to install is after the other packages.
+In console, navigate to the download location of the repository and run the package installer shell script for libraries not included in the repository itself. Note: the ones included in the repository are either created by us or modified versions of other libraries. Additionally, the `pkg.sh` file assumes you do not have CircuitPython installed on your Raspberry Pi prior to this and will attempt to install is after the other packages.
 ```
 sudo sh pkg_script.sh
 ```
