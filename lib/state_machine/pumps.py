@@ -171,6 +171,7 @@ class hydro():
                 self.botValve.on() if self.valveToggle else self.botValve.off()
             
             # go to next pump and valve state
+            # TODO have time event pass event to menu to save cycle number and time
             elif evt == "TIME":
                 self.hydro_state += 1
                 self.hydro_state %= 10
