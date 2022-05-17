@@ -29,8 +29,10 @@ for _ in range(3):
     except (requests.ConnectionError, requests.Timeout) as exception:
         print("Internet is off")
 
+shrub = True
 try:
-    if argv[1] == '--no-shrub':
-        pass
+    for myArg in argv:
+        if myArg == '--no-shrub':
+            shrub = False
 except (IndexError, Exception) as e:
     system(f'python3 {file}')

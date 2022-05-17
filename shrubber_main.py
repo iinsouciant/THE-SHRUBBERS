@@ -56,9 +56,11 @@ buttons = {k: Button(v) for k, v in PINS.items() if k[1:3] == '_B'}
 valves = [LED(PINS['valve1']), LED(PINS['valve2'])]
 
 # testing parameters
+test2 = False
 try:
-    if argv[1] == '--test':
-        test2 = True
+    for myArg in argv:
+        if myArg == '--test':
+            test2 = True
 except (IndexError, Exception) as e:
     test2 = False
 if test2:
@@ -69,6 +71,7 @@ if test2:
         print("I2C addresses found:",
             [hex(device_address) for device_address in i2c.scan()])   
 print_time = 7
+
 # initialize i2c bus to use with  LCD   
 try:
     LCD = LCD(I2CPCF8574Interface(I2C(), 0x27), num_rows=4, num_cols=20)
