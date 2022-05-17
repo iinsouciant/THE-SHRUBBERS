@@ -36,3 +36,5 @@ try:
             shrub = False
 except (IndexError, Exception) as e:
     system(f'python3 {file}')
+if shrub:
+    system(f'python3 {file}')
