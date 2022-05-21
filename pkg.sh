@@ -1,7 +1,7 @@
 #!/bin/sh
 
 APT_PKGS="python3-gpiozero libatlas-bas-dev"
-PIP3_PKGS="adafruit-circuitpython-ads1x15 scipy GitPython libcblas-dev"
+PIP3_PKGS="adafruit-circuitpython-ads1x15 scipy GitPython libcblas-dev pygame argparse"
 
 apt-get update
 apt-get upgrade -y
