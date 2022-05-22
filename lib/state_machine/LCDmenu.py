@@ -419,7 +419,6 @@ class menu():
             self.state = 'ACTIVE'
             if evt == 'TEST':
                 self.shrub.evt_handler(evt='TEST')
-                self.conditioner.evt_handler(evt='TEST')
                 self.LCD.print("All outputs enabled for 6 seconds")
                 self.child = 'WAIT'
                 return None  # prevent rest of evt handler being run

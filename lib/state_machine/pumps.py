@@ -33,7 +33,7 @@ class hydro():
     # channel flooded, drained, and  pump active times
     ptimes = [60*60*3, 60*60*3.5, 60*20]
     # how long to leave each valve open to drain channels
-    valveDrainTime = 60*20
+    valveDrainTime = 60*15
 
     actual_times = [ptimes[2], 0, 0, 0, 0]
     # sequences to cycle through for valve opening
@@ -119,7 +119,7 @@ class hydro():
         # TODO implement logic to handle 0 timer length and/or limit min
         self.ptimes = ptimes
         actual_times = []
-        self.valveDrainTime = min(ptimes[2] / 2, 60*10)  # not sure how we want the behavior or the valves to be
+        self.valveDrainTime = min(ptimes[2] / 2, 60*15)  # not sure how we want the behavior or the valves to be
         actual_times[0] = ptimes[2]  # pump fill channel
         actual_times[1] = ptimes[0]  # pump stop and leaved channel flooded
         actual_times[2] = self.valveDrainTime  # first valve open
@@ -147,27 +147,23 @@ class hydro():
                 self.testOutputs(time=6)
 
             elif evt == "OVERFLOW":
-                valvePause = True
+                self.vPause = True
                 self.overflowCondition = evt
                 if self.test:
                     print("Top valve: off")
                     print("Bottom valve: off")
+                    
             elif (evt == "NO OVERFLOW") and (self.overflowCondition == "OVERFLOW"):
                 self.overflowCondition = evt
                 # prevent overflow condition from overriding the user toggling our outputs
-                pumpPause = self.userToggle
-                valvePause = self.userToggle
+                self.vPause = True if self.userToggle else False
+                self.pPause = True if self.userToggle else False
 
             # user toggle overrides overflow until next loop where overflow event is passed. change this?
             elif evt == "USER TOGGLE":
                 self.userToggle = not self.userToggle
-                pumpPause = self.userToggle
-                valvePause = self.userToggle
-
-            # to stop the valves and pumps in case of emergency. 
-            # stored in values to retain behavior across multiple events
-            self.pPause = pumpPause
-            self.vPause = valvePause
+                self.pPause = self.userToggle
+                self.vPause = self.userToggle
 
             if self.pPause:
                 self.active(pwr=0)
@@ -191,15 +187,16 @@ class hydro():
                 [self.topValveVal, self.botValveVal] = self.vVals[self.hydro_state]
                 self.hydroTimer.timer_set(new=self.actual_times[self.hydro_state])
 
-                self.active if (self.pumpVal and (not self.pPause)) else self.active(pwr=0)
+                self.active() if (self.pumpVal and (not self.pPause)) else self.active(pwr=0)
                 if (not self.vPause) and (self.overflowCondition != "OVERFLOW"):
                     self.topValve.on() if self.topValveVal else self.topValve.off()
                     self.botValve.on() if self.botValveVal else self.botValve.off()
             
             # re-enable outputs if they were meant to be on after overflow is cleared
             elif evt == 'NO OVERFLOW':
-                self.topValve.on() if self.topValveVal else self.topValve.off()
-                self.botValve.on() if self.botValveVal else self.botValve.off()
+                if self.vPause is False:
+                    self.topValve.on() if self.topValveVal else self.topValve.off()
+                    self.botValve.on() if self.botValveVal else self.botValve.off()
         
         if self.test:
             print(f'new user shut off: {self.userToggle}')
@@ -284,7 +281,7 @@ class hydro():
         self.topValve.on()
         self.botValve.on()
         self.active(mag)
-        sleep(time)
+        self.conditioner.evt_handler(evt='TEST')
         self.topValve.off()
         self.botValve.off()
         self.active(pwr=0)
@@ -389,10 +386,7 @@ class conditioner():
             # user toggle overrides overflow until next loop where overflow event is passed. change this?
             elif evt == "USER TOGGLE":
                 self.userToggle = not self.userToggle
-                if self.userToggle:
-                    pumpPause = True
-                elif not self.userToggle:
-                    pumpPause = False
+                pumpPause = True if self.userToggle else False
 
             # when pump is done pumping, turn all off
             elif evt == "ON TIMER":
@@ -408,6 +402,9 @@ class conditioner():
                 for pump in self.pumps:
                     self.pump_active(pump, pwr=0)
 
+            elif (evt != "LOW EC") and (evt != "LOW PH") and (evt != "LOW EC"):
+                raise EventError('Invalid event: '+evt)
+
             # to stop the valves and pumps in case of emergency. 
             # stored in values to retain behavior across multiple events
             self.pPause = pumpPause if pumpPause is not None else self.pPause
@@ -417,7 +414,7 @@ class conditioner():
                     self.pump_active(pump, pwr=0)
 
             # wait for reservoir to mix a little before turning on pumps again
-            elif (self.wait_timer.event_no_reset()) and (self.pPause is False):
+            else:
                 if (evt == "LOW EC"):
                     self.pump_active(self.pumpN)
                     self.on_timer.timer_set()
@@ -431,8 +428,6 @@ class conditioner():
                     self.on_timer.timer_set()
                     self.wait_timer.timer_event()
 
-            else:
-                raise EventError('Invalid event: '+evt)
         else:
             # if no sensor out of range it will pass in a none event
             pass
