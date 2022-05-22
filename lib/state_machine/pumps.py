@@ -217,7 +217,7 @@ class hydro():
         self.userToggle = False
         if self.test: print("Top valve: off\nBottom valve: off") 
 
-    def active(self, pwr=45):
+    def active(self, pwr=80):
         '''Sets the pump and UV power level'''
         if pwr >= 100:
             val = 100 

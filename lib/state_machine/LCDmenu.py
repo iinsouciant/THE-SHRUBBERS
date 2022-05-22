@@ -378,9 +378,9 @@ class menu():
         elif self.m1_hover == 9:
             self.conditioner.evt_handler(evt="USER TOGGLE")
             if self.conditioner.userToggle:
-                self.LCD.print("Pump/UV/valve is off")
+                self.LCD.print("Nutrient conditioners are off")
             elif self.conditioner.userToggle is False:
-                self.LCD.print("Pump/UV/valve is on")
+                self.LCD.print("Nutrient conditioners are on")
             self.child = "WAIT"
             return None  # prevent rest from being run
 
@@ -395,7 +395,7 @@ class menu():
             self.LCD.print("Toggled valves")
             self.child = "WAIT"
             self.shrub.evt_handler(evt="VALVE TOGGLE")
-            self.LCD.print("Valves are open") if self.shrub.valveToggle else self.LCD.print("Valves are closed")
+            self.LCD.print(" Valves are open") if self.shrub.valveToggle else self.LCD.print(" Valves are closed")
                
             return None  # prevent rest from being run
 

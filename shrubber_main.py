@@ -16,7 +16,7 @@ Ways to run the program:
 
 from time import sleep, time
 from os import system
-from sys import argv  # TODO use better library for handling arguments
+import argparse
 
 from gpiozero import Button, PWMLED, LED
 from lib.hcsr04sensor import sensor as hcsr04
@@ -36,6 +36,32 @@ from adafruit_ads1x15.analog_in import AnalogIn
 import lib.state_machine.LCDmenu as LCDmenu
 from lib.state_machine import pumps
 
+# testing parameters
+parser = argparse.ArgumentParser(description='Modify startup conditions of the program')
+parser.add_argument('--test', required=False,default=False, type=bool, help='Print sensors and events')
+parser.add_argument('--pygame', required=False,default=False, type=bool, help='Simulate LCD menu presses with mouse and keyboard')
+parser.add_argument('--done', required=False,default=False, type=bool, help='do not run loop')
+args = parser.parse_args()
+
+if args.pygame:
+    # for testing w/o buttons. simulates button input through keyboard
+    try:
+        import pygame
+        pygame.init()
+        screen = pygame.display.set_mode((100, 100))
+        no = 'yes'
+    except pygame.error as e:
+        print("Pygame has not been loaded as it does not work w/o a monitor.")
+
+if args.test:
+    test_timer = LCDmenu.timer(4)
+    test_timer.timer_set()
+    i2c = IIC(SCL, SDA)
+    with i2c:
+        print("I2C addresses found:",
+            [hex(device_address) for device_address in i2c.scan()])   
+print_time = 7
+
 # Button wire colors: 
 # Blue is a or down, yellow is b, white is up or left, green is right
 # pumpm/uv is green/black solid, valve 1 is yellow/red stranded, valve 2 is blue/red solid
@@ -54,23 +80,6 @@ UV = LED(PINS['uv_filter'])
 
 buttons = {k: Button(v) for k, v in PINS.items() if k[1:3] == '_B'}
 valves = [LED(PINS['valve1']), LED(PINS['valve2'])]
-
-# testing parameters
-test2 = False
-try:
-    for myArg in argv:
-        if myArg == '--test':
-            test2 = True
-except (IndexError, Exception) as e:
-    test2 = False
-if test2:
-    test_timer = LCDmenu.timer(4)
-    test_timer.timer_set()
-    i2c = IIC(SCL, SDA)
-    with i2c:
-        print("I2C addresses found:",
-            [hex(device_address) for device_address in i2c.scan()])   
-print_time = 7
 
 # initialize i2c bus to use with  LCD   
 try:
@@ -108,11 +117,11 @@ except IndexError as e:
 
 
 # creating instance of state machines
-shrub = pumps.hydro(pumpM, sonar, valves, UV, test=test2)
-condition = pumps.conditioner(condP, shrub, pHsens, ECsens, tempSens, test=test2)
+shrub = pumps.hydro(pumpM, sonar, valves, UV, test=args.test)
+condition = pumps.conditioner(condP, shrub, pHsens, ECsens, tempSens, test=args.test)
 # pass in instance of conditioner to have them communicate
 shrub.conditioner = condition
-menu = LCDmenu.menu(LCD, shrub, condition, test=test2)
+menu = LCDmenu.menu(LCD, shrub, condition, test=args.test)
 
 # timer to wait between accepting button presses to prevent repeats
 button_timer = LCDmenu.timer(.175)
@@ -124,14 +133,14 @@ menu.idle()
 button_timer.timer_set()
 saveCycleTime.timer_set()
 
-done = False
+done = args.done
 
 for _ in range(5):
     # TODO when finished, reduce loop time for easier user input
     try:
         while (not done):
             
-            if test2:
+            if args.test:
                 a = str(condition)
                 b = str(shrub)
                 if test_timer.timer_event():
@@ -176,7 +185,40 @@ for _ in range(5):
                     menu.evt_handler(evt='U_B')
                     button_timer.timer_set()
                     #print(f'Execution time of menu event handler: {time()-start_time}')
-            
+                try:
+                    # simulate button presses w/ keyboard input
+                    for event in pygame.event.get():
+                        if (event.type == pygame.QUIT):
+                            done = True
+                            break
+                        elif event.type == pygame.KEYDOWN:
+                            print("key is pressed")
+                            if (event.key == pygame.K_w) or (event.key == pygame.K_UP):
+                                menu.evt_handler(evt='U_B')
+                                button_timer.timer_set()
+                            if event.key == pygame.K_s or (event.key == pygame.K_DOWN):
+                                menu.evt_handler(evt='D_B')
+                                button_timer.timer_set()
+                            if event.key == pygame.K_d or (event.key == pygame.K_RIGHT):
+                                menu.evt_handler(evt='R_B')
+                                button_timer.timer_set()
+                            if event.key == pygame.K_a or (event.key == pygame.K_LEFT):
+                                menu.evt_handler(evt='L_B')
+                                button_timer.timer_set()
+                            if event.key == pygame.K_q or (event.key == pygame.K_z):
+                                menu.evt_handler(evt='A_B')
+                                button_timer.timer_set()
+                            if event.key == pygame.K_e or (event.key == pygame.K_x):
+                                menu.evt_handler(evt='B_B')
+                                button_timer.timer_set()
+                            if (event.key == pygame.K_ESCAPE):
+                                done = True
+                                LCD.clear()
+                                print("Esc exits program. Goodbye")
+                                LCD.print("Esc exits program. Goodbye")
+                except Exception as e:
+                    pass  # headless running of pi prevents use of pygame
+
             # wait for lack of user input to set menu to idle
             if menu.idle_timer.timer_event():
                 menu.evt_handler(timer=True)
@@ -234,4 +276,4 @@ for _ in range(5):
         LCD.print(f'Fatal error: {e}')
         sleep(60)
         LCD.print('Reboot system and check wire connections')
-        system('sudo python /home/pi/THE-SHRUBBERS/autoupdate.py --no-shrub')
+        system('python /home/pi/THE-SHRUBBERS/autoupdate.py --no-shrub')
