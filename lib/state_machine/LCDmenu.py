@@ -449,14 +449,13 @@ class menu():
 
                 self.LCD.clear()
                 self.LCD.print(self.ops[self.m1_hover])
-                '''# show next operation beneath it. commented out cause confusing rn
-                [row, col] = self.LCD.cursor_pos()
-                # check if cursor wrapped around
-                if col == 0:
-                    self.LCD.set_cursor_pos(int(row), 0)
-                else:
-                    self.LCD.set_cursor_pos(int(row)+1, 0)
-                self.LCD.print(self.ops[self.m1_hover-1])'''
+                # show what the user toggle state is in menu
+                if self.m1_hover == 8:
+                    self.LCD.print("\nCurrently off") if self.shrub.userToggle else self.LCD.print('\n Currently normal')
+                if self.m1_hover == 9:
+                    self.LCD.print("\nCurrently off") if self.conditioner.userToggle else self.LCD.print('\n Currently normal')
+                if self.m1_hover == 11:
+                    self.LCD.print("\nCurrently open") if self.shrub.valveToggle else self.LCD.print('\n Currently closed')
                 self.child = self.ops[self.m1_hover]
             elif (evt == "D_B"):
                 self.m1_hover -= 1
@@ -465,17 +464,13 @@ class menu():
                 
                 self.LCD.clear()
                 self.LCD.print(self.ops[self.m1_hover])
-                '''[row, col] = self.LCD.cursor_pos()
-                # check if cursor wrapped around
-                if col == 0:
-                    self.LCD.set_cursor_pos(int(row), 0)
-                else:
-                    self.LCD.set_cursor_pos(int(row)+1, 0)
-                # in case it's the last operation hovered over
-                try:
-                    self.LCD.print(self.ops[self.m1_hover-1])
-                except IndexError:
-                    self.LCD.print(self.ops[0])'''
+                # show what the user toggle state is in menu
+                if self.m1_hover == 8:
+                    self.LCD.print("\nCurrently off") if self.shrub.userToggle else self.LCD.print('\n Currently normal')
+                if self.m1_hover == 9:
+                    self.LCD.print("\nCurrently off") if self.conditioner.userToggle else self.LCD.print('\n Currently normal')
+                if self.m1_hover == 11:
+                    self.LCD.print("\nCurrently open") if self.shrub.valveToggle else self.LCD.print('\n Currently closed')
                 self.child = self.ops[self.m1_hover]
         
         # if not in first level of menus
@@ -483,7 +478,62 @@ class menu():
             # need to make sure once it goes to first submenu, it doesn't raise error
             if type(self.parent) is int:
                 # submenus to change timings
-                if (self.parent <= 2) and (self.child is None):
+                if (self.parent <= 1) and (self.child is None):
+                    if (evt == "A_B"):
+                        # save changes to file
+                        self.saveParamChange()
+                    elif (evt == "B_B"):
+                        # send to level above
+                        self.startMenu(hover=self.parent)
+                    elif (evt == "U_B"):
+                        # increase HH:MM:SS timer based on hover position
+                        if self.m2_hover == 0:
+                            self.param2change += 10*60*60
+                        elif self.m2_hover == 1:
+                            self.param2change += 1*60*60
+                        elif self.m2_hover == 3:
+                            self.param2change += 10*60
+                        elif self.m2_hover == 4:
+                            self.param2change += 1*60
+                        elif self.m2_hover == 6:
+                            self.param2change += 10
+                        elif self.m2_hover == 7:
+                            self.param2change += 1
+                        # max timer
+                        if self.param2change > 20*60*60:
+                            self.param2change = 20*60*60
+                        self.LCD.clear()
+                        self.LCD.print(f"{self.ops[self.m1_hover]}:\n{self.timeFormat(self.param2change)}")
+                    elif (evt == "D_B"):
+                        # decrease HH:MM:SS timer based on hover position
+                        if self.m2_hover == 0:
+                            self.param2change -= 10*60*60
+                        elif self.m2_hover == 1:
+                            self.param2change -= 1*60*60
+                        elif self.m2_hover == 3:
+                            self.param2change -= 10*60
+                        elif self.m2_hover == 4:
+                            self.param2change -= 1*60
+                        elif self.m2_hover == 6:
+                            self.param2change -= 10
+                        elif self.m2_hover == 7:
+                            self.param2change -= 1
+                        # prevent timer going negative
+                        if self.param2change < 0:
+                            self.param2change = 0
+                        self.LCD.clear()
+                        self.LCD.print(f"{self.ops[self.m1_hover]}:\n{self.timeFormat(self.param2change)}")
+                    elif (evt == "R_B"):
+                        # change hover position. loop if too far right
+                        self.m2_hover += 1
+                        self.m2_hover %= 8
+                    elif (evt == "L_B"):
+                        # change hover position. loop if too far left
+                        self.m2_hover -= 1
+                        self.m2_hover = (8 - 1) if self.m2_hover < 0 else self.m2_hover
+                
+                # logic to not break timers when draining
+                if (self.parent == 2) and (self.child is None):
                     if (evt == "A_B"):
                         # save changes to file
                         self.saveParamChange()

@@ -23,6 +23,10 @@ class EventError(Exception):
     '''Invalid event received by event handler'''
     pass
 
+class TimerError(Exception):
+    '''Invalid timer duration received'''
+    pass
+
 class hydro():
     '''Part of the Shrubber state machine that handles
     events passed to it, and defines and run the states as needed.'''
@@ -72,7 +76,7 @@ class hydro():
         self.botValve = valves[1]
         self.UV = UV
         # join valve and channel pump times together to create simple sequence
-        self.__ptimes2actual(self.ptimes)
+        self.actual_times = self.__ptimes2actual(self.ptimes)
 
         self.test = test  # for printing state change and events
 
@@ -90,7 +94,7 @@ class hydro():
 
     # called once w/ startup of LCDmenu reading Settings.csv
     def update_settings(self, ptimes, max_level, cycle=None):
-        self.__ptimes2actual(ptimes)
+        self.actual_times = self.__ptimes2actual(ptimes)
         self.hydroTimer.new_interval_timer(self.actual_times[self.hydro_state])
         self.s_thresh = self.hole_depth-max_level
         # TODO test
@@ -110,15 +114,24 @@ class hydro():
             self.topValve.on() if self.topValveVal else self.topValve.off()
             self.botValve.on() if self.botValveVal else self.botValve.off()
     
-    def __ptimes2actual(self, ptimes):
+    def __ptimes2actual(self, ptimes) -> list:
         '''Convert condensed list from user settings to list for timers to use'''
+        # TODO implement logic to handle 0 timer length and/or limit min
         self.ptimes = ptimes
-        self.actual_times[0] = ptimes[2]  # pump fill channel
-        self.actual_times[1] = ptimes[0]  # pump stop and leaved channel flooded
-        self.actual_times[2] = self.valveDrainTime  # first valve open
-        self.actual_times[3] = self.valveDrainTime  # first valve close second valve open
-        self.actual_times[4] = ptimes[1] - 2 * self.valveDrainTime  # close both valves
-        self.actual_times *= 2
+        actual_times = []
+        self.valveDrainTime = min(ptimes[2] / 2, 60*10)  # not sure how we want the behavior or the valves to be
+        actual_times[0] = ptimes[2]  # pump fill channel
+        actual_times[1] = ptimes[0]  # pump stop and leaved channel flooded
+        actual_times[2] = self.valveDrainTime  # first valve open
+        actual_times[3] = self.valveDrainTime  # first valve close second valve open
+        actual_times[4] = ptimes[1] - 2 * self.valveDrainTime  # close both valves
+        if actual_times[4] < 0:
+            actual_times[4] = 0
+        actual_times *= 2
+        for time in actual_times:
+            assert time >= 0
+        return actual_times
+        
     
     def evt_handler(self, evt=None, pumpPause=None, valvePause=None):
         '''Handles the logic to choose and run the proper state
@@ -171,7 +184,6 @@ class hydro():
                 self.botValve.on() if self.valveToggle else self.botValve.off()
             
             # go to next pump and valve state
-            # TODO have time event pass event to menu to save cycle number and time
             elif evt == "TIME":
                 self.hydro_state += 1
                 self.hydro_state %= 10
@@ -398,10 +410,7 @@ class conditioner():
 
             # to stop the valves and pumps in case of emergency. 
             # stored in values to retain behavior across multiple events
-            if pumpPause:
-                self.pPause = True
-            elif pumpPause is False:
-                self.pPause = False
+            self.pPause = pumpPause if pumpPause is not None else self.pPause
             
             if self.pPause:
                 for pump in self.pumps:
