@@ -214,7 +214,7 @@ class hydro():
         self.userToggle = False
         if self.test: print("Top valve: off\nBottom valve: off") 
 
-    def active(self, pwr=80):
+    def active(self, pwr=90):
         '''Sets the pump and UV power level'''
         if pwr >= 100:
             val = 100 
@@ -234,7 +234,7 @@ class hydro():
 
     def overflow_det(self, height_thresh=None) -> bool:
         '''Check to see if the water level is higher than the acceptable value'''
-        height_thresh = (self.hole_depth - self.s_thresh) if height_thresh is None else height_thresh
+        height_thresh = (self.s_thresh) if height_thresh is None else height_thresh
         height = self.water_height()
         try:
             return True if height >= height_thresh else False
@@ -254,7 +254,7 @@ class hydro():
             except (SystemError, UnboundLocalError) as e:
                 print(f"The sonar is not detected: {e}")
                 warnings.warn("The sonar sensor is not detected.")
-                dist = 50
+                dist = 25
             # limiting valid range of measurements
             if dist >= self.hole_depth:
                 dist = self.hole_depth
@@ -519,10 +519,10 @@ acid: {self.pumpA.is_active} base: {self.pumpB.is_active}')
         High pH, low pH, and low EC as there is no behavior for High EC currently'''
         solutions = [None, None, None]
         pH_val = self.grab_pH()
-        if (pH_val >= self.pH_High) and (self.on_timer.time_remaining() is not None):
+        if (pH_val >= self.pH_High) and (self.on_timer.timer_time is None):
             solutions[0] = 'HIGH PH'
-        elif (pH_val <= self.ph_Low) and (self.on_timer.time_remaining() is not None):
+        elif (pH_val <= self.ph_Low) and (self.on_timer.timer_time is None):
             solutions[1] = 'LOW PH'
         solutions[2] = 'LOW EC' if (self.grab_EC() <= self.EC_Low) \
-            and (self.on_timer.time_remaining() is not None) else None
+            and (self.on_timer.time_remaining() is None) else None
         return solutions

@@ -64,13 +64,13 @@ class timer():
 
     def time_remaining(self) -> float:
         '''Checks to see if the time has passed. If it not, returns float of difference. No reset if time has passed'''
-        if (self.timer_time is not None):
+        if self.timer_time is None:
+            return None
+        else:            
             if monotonic() >= self.timer_time:
                 return None
             else:
                 return self.timer_time - monotonic()
-        else:
-            return None
 
     def new_interval_timer(self, new_interval):
         '''Adjusts the remaining time of the timer to fit new interval'''
