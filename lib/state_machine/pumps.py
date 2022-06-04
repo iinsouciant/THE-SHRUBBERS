@@ -206,7 +206,7 @@ class hydro():
     
     #  any reason to use this?
     def hydro_restart(self):
-        '''Shuts off vakves and resets user toggling'''
+        '''Shuts off valves and resets user toggling'''
         self.topValve.off()
         self.botValve.off()
         self.hydro_state = 0
@@ -319,6 +319,7 @@ class conditioner():
     # how often to print event values for readability during testing
     evt_print = timer(1.5)
     evt_print.timer_set()
+    last_pump = 2
 
     def __init__(self, conditioning_pumps, shrub, pHsens, ECsens, temp, filters=[200, 200, .5], test=False):
         self.pumps = conditioning_pumps
@@ -392,7 +393,6 @@ class conditioner():
             elif evt == "ON TIMER":
                 for pump in self.pumps:
                     self.pump_active(pump, pwr=0)
-                self.wait_timer.timer_set()
 
             # start pump at will for testing or maintenance
             elif evt == "TEST":
@@ -415,18 +415,20 @@ class conditioner():
 
             # wait for reservoir to mix a little before turning on pumps again
             else:
-                if (evt == "LOW EC"):
-                    self.pump_active(self.pumpN)
-                    self.on_timer.timer_set()
-                    self.wait_timer.timer_event()
-                elif (evt == "LOW PH"):
-                    self.pump_active(self.pumpA)
-                    self.on_timer.timer_set()
-                    self.wait_timer.timer_event()
-                elif (evt == "HIGH PH"):
-                    self.pump_active(self.pumpB)
-                    self.on_timer.timer_set()
-                    self.wait_timer.timer_event()
+                if self.wait_timer.timer_event():
+                    if (evt == "LOW EC"):
+                        self.pump_active(self.pumpN)
+                        self.on_timer.timer_set()
+                        self.last_pump = 1
+                    elif (evt == "LOW PH"):
+                        self.pump_active(self.pumpA)
+                        self.on_timer.timer_set()
+                        self.last_pump = 2
+                    elif (evt == "HIGH PH"):
+                        self.pump_active(self.pumpB)
+                        self.on_timer.timer_set()
+                        self.last_pump = 3
+                    self.wait_timer.timer_set(new=18)
 
         else:
             # if no sensor out of range it will pass in a none event
@@ -520,9 +522,9 @@ acid: {self.pumpA.is_active} base: {self.pumpB.is_active}')
         solutions = [None, None, None]
         pH_val = self.grab_pH()
         if (pH_val >= self.pH_High) and (self.on_timer.timer_time is None):
-            solutions[0] = 'HIGH PH'
+            solutions[2] = 'HIGH PH'
         elif (pH_val <= self.ph_Low) and (self.on_timer.timer_time is None):
             solutions[1] = 'LOW PH'
-        solutions[2] = 'LOW EC' if (self.grab_EC() <= self.EC_Low) \
+        solutions[0] = 'LOW EC' if (self.grab_EC() <= self.EC_Low) \
             and (self.on_timer.time_remaining() is None) else None
         return solutions

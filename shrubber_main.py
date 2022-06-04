@@ -230,7 +230,7 @@ for _ in range(5):
 
             # turn the conditioners on or off
             if condition.on_timer.timer_event():
-                shrub.evt_handler(evt='ON TIMER')
+                condition.evt_handler(evt='ON TIMER')
             
             # grab all sensor values to pass to butterworth filter with higher frequency
             temp = condition.sensOutOfRange()
