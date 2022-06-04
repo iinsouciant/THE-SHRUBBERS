@@ -402,7 +402,7 @@ class conditioner():
                 for pump in self.pumps:
                     self.pump_active(pump, pwr=0)
 
-            elif (evt != "LOW EC") and (evt != "LOW PH") and (evt != "LOW EC"):
+            elif (evt != "LOW EC") and (evt != "LOW PH") and (evt != "HIGH PH"):
                 raise EventError('Invalid event: '+evt)
 
             # to stop the valves and pumps in case of emergency. 

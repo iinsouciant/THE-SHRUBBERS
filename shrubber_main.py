@@ -274,7 +274,7 @@ for _ in range(5):
         LCD.print("State machine loop broken. Attempting relaunch")
         sleep(4)
     except Exception as e:
-        LCD.print(f'Fatal error: {e}')
+        LCD.print(f'Fatal error: {e}\n')
         sleep(60)
         LCD.print('Reboot system and check wire connections')
-        #system('python /home/pi/THE-SHRUBBERS/autoupdate.py --no-shrub')
+        system('python /home/pi/THE-SHRUBBERS/autoupdate.py --no-shrub')
