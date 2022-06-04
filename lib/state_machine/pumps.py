@@ -120,11 +120,11 @@ class hydro():
         self.ptimes = ptimes
         actual_times = []
         self.valveDrainTime = min(ptimes[2] / 2, 60*15)  # not sure how we want the behavior or the valves to be
-        actual_times[0] = ptimes[2]  # pump fill channel
-        actual_times[1] = ptimes[0]  # pump stop and leaved channel flooded
-        actual_times[2] = self.valveDrainTime  # first valve open
-        actual_times[3] = self.valveDrainTime  # first valve close second valve open
-        actual_times[4] = ptimes[1] - 2 * self.valveDrainTime  # close both valves
+        actual_times.append(ptimes[2])  # pump fill channel
+        actual_times.append(ptimes[0])  # pump stop and leaved channel flooded
+        actual_times.append(self.valveDrainTime)  # first valve open
+        actual_times.append(self.valveDrainTime)  # first valve close second valve open
+        actual_times.append(ptimes[1] - 2 * self.valveDrainTime)  # close both valves
         if actual_times[4] < 0:
             actual_times[4] = 0
         actual_times *= 2
