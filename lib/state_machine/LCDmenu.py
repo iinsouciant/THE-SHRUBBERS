@@ -134,7 +134,7 @@ class menu():
                 rows = [row for row in settings if True]
                 self.ft = int(rows[0][1])
                 self.ap = int(rows[1][1])
-                self.et = int(rows[2][1])
+                self.et = float(rows[2][1])
                 self.sT = int(rows[3][1])
                 self.pHH = float(rows[4][1])
                 self.pHL = float(rows[5][1])
