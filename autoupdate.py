@@ -1,13 +1,12 @@
 from git import Git, Repo
 import requests
-from pathlib import Path
-from os import system
+from os import system, getcwd
 from sys import argv
 
 # initializing test URL
 url = "https://www.geeksforgeeks.org"
-file = Path('/home/pi/THE-SHRUBBERS/shrubber_main.py')
-myRepoDir = file.parent.absolute()
+myRepoDir = getcwd()
+file = myRepoDir + '\shrubber_main.py'
 timeout = 10
 
 for _ in range(3):

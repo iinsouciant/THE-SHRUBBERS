@@ -111,10 +111,10 @@ class menu():
     # to help track program cycle between power shutoff
     __cycleIndex = 0
     __cycleTime = ap
-    # independent timer event
+    # timer to put the menu to idle
     idle_timer = timer(3*60)
     idle_timer.timer_set()
-    idle_printer = timer(8)
+    idle_printer = timer(5)
     _idle_n = 0
 
     def __init__(self, LCD, shrub, conditioner, test=False):
@@ -125,9 +125,7 @@ class menu():
 
         self.test = test
 
-        # TODO add row to remember what hydro state we were last on so that it doesn't start pumping on reboot
-        # periodically add what time is remaining on pump timer as well due to long duration
-        # on boot, check to see if state machine settings exist. if not create w/ default settings
+        # check to see if state machine settings exist. if not create w/ default settings
         try:
             with open('Settings.csv', 'r') as f:
                 settings = reader(f)
@@ -260,6 +258,7 @@ class menu():
     def idle_print(self):
         '''Print the next set of sensor values on the LCD screen
         when called by program. Lists up to 3 of the previously measured values'''
+        # see if there are any prior printed values
         try:
             c = self._b
         except Exception as e:
@@ -362,7 +361,6 @@ class menu():
             self.LCD.print("Press A once the pH sensor is fully submerged in solution")
             return None
 
-        # TODO test
         # user toggle the main pump, uv, valves
         elif self.m1_hover == 8:
             self.shrub.evt_handler(evt="USER TOGGLE")
@@ -373,7 +371,6 @@ class menu():
             self.child = "WAIT"
             return None  # prevent rest from being run
 
-        # TODO test toggle works
         # user toggles conditioning pumps
         elif self.m1_hover == 9:
             self.conditioner.evt_handler(evt="USER TOGGLE")
@@ -476,6 +473,10 @@ class menu():
         elif self.child not in self.ops:
             # need to make sure once it goes to first submenu, it doesn't raise error
             if type(self.parent) is int:
+                # TODO implement logic to handle if empty time is less than drain time
+                # need to be wary of how we determine how long to open valves to drain. 
+                # maybe as a function of fill timer
+                # TODO see if logic needed for 0 timers
                 # submenus to change timings
                 if (self.parent <= 1) and (self.child is None):
                     if (evt == "A_B"):
@@ -517,9 +518,9 @@ class menu():
                             self.param2change -= 10
                         elif self.m2_hover == 7:
                             self.param2change -= 1
-                        # prevent timer going negative
-                        if self.param2change < 0:
-                            self.param2change = 0
+                        # prevent timer going below 1 min
+                        if self.param2change < 60:
+                            self.param2change = 60
                         self.LCD.clear()
                         self.LCD.print(f"{self.ops[self.m1_hover]}:\n{self.timeFormat(self.param2change)}")
                     elif (evt == "R_B"):
@@ -572,9 +573,9 @@ class menu():
                             self.param2change -= 10
                         elif self.m2_hover == 7:
                             self.param2change -= 1
-                        # prevent timer going negative
-                        if self.param2change < 0:
-                            self.param2change = 0
+                        # prevent timer going below 1 min
+                        if self.param2change < 60:
+                            self.param2change = 60
                         self.LCD.clear()
                         self.LCD.print(f"{self.ops[self.m1_hover]}:\n{self.timeFormat(self.param2change)}")
                     elif (evt == "R_B"):

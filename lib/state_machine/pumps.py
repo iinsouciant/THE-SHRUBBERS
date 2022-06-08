@@ -58,7 +58,6 @@ class hydro():
     sonar_timer.timer_set()
     last_sonar = 0
 
-    # TODO update w/ actual measurement
     hole_depth = 35*2.54  # 35in to cm
     s_thresh = 8  # cm
 
@@ -68,10 +67,10 @@ class hydro():
     # counter to trigger outputs during startup process
     n = 0
 
-    def __init__(self, pump, sonar, valves, UV, filter=200, test=False):
+    def __init__(self, pump, sonar, valves, UV, filter=.5, test=False):
         self.pump = pump
         self.s = sonar
-        self.fs = BF.LowPassFilter(.5)
+        self.fs = BF.LowPassFilter(filter)
         self.topValve = valves[0]
         self.botValve = valves[1]
         self.UV = UV
@@ -83,13 +82,15 @@ class hydro():
     def __repr__(self):
         return "state_machine({}, {}, {}, {})".format(self.pump, self.s, self.topValve, self.botValve)
     
-    def __str__(self):  # TODO check if we need to update this  
+    def __str__(self):  
         '''Provides formatted sensor values connected to state machine'''
         if self.test and self.str_timer.timer_event():
             print(f'next cycle timer: {self.hydroTimer.time_remaining()}')
             self.str_timer.timer_set()
-        return "Pump: {}\nValves: {}, {}\nWater level: {} cm\nValves paused? {}\n".format(
-            self.pumpVal, self.botValveVal, self.topValveVal, self.water_height(), self.vPause
+        return "Pump: {}\nValves: {}, {}\nWater level: {} cm\nValves paused? {}\n\
+            Overflow warning? {}".format(
+            self.pumpVal, self.botValveVal, self.topValveVal, self.water_height(), self.vPause,
+            self.overflowCondition
         )
 
     # called once w/ startup of LCDmenu reading Settings.csv
@@ -116,7 +117,6 @@ class hydro():
     
     def __ptimes2actual(self, ptimes) -> list:
         '''Convert condensed list from user settings to list for timers to use'''
-        # TODO implement logic to handle 0 timer length and/or limit min
         self.ptimes = ptimes
         actual_times = []
         self.valveDrainTime = min(ptimes[2] / 2, 60*15)  # not sure how we want the behavior or the valves to be
@@ -222,7 +222,7 @@ class hydro():
             val = 0
         else:
             val = pwr
-        self.pump.value = val/100  # TODO set default value to match 1 GPM 
+        self.pump.value = val/100  # TODO set default value to match 1 GPM. measure how?
         self.UV.value = 0 if val == 0 else 1
 
     def water_height(self, hole_depth=None) -> float:
