@@ -165,6 +165,10 @@ class hydro():
                 self.pPause = self.userToggle
                 self.vPause = self.userToggle
 
+            # check to see if it any other valid events
+            elif (evt != "VALVE TOGGLE") or (evt != "TIME") or (evt != "NO OVERFLOW"):
+                EventError(f"Invalid event: {evt}")
+
             if self.pPause:
                 self.active(pwr=0)
             # if to prevent sudden switch on off
@@ -430,9 +434,8 @@ class conditioner():
                         self.last_pump = 3
                     self.wait_timer.timer_set(new=18)
 
-        else:
-            # if no sensor out of range it will pass in a none event
-            pass
+        elif evt is not None:
+            EventError(f"Invalid event: {evt}")
 
         if self.test and self.evt_print.timer_event():
             print(f'new pump vals: \nnutrient: {self.pumpN.is_active} \
