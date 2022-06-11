@@ -276,8 +276,9 @@ class menu():
         self.idle_printer.timer_set()
         if n == 0:
             # TODO get analog pressure sensor for water level
-            temp = int(self.conditioner.grab_EC()) 
-            if temp == 25:
+            temp = round(self.shrub.water_height(), 1)
+            print(temp) 
+            if temp == 63.9:
                 self._a = f"Need sonar replacement"
             else:
                 self._a = f"Water level: {self.shrub.water_height():.1f} cm"
