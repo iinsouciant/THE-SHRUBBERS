@@ -276,14 +276,17 @@ class menu():
         self.idle_printer.timer_set()
         if n == 0:
             # TODO get analog pressure sensor for water level
-            self._a = f"Sonar sesnor to be replaced w/ better sensor"
-            #self._a = f"Water level: {self.shrub.water_height():.1f} cm"
+            temp = int(self.conditioner.grab_EC()) 
+            if temp == 25:
+                self._a = f"Need sonar replacement"
+            else:
+                self._a = f"Water level: {self.shrub.water_height():.1f} cm"
         if n == 1:
             self._a = f"pH level: {self.conditioner.grab_pH():.1f}"
         if n == 2:
             # TODO fix ec sensor
-            self._a = f"EC sensor is currently broken"
-            #self._a = f"Conductivity level: {self.conditioner.grab_EC():.2f} mS"
+            self._a = f"EC sensor is broken"
+            #self._a = f"Conductivity level: {:.2f} mS"
         if n == 3:
             self._a = f"Water temp: {self.conditioner.grab_temp(unit='F'):.2f} F"
         
