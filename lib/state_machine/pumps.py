@@ -88,7 +88,7 @@ class hydro():
             print(f'next cycle timer: {self.hydroTimer.time_remaining()}')
             self.str_timer.timer_set()
         return "Pump: {}\nValves: {}, {}\nWater level: {} cm\nValves paused? {}\n\
-            Overflow warning? {}".format(
+        Overflow warning? {}".format(
             self.pumpVal, self.botValveVal, self.topValveVal, self.water_height(), self.vPause,
             self.overflowCondition
         )
@@ -169,8 +169,9 @@ class hydro():
             elif (evt != "VALVE TOGGLE") or (evt != "TIME") or (evt != "NO OVERFLOW"):
                 EventError(f"Invalid event: {evt}")
 
-            if self.pPause:
-                self.active(pwr=0)
+            # turn pump on if it should be on
+            self.active() if (self.pumpVal and (not self.pPause)) else self.active(pwr=0)
+
             # if to prevent sudden switch on off
             if evt != 'VALVE TOGGLE':
                 if self.vPause:
@@ -218,7 +219,7 @@ class hydro():
         self.userToggle = False
         if self.test: print("Top valve: off\nBottom valve: off") 
 
-    def active(self, pwr=90):
+    def active(self, pwr=70):
         '''Sets the pump and UV power level'''
         if pwr >= 100:
             val = 100 
@@ -247,7 +248,8 @@ class hydro():
             return True
     
     def grab_sonar(self) -> float:
-        '''Tries to grab the sonar sensor value without raising 
+        '''TO BE REPLACED W/ ANALOG PRESSURE SENSOR
+        Tries to grab the sonar sensor value without raising 
         an exception halting the program. The reliable range is 
         9 to 32 cm.'''
         # timer to limit sample rate for faster loop time
@@ -256,8 +258,9 @@ class hydro():
                 self.s.temperature = self.conditioner.grab_temp(unit='C')
                 dist = self.s.raw_distance(sample_size=10, sample_wait=0.01)
             except (SystemError, UnboundLocalError) as e:
-                print(f"The sonar is not detected: {e}")
-                warnings.warn("The sonar sensor is not detected.")
+                # sonar removed from system
+                #print(f"The sonar is not detected: {e}")
+                #warnings.warn("The sonar sensor is not detected.")
                 dist = 25
             # limiting valid range of measurements
             if dist >= self.hole_depth:
@@ -421,9 +424,12 @@ class conditioner():
             else:
                 if self.wait_timer.timer_event():
                     if (evt == "LOW EC"):
-                        self.pump_active(self.pumpN)
-                        self.on_timer.timer_set()
-                        self.last_pump = 1
+                        # TODO re enable when sensor is fixed
+                        # sensor currently broken
+                        #self.pump_active(self.pumpN)
+                        #self.on_timer.timer_set()
+                        #self.last_pump = 1
+                        pass
                     elif (evt == "LOW PH"):
                         self.pump_active(self.pumpA)
                         self.on_timer.timer_set()
