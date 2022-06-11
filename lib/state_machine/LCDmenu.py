@@ -11,7 +11,7 @@
 #   v1.15 13-Apr-2022 Add functionality to have menu to send settings to other state machines.
 #                     Timer functionality increased to handle None exceptions and other use cases.
 
-from time import monotonic
+from time import time
 from csv import reader, writer
 from warnings import warn
 from lib.lcd.lcd import CursorMode
@@ -31,7 +31,7 @@ class timer():
     def timer_event(self) -> bool:
         '''Checks to see if the time has passed. If it has, turns off timer and returns True. If the timer was not set,
         returns None'''
-        if (self.timer_time is not None) and monotonic() >= self.timer_time:
+        if (self.timer_time is not None) and time() >= self.timer_time:
             self.timer_time = None
             return True
         elif self.timer_time is None:
@@ -41,7 +41,7 @@ class timer():
 
     def event_no_reset(self) -> bool:
         '''Checks to see if the time has passed. If it has, returns True. Must be manually stopped/reset'''
-        if (self.timer_time is not None) and monotonic() >= self.timer_time:
+        if (self.timer_time is not None) and time() >= self.timer_time:
             # self.timer_time = None
             return True
         elif self.timer_time is None:
@@ -54,7 +54,7 @@ class timer():
         if (type(new) is int) or (type(new) is float):
             self.TIMER_INTERVAL = new
         try:
-            self.timer_time = monotonic() + self.TIMER_INTERVAL
+            self.timer_time = time() + self.TIMER_INTERVAL
         except TypeError as e:
             if self.TIMER_INTERVAL is None:
                 print("Timer interval set to None")
@@ -67,10 +67,10 @@ class timer():
         if self.timer_time is None:
             return None
         else:            
-            if monotonic() >= self.timer_time:
+            if time() >= self.timer_time:
                 return None
             else:
-                return self.timer_time - monotonic()
+                return self.timer_time - time()
 
     def new_interval_timer(self, new_interval):
         '''Adjusts the remaining time of the timer to fit new interval'''
@@ -277,7 +277,6 @@ class menu():
         if n == 0:
             # TODO get analog pressure sensor for water level
             temp = round(self.shrub.water_height(), 1)
-            print(temp) 
             if temp == 63.9:
                 self._a = f"Need sonar replacement"
             else:
