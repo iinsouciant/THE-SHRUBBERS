@@ -6,8 +6,8 @@ from sys import argv
 # initializing test URL
 url = "https://www.geeksforgeeks.org"
 myRepoDir = getcwd()
-file = myRepoDir + '\shrubber_main.py'
-timeout = 10
+file = myRepoDir + '/shrubber_main.py'
+timeout = 8
 
 for _ in range(3):
     try:

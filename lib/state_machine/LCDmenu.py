@@ -526,8 +526,8 @@ class menu():
                         elif self.m2_hover == 7:
                             self.param2change -= 1
                         # prevent timer going below 1 min
-                        if self.param2change < 60:
-                            self.param2change = 60
+                        if self.param2change < 3.5*60:
+                            self.param2change = 3.5*60
                         self.LCD.clear()
                         self.LCD.print(f"{self.ops[self.m1_hover]}:\n{self.timeFormat(self.param2change)}")
                     elif (evt == "R_B"):
