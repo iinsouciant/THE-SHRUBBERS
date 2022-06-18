@@ -135,7 +135,7 @@ class hydro():
         # ptimes order: channel flooded, pump, and empty times
         self.ptimes = ptimes
         actual_times = []
-        self.valveDrainTime = 60*15  # not sure how we want the behavior or the valves to be
+        self.valveDrainTime = 60*8  # not sure how we want the behavior or the valves to be
         actual_times.append(ptimes[1])  # pump fill channel
         actual_times.append(ptimes[0])  # pump stop and leaved channel flooded
         actual_times.append(self.valveDrainTime)  # first valve open
