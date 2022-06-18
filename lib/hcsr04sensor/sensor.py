@@ -84,8 +84,10 @@ class Measurement(object):
                     echo_status_counter += 1
                 else:
                     raise SystemError("Echo pulse was not received")
-            while GPIO.input(self.echo_pin) == 1:
+            n = 0
+            while (GPIO.input(self.echo_pin) == 1) and (n > 30):
                 sonar_signal_on = time()
+                n += 1
             time_passed = sonar_signal_on - sonar_signal_off
             distance_cm = time_passed * ((speed_of_sound * 100) / 2)
             sample.append(distance_cm)

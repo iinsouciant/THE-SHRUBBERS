@@ -112,16 +112,19 @@ class hydro():
         self.s_thresh = self.hole_depth-max_level
         # TODO test
         if cycle is not None:
+            n = cycle[0]
             self.hydro_state = cycle[0]
             self.hydroTimer = timer(cycle[1])
             self.hydroTimer.timer_set()
         # enable outputs on startup once new operating values are passed in from LCDmenu
         if self.n == 0:
-            self.n += 1
+            if cycle is None:
+                self.n += 1
             self.pumpVal = self.pVals[self.hydro_state]
             [self.topValveVal, self.botValveVal] = self.vVals[self.hydro_state]
-            self.hydroTimer = timer(self.actual_times[self.hydro_state])
-            self.hydroTimer.timer_set()
+            if cycle is None:
+                self.hydroTimer = timer(self.actual_times[self.hydro_state])
+                self.hydroTimer.timer_set()
             
             if self.pumpVal: self.active()
             self.topValve.on() if self.topValveVal else self.topValve.off()
