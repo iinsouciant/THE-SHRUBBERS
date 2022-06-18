@@ -85,13 +85,19 @@ class hydro():
     def __str__(self):  
         '''Provides formatted sensor values connected to state machine'''
         if self.test and self.str_timer.timer_event():
-            print(f'next cycle timer: {self.hydroTimer.time_remaining()}')
+            print(f'next cycle timer: {self.timeFormat(self.hydroTimer.time_remaining())}')
             self.str_timer.timer_set()
         return "Pump: {}\nValves: {}, {}\nWater level: {} cm\nValves paused? {}\n\
         Overflow warning? {}".format(
             self.pumpVal, self.botValveVal, self.topValveVal, self.water_height(), self.vPause,
             self.overflowCondition
         )
+
+    def timeFormat(self, sec) -> str:
+        '''automatically convert seconds to HH:MM:SS format for user to read'''
+        m, s = divmod(sec, 60)
+        h, m = divmod(m, 60)
+        return f"{h:02d}:{m:02d}:{s:02d}"
 
     # called once w/ startup of LCDmenu reading Settings.csv
     def update_settings(self, ptimes, max_level, cycle=None):
@@ -219,7 +225,7 @@ class hydro():
         self.userToggle = False
         if self.test: print("Top valve: off\nBottom valve: off") 
 
-    def active(self, pwr=70):
+    def active(self, pwr=60):
         '''Sets the pump and UV power level'''
         if pwr >= 100:
             val = 100 

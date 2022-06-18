@@ -126,7 +126,7 @@ menu = LCDmenu.menu(LCD, shrub, condition, test=args.test)
 # timer to wait between accepting button presses to prevent repeats
 button_timer = LCDmenu.timer(.175)
 # timer to automatically save pump cycle timings to file
-saveCycleTime = LCDmenu.timer(60*7.5)
+saveCycleTime = LCDmenu.timer(60*2.5)
 
 print("Now expecting user input")
 menu.idle()
