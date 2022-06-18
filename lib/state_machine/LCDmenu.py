@@ -107,7 +107,7 @@ class menu():
     pHL = 4  # low pH threshhold
     ECH = 2  # high EC threshhold
     ECL = 0.01  # low EC threshhold
-    sT = 16  # sonar threshold
+    sT = 60  # sonar threshold
     # to help track program cycle between power shutoff
     __cycleIndex = 0
     __cycleTime = ap
@@ -278,14 +278,14 @@ class menu():
             # TODO get analog pressure sensor for water level
             temp = round(self.shrub.water_height(), 1)
             if temp == 63.9:
-                self._a = f"Need sonar replacement"
+                self._a = "Need sonar replacement"
             else:
                 self._a = f"Water level: {self.shrub.water_height():.1f} cm"
         if n == 1:
             self._a = f"pH level: {self.conditioner.grab_pH():.1f}"
         if n == 2:
             # TODO fix ec sensor
-            self._a = f"EC sensor is broken"
+            self._a = "EC sensor is broken"
             #self._a = f"Conductivity level: {:.2f} mS"
         if n == 3:
             self._a = f"Water temp: {self.conditioner.grab_temp(unit='F'):.2f} F"
@@ -597,7 +597,7 @@ class menu():
                         self.m2_hover -= 1
                         self.m2_hover = (8 - 1) if self.m2_hover < 0 else self.m2_hover
                             
-                # save water gap
+                # save max water height
                 elif (self.parent == 3) and (self.child is None): 
                     if (evt == "A_B"):
                         self.saveParamChange()
@@ -612,9 +612,9 @@ class menu():
                             self.param2change += 10
                         elif self.m2_hover == 2:
                             self.param2change += 1
-                        # max gap
-                        if self.param2change > 999:
-                            self.param2change = 999
+                        # max height
+                        if self.param2change > self.shrub.hole_depth:
+                            self.param2change = self.shrub.hole_depth
                         self.LCD.clear()
                         # ensure always 3 digits shown
                         if self.param2change < 100:

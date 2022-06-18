@@ -389,16 +389,17 @@ class conditioner():
 
         if evt is not None:
             if evt == "OVERFLOW":
-                pumpPause = True
-                self.overflowCondition = evt
-                '''if self.test:
-                    print("Top valve: off")
-                    print("Bottom valve: off")'''
-            elif (evt == "NO OVERFLOW") and (self.overflowCondition == "OVERFLOW"):
-                self.overflowCondition = evt
-                # prevent overflow condition from overriding the user toggling our outputs
-                if self.userToggle is False:
-                    pumpPause = False
+                pass
+            #     pumpPause = True
+            #     self.overflowCondition = evt
+            #     '''if self.test:
+            #         print("Top valve: off")
+            #         print("Bottom valve: off")'''
+            # elif (evt == "NO OVERFLOW") and (self.overflowCondition == "OVERFLOW"):
+            #     self.overflowCondition = evt
+            #     # prevent overflow condition from overriding the user toggling our outputs
+            #     if self.userToggle is False:
+            #         pumpPause = False
             
             # user toggle overrides overflow until next loop where overflow event is passed. change this?
             elif evt == "USER TOGGLE":

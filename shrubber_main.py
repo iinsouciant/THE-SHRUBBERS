@@ -137,145 +137,145 @@ done = args.done
 
 for _ in range(5):
     # TODO when finished, reduce loop time for easier user input
-    try:
-        while (not done):
-            
-            if args.test:
-                a = str(condition)
-                b = str(shrub)
-                if test_timer.timer_event():
-                    print(a)
-                    print(b)
-                    test_timer.timer_set()
-            
-            # prevent repeat events for one press
-            if button_timer.event_no_reset():
-                # press A and B to turn on all outputs for a short period
-                if buttons['A_B'].is_pressed and buttons['B_B'].is_pressed:
-                    menu.evt_handler(evt="TEST")
-                    button_timer.timer_set()
-                # detect user input
-                elif buttons['A_B'].is_pressed:
-                    #start_time = time()
-                    menu.evt_handler(evt='A_B')
-                    button_timer.timer_set()
-                    #print(f'Execution time of menu event handler: {time()-start_time}')
-                elif buttons['B_B'].is_pressed:
-                    #start_time = time()
-                    menu.evt_handler(evt='B_B')
-                    button_timer.timer_set()
-                    #print(f'Execution time of menu event handler: {time()-start_time}')
-                elif buttons['L_B'].is_pressed:
-                    #start_time = time()
-                    menu.evt_handler(evt='L_B')
-                    button_timer.timer_set()
-                    #print(f'Execution time of menu event handler: {time()-start_time}')
-                elif buttons['R_B'].is_pressed:
-                    #start_time = time()
-                    menu.evt_handler(evt='R_B')
-                    button_timer.timer_set()
-                    #print(f'Execution time of menu event handler: {time()-start_time}')
-                elif buttons['D_B'].is_pressed:
-                    #start_time = time()
-                    menu.evt_handler(evt='D_B')
-                    button_timer.timer_set()
-                    #print(f'Execution time of menu event handler: {time()-start_time}')
-                elif buttons['U_B'].is_pressed:
-                    #start_time = time()
-                    menu.evt_handler(evt='U_B')
-                    button_timer.timer_set()
-                    #print(f'Execution time of menu event handler: {time()-start_time}')
-                if args.pygame:
-                    try:
-                        # simulate button presses w/ keyboard input
-                        for event in pygame.event.get():
-                            if (event.type == pygame.QUIT):
+    # try:
+    while (not done):
+        
+        if args.test:
+            a = str(condition)
+            b = str(shrub)
+            if test_timer.timer_event():
+                print(a)
+                print(b)
+                test_timer.timer_set()
+        
+        # prevent repeat events for one press
+        if button_timer.event_no_reset():
+            # press A and B to turn on all outputs for a short period
+            if buttons['A_B'].is_pressed and buttons['B_B'].is_pressed:
+                menu.evt_handler(evt="TEST")
+                button_timer.timer_set()
+            # detect user input
+            elif buttons['A_B'].is_pressed:
+                #start_time = time()
+                menu.evt_handler(evt='A_B')
+                button_timer.timer_set()
+                #print(f'Execution time of menu event handler: {time()-start_time}')
+            elif buttons['B_B'].is_pressed:
+                #start_time = time()
+                menu.evt_handler(evt='B_B')
+                button_timer.timer_set()
+                #print(f'Execution time of menu event handler: {time()-start_time}')
+            elif buttons['L_B'].is_pressed:
+                #start_time = time()
+                menu.evt_handler(evt='L_B')
+                button_timer.timer_set()
+                #print(f'Execution time of menu event handler: {time()-start_time}')
+            elif buttons['R_B'].is_pressed:
+                #start_time = time()
+                menu.evt_handler(evt='R_B')
+                button_timer.timer_set()
+                #print(f'Execution time of menu event handler: {time()-start_time}')
+            elif buttons['D_B'].is_pressed:
+                #start_time = time()
+                menu.evt_handler(evt='D_B')
+                button_timer.timer_set()
+                #print(f'Execution time of menu event handler: {time()-start_time}')
+            elif buttons['U_B'].is_pressed:
+                #start_time = time()
+                menu.evt_handler(evt='U_B')
+                button_timer.timer_set()
+                #print(f'Execution time of menu event handler: {time()-start_time}')
+            if args.pygame:
+                try:
+                    # simulate button presses w/ keyboard input
+                    for event in pygame.event.get():
+                        if (event.type == pygame.QUIT):
+                            done = True
+                            break
+                        elif event.type == pygame.KEYDOWN:
+                            print("key is pressed")
+                            if (event.key == pygame.K_w) or (event.key == pygame.K_UP):
+                                menu.evt_handler(evt='U_B')
+                                button_timer.timer_set()
+                            if event.key == pygame.K_s or (event.key == pygame.K_DOWN):
+                                menu.evt_handler(evt='D_B')
+                                button_timer.timer_set()
+                            if event.key == pygame.K_d or (event.key == pygame.K_RIGHT):
+                                menu.evt_handler(evt='R_B')
+                                button_timer.timer_set()
+                            if event.key == pygame.K_a or (event.key == pygame.K_LEFT):
+                                menu.evt_handler(evt='L_B')
+                                button_timer.timer_set()
+                            if event.key == pygame.K_q or (event.key == pygame.K_z):
+                                menu.evt_handler(evt='A_B')
+                                button_timer.timer_set()
+                            if event.key == pygame.K_e or (event.key == pygame.K_x):
+                                menu.evt_handler(evt='B_B')
+                                button_timer.timer_set()
+                            if (event.key == pygame.K_ESCAPE):
                                 done = True
-                                break
-                            elif event.type == pygame.KEYDOWN:
-                                print("key is pressed")
-                                if (event.key == pygame.K_w) or (event.key == pygame.K_UP):
-                                    menu.evt_handler(evt='U_B')
-                                    button_timer.timer_set()
-                                if event.key == pygame.K_s or (event.key == pygame.K_DOWN):
-                                    menu.evt_handler(evt='D_B')
-                                    button_timer.timer_set()
-                                if event.key == pygame.K_d or (event.key == pygame.K_RIGHT):
-                                    menu.evt_handler(evt='R_B')
-                                    button_timer.timer_set()
-                                if event.key == pygame.K_a or (event.key == pygame.K_LEFT):
-                                    menu.evt_handler(evt='L_B')
-                                    button_timer.timer_set()
-                                if event.key == pygame.K_q or (event.key == pygame.K_z):
-                                    menu.evt_handler(evt='A_B')
-                                    button_timer.timer_set()
-                                if event.key == pygame.K_e or (event.key == pygame.K_x):
-                                    menu.evt_handler(evt='B_B')
-                                    button_timer.timer_set()
-                                if (event.key == pygame.K_ESCAPE):
-                                    done = True
-                                    LCD.clear()
-                                    print("Esc exits program. Goodbye")
-                                    LCD.print("Esc exits program. Goodbye")
-                    except Exception as e:
-                        pass  # headless running of pi prevents use of pygame
+                                LCD.clear()
+                                print("Esc exits program. Goodbye")
+                                LCD.print("Esc exits program. Goodbye")
+                except Exception as e:
+                    pass  # headless running of pi prevents use of pygame
 
-            # wait for lack of user input to set menu to idle
-            if menu.idle_timer.timer_event():
-                menu.evt_handler(timer=True)
+        # wait for lack of user input to set menu to idle
+        if menu.idle_timer.timer_event():
+            menu.evt_handler(timer=True)
 
-            # check for pump flood-drain cycle progess
-            if shrub.hydroTimer.timer_event():
-                shrub.evt_handler(evt='TIME')
+        # check for pump flood-drain cycle progess
+        if shrub.hydroTimer.timer_event():
+            shrub.evt_handler(evt='TIME')
 
-            # turn the conditioners on or off
-            if condition.on_timer.timer_event():
-                condition.evt_handler(evt='ON TIMER')
-            
-            # grab all sensor values to pass to butterworth filter with higher frequency
-            temp = condition.sensOutOfRange()
-            if condition.wait_timer.event_no_reset():
-                # timer is reset in event handler as long as the pumps are not being paused
-                for event in temp:
-                    if event is not None:
-                        condition.evt_handler(evt=event)
+        # turn the conditioners on or off
+        if condition.on_timer.timer_event():
+            condition.evt_handler(evt='ON TIMER')
+        
+        # grab all sensor values to pass to butterworth filter with higher frequency
+        temp = condition.sensOutOfRange()
+        if condition.wait_timer.event_no_reset():
+            # timer is reset in event handler as long as the pumps are not being paused
+            for event in temp:
+                if event is not None:
+                    condition.evt_handler(evt=event)
 
-            # use sonar to see if the reservoir is dangerously full, stop valves.
-            test_overflow = shrub.overflow_det()
-            # check to see if the shrub already detects overflow to prevent repeated events
-            if test_overflow and (shrub.overflowCondition != "OVERFLOW"):
-                shrub.evt_handler(evt="OVERFLOW")
-                condition.evt_handler(evt="OVERFLOW")
-            # allow valves to open up again if not overflowing
-            elif (shrub.overflowCondition == "OVERFLOW") and (not test_overflow):
-                shrub.evt_handler(evt="NO OVERFLOW")
-                condition.evt_handler(evt="NO OVERFLOW")
-            
-            # if menu is idle then print next sensor data to LCD
-            if menu.state == "IDLE" and menu.idle_printer.timer_event():
-                menu.idle_print()
+        # use sonar to see if the reservoir is dangerously full, stop valves.
+        test_overflow = shrub.overflow_det()
+        # check to see if the shrub already detects overflow to prevent repeated events
+        if test_overflow and (shrub.overflowCondition != "OVERFLOW"):
+            shrub.evt_handler(evt="OVERFLOW")
+            condition.evt_handler(evt="OVERFLOW")
+        # allow valves to open up again if not overflowing
+        elif (shrub.overflowCondition == "OVERFLOW") and (not test_overflow):
+            shrub.evt_handler(evt="NO OVERFLOW")
+            condition.evt_handler(evt="NO OVERFLOW")
+        
+        # if menu is idle then print next sensor data to LCD
+        if menu.state == "IDLE" and menu.idle_printer.timer_event():
+            menu.idle_print()
 
-            # Show cursor position as a line when changing params
-            if type(menu.parent) is int:
-                if menu.parent <= 3:
-                    LCD.set_cursor_mode(CursorMode.LINE)
-                    menu.LCD.set_cursor_pos(1, menu.m2_hover)
-            elif (menu.parent == 'pH THRESH') or (menu.parent == 'EC THRESH'):
+        # Show cursor position as a line when changing params
+        if type(menu.parent) is int:
+            if menu.parent <= 3:
                 LCD.set_cursor_mode(CursorMode.LINE)
                 menu.LCD.set_cursor_pos(1, menu.m2_hover)
-            else:
-                LCD.set_cursor_mode(CursorMode.HIDE)
-            
-            # save pump cycle state after some time
-            if saveCycleTime.timer_event():
-                menu.saveParamChange(cycle=True)
-                    
-        print("State machine loop broken. Attempting relaunch")
-        LCD.print("State machine loop broken. Attempting relaunch")
-        sleep(4)
-    except Exception as e:
-        LCD.print(f'Fatal error: {e}\n')
-        print(f'Fatal error: {e}\n')
-        sleep(60)
-        LCD.print('Reboot system and check wire connections')
-        system('python /home/pi/THE-SHRUBBERS/autoupdate.py --no-shrub')
+        elif (menu.parent == 'pH THRESH') or (menu.parent == 'EC THRESH'):
+            LCD.set_cursor_mode(CursorMode.LINE)
+            menu.LCD.set_cursor_pos(1, menu.m2_hover)
+        else:
+            LCD.set_cursor_mode(CursorMode.HIDE)
+        
+        # save pump cycle state after some time
+        if saveCycleTime.timer_event():
+            menu.saveParamChange(cycle=True)
+                
+    print("State machine loop broken. Attempting relaunch")
+    LCD.print("State machine loop broken. Attempting relaunch")
+    sleep(4)
+    # except Exception as e:
+    #     LCD.print(f'Fatal error: {e}\n')
+    #     print(f'Fatal error: {e}\n')
+    #     sleep(60)
+    #     LCD.print('Reboot system and check wire connections')
+    #     system('python /home/pi/THE-SHRUBBERS/autoupdate.py --no-shrub')
