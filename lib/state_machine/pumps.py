@@ -97,6 +97,9 @@ class hydro():
         '''automatically convert seconds to HH:MM:SS format for user to read'''
         m, s = divmod(sec, 60)
         h, m = divmod(m, 60)
+        h = int(h)
+        m = int(m)
+        s = int(s)
         return f"{h:02d}:{m:02d}:{s:02d}"
 
     # called once w/ startup of LCDmenu reading Settings.csv

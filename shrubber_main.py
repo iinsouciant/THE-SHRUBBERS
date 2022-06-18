@@ -275,6 +275,7 @@ for _ in range(5):
         sleep(4)
     except Exception as e:
         LCD.print(f'Fatal error: {e}\n')
+        print(f'Fatal error: {e}\n')
         sleep(60)
         LCD.print('Reboot system and check wire connections')
         system('python /home/pi/THE-SHRUBBERS/autoupdate.py --no-shrub')
