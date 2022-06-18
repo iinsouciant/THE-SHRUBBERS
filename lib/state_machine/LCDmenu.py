@@ -99,9 +99,9 @@ class menu():
     child = ops
     m1_hover = 0
     m2_hover = 0
-    ft = 10*60  # flood timer
+    ft = 20*60  # flood timer
     et = 60*60*1.5  # empty timer
-    ap = 60*15  # active pump timer to flood channels
+    ap = 60*10  # active pump timer to flood channels
     # Sensor threshold values
     pHH = 9  # high pH threshhold
     pHL = 4  # low pH threshhold
@@ -313,6 +313,9 @@ class menu():
         '''automatically convert seconds to HH:MM:SS format for user to read'''
         m, s = divmod(sec, 60)
         h, m = divmod(m, 60)
+        h = int(h)
+        m = int(m)
+        s = int(s)
         return f"{h:02d}:{m:02d}:{s:02d}"
 
     def A_at_m1(self):
