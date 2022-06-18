@@ -99,15 +99,15 @@ class menu():
     child = ops
     m1_hover = 0
     m2_hover = 0
-    ft = 20*60  # flood timer
-    et = 60*60*1.5  # empty timer
-    ap = 60*10  # active pump timer to flood channels
+    ft = 60*60*3  # flood timer
+    ap = 60*15  # active pump timer to flood channels
+    et = 60*60*3.5  # empty timer
     # Sensor threshold values
     pHH = 9  # high pH threshhold
     pHL = 4  # low pH threshhold
     ECH = 2  # high EC threshhold
     ECL = 0.01  # low EC threshhold
-    sT = 60  # sonar threshold
+    sT = 65  # sonar threshold
     # to help track program cycle between power shutoff
     __cycleIndex = 0
     __cycleTime = ap
@@ -201,8 +201,8 @@ class menu():
 
         with open(r"Settings.csv", 'w') as f:
             rows = [['Flood Timer', self.settings[0]], 
-                ['Drain Timer', self.settings[1]], 
-                ['Active Pump Timer', self.settings[2]], 
+                ['Active Pump Timer', self.settings[1]],
+                ['Empty Timer', self.settings[2]],  
                 ['Max water level', self.settings[3]],
                 ['pH High Threshold', self.settings[4]], 
                 ['pH Low Threshold', self.settings[5]], 
@@ -542,7 +542,7 @@ class menu():
                         self.m2_hover -= 1
                         self.m2_hover = (8 - 1) if self.m2_hover < 0 else self.m2_hover
                 
-                # logic to not break timers when draining
+                # active pump timer
                 if (self.parent == 2) and (self.child is None):
                     if (evt == "A_B"):
                         # save changes to file

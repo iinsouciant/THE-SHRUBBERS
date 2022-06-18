@@ -30,8 +30,11 @@ class TimerError(Exception):
 class hydro():
     '''Part of the Shrubber state machine that handles
     events passed to it, and defines and run the states as needed.'''
-    # channel flooded, drained, and  pump active times
-    ptimes = [60*60*3, 60*60*3.5, 60*20]
+    ft = 60*60*3  # flood timer
+    ap = 60*15  # active pump timer to flood channels
+    et = 60*60*3.5  # empty timer
+    # channel flooded, empty, and  pump active times
+    ptimes = [ft, ap, et]
     # how long to leave each valve open to drain channels
     valveDrainTime = 60*15
 
@@ -87,7 +90,7 @@ class hydro():
         if self.test and self.str_timer.timer_event():
             print(f'next cycle timer: {self.timeFormat(self.hydroTimer.time_remaining())}')
             self.str_timer.timer_set()
-        return "Pump: {}\nValves: {}, {}\nWater level: {} cm\nValves paused? {}\n\
+        return "Pump: {}\nValves: {}, {}\nWater level: {:.1f} cm\nValves paused? {}\n\
         Overflow warning? {}".format(
             self.pumpVal, self.botValveVal, self.topValveVal, self.water_height(), self.vPause,
             self.overflowCondition
@@ -126,14 +129,15 @@ class hydro():
     
     def __ptimes2actual(self, ptimes) -> list:
         '''Convert condensed list from user settings to list for timers to use'''
+        # ptimes order: channel flooded, pump, and empty times
         self.ptimes = ptimes
         actual_times = []
-        self.valveDrainTime = min(ptimes[2] / 2, 60*15)  # not sure how we want the behavior or the valves to be
-        actual_times.append(ptimes[2])  # pump fill channel
+        self.valveDrainTime = 60*15  # not sure how we want the behavior or the valves to be
+        actual_times.append(ptimes[1])  # pump fill channel
         actual_times.append(ptimes[0])  # pump stop and leaved channel flooded
         actual_times.append(self.valveDrainTime)  # first valve open
         actual_times.append(self.valveDrainTime)  # first valve close second valve open
-        actual_times.append(ptimes[1] - 2 * self.valveDrainTime)  # close both valves
+        actual_times.append(ptimes[2] - 2 * self.valveDrainTime)  # close both valves
         if actual_times[4] < 0:
             actual_times[4] = 0
         actual_times *= 2
@@ -228,7 +232,7 @@ class hydro():
         self.userToggle = False
         if self.test: print("Top valve: off\nBottom valve: off") 
 
-    def active(self, pwr=60):
+    def active(self, pwr=45):
         '''Sets the pump and UV power level'''
         if pwr >= 100:
             val = 100 
@@ -248,7 +252,7 @@ class hydro():
 
     def overflow_det(self, height_thresh=None) -> bool:
         '''Check to see if the water level is higher than the acceptable value'''
-        height_thresh = (self.s_thresh) if height_thresh is None else height_thresh
+        height_thresh = (self.hole_depth - self.s_thresh) if height_thresh is None else height_thresh
         height = self.water_height()
         try:
             return True if height >= height_thresh else False
@@ -365,10 +369,10 @@ class conditioner():
 
     def __str__(self):
         '''Provides formatted sensor values connected to state machine'''
-        return "Pump States: {:.2f} A {:.2f} B {:.2f} N\nWater level: {} cm\npH: {}\
+        return "Pump States: {:.2f} A {:.2f} B {:.2f} N\npH: {}\
         \nEC: {} mS\nTemp: {} C".format(
             self.pumpA.value, self.pumpB.value, self.pumpN.value,  
-            self.hydro.grab_sonar(), self.grab_pH(), self.grab_EC(test=True), self.grab_temp(unit="C")
+            self.grab_pH(), self.grab_EC(test=True), self.grab_temp(unit="C")
         )
     
     def update_settings(self, pH_High, pH_Low, EC_High, EC_Low):
@@ -389,17 +393,16 @@ class conditioner():
 
         if evt is not None:
             if evt == "OVERFLOW":
-                pass
-            #     pumpPause = True
-            #     self.overflowCondition = evt
-            #     '''if self.test:
-            #         print("Top valve: off")
-            #         print("Bottom valve: off")'''
-            # elif (evt == "NO OVERFLOW") and (self.overflowCondition == "OVERFLOW"):
-            #     self.overflowCondition = evt
-            #     # prevent overflow condition from overriding the user toggling our outputs
-            #     if self.userToggle is False:
-            #         pumpPause = False
+                pumpPause = True
+                self.overflowCondition = evt
+                '''if self.test:
+                    print("Top valve: off")
+                    print("Bottom valve: off")'''
+            elif (evt == "NO OVERFLOW") and (self.overflowCondition == "OVERFLOW"):
+                self.overflowCondition = evt
+                # prevent overflow condition from overriding the user toggling our outputs
+                if self.userToggle is False:
+                    pumpPause = False
             
             # user toggle overrides overflow until next loop where overflow event is passed. change this?
             elif evt == "USER TOGGLE":
