@@ -276,30 +276,11 @@ for _ in range(5):
     except Exception as e:
         LCD.print(f'Fatal error: {e}\n')
         print(f'Fatal error: {e}\n')
-        # from csv import reader, writer
-        # try:
-        #     with open('log.csv', 'r') as f:
-        #         logs = reader(f)
-        #         rows = [row for row in settings if True]
-        #         rows.append
-
-        # except (IOError, IndexError) as e:
-        #     if (e is IOError) or (e is IndexError):
-        #         print("Settings.csv does not exist. Creating file with default settings.")
-        #     with open(r"Settings.csv", 'w') as f:
-        #         rows = [[self.ops[0], self.ft], 
-        #             [self.ops[1], self.ap], 
-        #             [self.ops[2], self.et], 
-        #             [self.ops[3], self.sT],
-        #             ['pH High Threshold', self.pHH], 
-        #             ['pH Low Threshold', self.pHL], 
-        #             ['EC High Threshold', self.ECH], 
-        #             ['EC Low Threshold', self.ECL],
-        #             ['Pump cycle stage', self.__cycleIndex],
-        #             ['Cycle time remaining', self.__cycleTime],
-        #         ] 
-        #         settings = writer(f)
-        #         settings.writerows(rows)
+        import logging
+        logging.basicConfig(filename='/home/pi/Desktop/shrubbber.log', level=logging.DEBUG,
+                            format='%(asctime)s %(levelname)s %(name)s %(message)s')
+        logger=logging.getLogger(__name__)
+        logger.error(e)
         sleep(60)
         LCD.print('Reboot system and check wire connections')
         system('python /home/pi/THE-SHRUBBERS/autoupdate.py --no-shrub')
