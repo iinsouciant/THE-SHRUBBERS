@@ -1,3 +1,4 @@
+#! /bin/python
 # state_machine/LCDmenu.py - ME 195 Shrubbers Project Code
 # Raspberry Pi 4B/3B
 #
