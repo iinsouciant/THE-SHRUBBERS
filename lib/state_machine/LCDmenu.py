@@ -15,6 +15,8 @@
 from time import time
 from csv import reader, writer
 from warnings import warn
+
+from black import out
 from lib.lcd.lcd import CursorMode
 
 class timer():
@@ -118,13 +120,14 @@ class menu():
     idle_printer = timer(5)
     _idle_n = 0
 
-    def __init__(self, LCD, shrub, conditioner, test=False):
+    def __init__(self, LCD, shrub, conditioner, test=False, output=None):
         self.state = self.start
         self.LCD = LCD
         self.shrub = shrub
         self.conditioner = conditioner
 
         self.test = test
+        self.output_file = output
 
         # check to see if state machine settings exist. if not create w/ default settings
         try:
@@ -175,6 +178,23 @@ class menu():
         # calc time pump needs to be off to let plants be submerged and drained
         # save change to shrub state machine
         self.shrub.ptimes = [self.settings[0], self.settings[1], self.settings[2]]
+
+    def printf(self, *msgs, terminal=False):
+        '''Save output to terminal to text file'''
+        if self.output_file is not None:
+            if type(msgs) is str:
+                with open(self.output_file, 'a') as f:
+                    print(msgs, file=f)
+                if terminal:
+                    print(msg)
+            else:
+                for msg in msgs:
+                    with open(self.output_file, 'a') as f:
+                        print(msg, file=f)
+                    if terminal:
+                        print(msg)
+        else:
+            print(msgs)
 
     # TODO figure out more efficient way to save?
     def saveParamChange(self, cycle=False):
@@ -906,7 +926,7 @@ class menu():
 
 class LCDdummy():
     '''Dummy LCD class to handle methods before incorporating real LCD library. Use for testing/troubleshooting only.'''
-    def __init__(self):
+    def __init__(self, output=None):
         print("LCD test instance created.")
     
     def print(self, stuff):
@@ -921,7 +941,7 @@ class LCDdummy():
             print(stuff)
         else:
             raise Exception("Not a valid input to display")
-
+    
     def clear(self):
         print('Simulated lcd screen clear\n\n\n\n')
     
