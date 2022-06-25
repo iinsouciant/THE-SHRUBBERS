@@ -14,7 +14,7 @@ Ways to run the program:
     python3 shrubber_main.py --test
 '''
 
-from time import sleep, time
+from time import sleep, localtime
 from os import system
 import argparse
 
@@ -276,11 +276,21 @@ for _ in range(5):
     except Exception as e:
         LCD.print(f'Fatal error: {e}\n')
         print(f'Fatal error: {e}\n')
+
         import logging
-        logging.basicConfig(filename='/home/pi/Desktop/shrubbber.log', level=logging.DEBUG,
+        # get current time to make unique file name
+        now = localtime()
+        log_file_path = f'/home/pi/Desktop/shrubbber_{now[0]}_{now[1]}_{now[2]}_{now[3]}-{now[4]}.log'
+        # create new file
+        with open(log_file_path,'w') as fp:
+            pass
+        # save error to file
+        logging.basicConfig(filename=log_file_path,
+                            level=logging.DEBUG,
                             format='%(asctime)s %(levelname)s %(name)s %(message)s')
         logger=logging.getLogger(__name__)
         logger.error(e)
+        
         sleep(60)
         LCD.print('Reboot system and check wire connections')
         system('python /home/pi/THE-SHRUBBERS/autoupdate.py --no-shrub')
