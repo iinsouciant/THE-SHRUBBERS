@@ -270,7 +270,7 @@ class menu():
         
         self.LCD.clear()
         self._idle_n += 1
-        self._idle_n %= 4  # loop through each sensor
+        self._idle_n %= 5  # loop through each sensor
         n = self._idle_n
         # set timer to wait for next call to idle_print
         self.idle_printer.timer_set()
@@ -281,14 +281,27 @@ class menu():
                 self._a = "Need sonar replacement"
             else:
                 self._a = f"Water level: {self.shrub.water_height():.1f} cm"
-        if n == 1:
+        elif n == 1:
             self._a = f"pH level: {self.conditioner.grab_pH():.1f}"
-        if n == 2:
+        elif n == 2:
             # TODO fix ec sensor
             self._a = "EC sensor is broken"
             #self._a = f"Conductivity level: {:.2f} mS"
-        if n == 3:
+        elif n == 3:
             self._a = f"Water temp: {self.conditioner.grab_temp(unit='F'):.2f} F"
+        elif n == 4:
+            [cycle_n, time_float] = self.getCycle()
+            if cycle_n in [0,5]:
+                cycle_string = "Flooding"
+            if cycle_n in [1,6]:
+                cycle_string = "Soaking"
+            if cycle_n in [2,3,7,8]:
+                cycle_string = "Draining"
+            if cycle_n in [4,9]:
+                cycle_string = "Oxygenating"
+            time_int = int(time_float)
+            self._a = f'System: {cycle_string}-{self.timeFormat(time_int)}'
+
         
         # to create scrolling effect
         self.LCD.print(self._a)
