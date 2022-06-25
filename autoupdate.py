@@ -1,3 +1,4 @@
+#! /bin/python3
 from git import Git, Repo
 import requests
 from os import system, getcwd
