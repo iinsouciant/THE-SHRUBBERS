@@ -314,7 +314,7 @@ for _ in range(5):
         now = localtime()
         log_file = f'{log_path}shrub_error_{now[0]}_{now[1]}_{now[2]}_{now[3]}-{now[4]}.log'
         # create new file
-        with open(log_file_path,'w') as fp:
+        with open(log_file,'w') as fp:
             pass
         # save error to file
         logging.basicConfig(filename=log_file,
