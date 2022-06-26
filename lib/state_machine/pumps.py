@@ -97,14 +97,14 @@ class hydro():
             self.overflowCondition
         )
 
-    def printf(self, *msgs, terminal=False):
+    def printf(self, msgs, terminal=False):
         '''Save output to terminal to text file'''
         if self.output_file is not None:
-            if type(msgs) is str:
+            if (type(msgs) is str) or (type(msgs).__str__ is object.__str__):
                 with open(self.output_file, 'a') as f:
                     print(msgs, file=f)
                 if terminal:
-                    print(msg)
+                    print(msgs)
             else:
                 for msg in msgs:
                     with open(self.output_file, 'a') as f:
@@ -397,14 +397,14 @@ class conditioner():
             self.grab_pH(), self.grab_EC(test=True), self.grab_temp(unit="C")
         )
 
-    def printf(self, *msgs, terminal=False):
+    def printf(self, msgs, terminal=False):
         '''Save output to terminal to text file'''
         if self.output_file is not None:
             if type(msgs) is str:
                 with open(self.output_file, 'a') as f:
                     print(msgs, file=f)
                 if terminal:
-                    print(msg)
+                    print(msgs)
             else:
                 for msg in msgs:
                     with open(self.output_file, 'a') as f:

@@ -55,13 +55,13 @@ while file_exists:
 with open(output_file, 'w') as f:
     pass
 
-def printf(*msgs, terminal=False):
+def printf(msgs, terminal=False):
     '''Save output to terminal to text file'''
-    if type(msgs) is str:
+    if (type(msgs) is str) or (type(msgs).__str__ is object.__str__):
         with open(output_file, 'a') as f:
             print(msgs, file=f)
         if terminal:
-            print(msg)
+            print(msgs)
     else:
         for msg in msgs:
             with open(output_file, 'a') as f:
@@ -91,8 +91,8 @@ if args.test:
     test_timer.timer_set()
     i2c = IIC(SCL, SDA)
     with i2c:
-        printf("I2C addresses found:",
-            [hex(device_address) for device_address in i2c.scan()])   
+        printf(["I2C addresses found:",
+            [hex(device_address) for device_address in i2c.scan()]])   
 print_time = 7
 
 # Button wire colors: 
@@ -127,7 +127,7 @@ try:
     pHsens = AnalogIn(ads, ADS.P0)  # signal at pin 0
     ECsens = AnalogIn(ads, ADS.P1)  # signal at pin 1
 except (OSError, ValueError, AttributeError) as e:
-    printf("Error connecting to ADC. Check connection and ADDR pin:", e)
+    printf(["Error connecting to ADC. Check connection and ADDR pin:", e])
     ads = "dummy"
     pHsens = "dummy"
     ECsens = "dummy"
@@ -139,9 +139,8 @@ sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'])
 try:
     tempSens = TempReader()
 except IndexError as e:
-    printf("1-Wire connection is bad.\
-        Try checkng connection. Attempting reboot to fix.")
-    printf(e)
+    printf(["1-Wire connection is bad.\
+        Try checkng connection. Attempting reboot to fix.", e])
     LCD.print(
         "1-Wire connection is bad. Try checkng connection. "
     )
