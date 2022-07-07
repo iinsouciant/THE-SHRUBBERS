@@ -17,6 +17,7 @@ Ways to run the program:
 
 from time import sleep, localtime
 from os import system
+from os.path import abspath, exists
 import argparse
 
 from gpiozero import Button, PWMLED, LED
@@ -37,6 +38,37 @@ from adafruit_ads1x15.analog_in import AnalogIn
 import lib.state_machine.LCDmenu as LCDmenu
 from lib.state_machine import pumps
 
+# log file directory
+log_path = abspath("/home/pi/")
+now = localtime()
+output_file = f'{log_path}shrubber_out_{now[0]}_{now[1]}_{now[2]}_{now[3]}-{now[4]}.txt'
+
+# prevent overwriting previous file
+file_exists = exists(abspath(output_file))
+file_n = 1
+while file_exists:
+    output_file = f'{log_path}shrubber_out_{now[0]}_{now[1]}_{now[2]}_{now[3]}-{now[4]}_{file_n}.txt'
+    file_n += 1
+    file_exists = exists(abspath(output_file))
+
+# create file
+with open(output_file, 'w') as f:
+    pass
+
+def printf(msgs, terminal=False):
+    '''Save output to terminal to text file'''
+    if (type(msgs) is str) or (type(msgs).__str__ is object.__str__):
+        with open(output_file, 'a') as f:
+            print(msgs, file=f)
+        if terminal:
+            print(msgs)
+    else:
+        for msg in msgs:
+            with open(output_file, 'a') as f:
+                print(msg, file=f)
+            if terminal:
+                print(msg)
+
 # testing parameters
 parser = argparse.ArgumentParser(description='Modify startup conditions of the program')
 parser.add_argument('--test', required=False,default=False, type=bool, help='Print sensors and events')
@@ -52,15 +84,15 @@ if args.pygame:
         screen = pygame.display.set_mode((100, 100))
         no = 'yes'
     except pygame.error as e:
-        print("Pygame has not been loaded as it does not work w/o a monitor.")
+        printf("Pygame has not been loaded as it does not work w/o a monitor.")
 
 if args.test:
     test_timer = LCDmenu.timer(4)
     test_timer.timer_set()
     i2c = IIC(SCL, SDA)
     with i2c:
-        print("I2C addresses found:",
-            [hex(device_address) for device_address in i2c.scan()])   
+        printf(["I2C addresses found:",
+            [hex(device_address) for device_address in i2c.scan()]])   
 print_time = 7
 
 # Button wire colors: 
@@ -86,7 +118,7 @@ valves = [LED(PINS['valve1']), LED(PINS['valve2'])]
 try:
     LCD = LCD(I2CPCF8574Interface(I2C(), 0x27), num_rows=4, num_cols=20)
 except (OSError, ValueError, AttributeError) as e:
-    print("LCD at 0x27 not detected.")
+    printf("LCD at 0x27 not detected.")
     LCD = LCDmenu.LCDdummy()
 
 # connect to ADC through I2C bus
@@ -95,7 +127,7 @@ try:
     pHsens = AnalogIn(ads, ADS.P0)  # signal at pin 0
     ECsens = AnalogIn(ads, ADS.P1)  # signal at pin 1
 except (OSError, ValueError, AttributeError) as e:
-    print("Error connecting to ADC. Check connection and ADDR pin:", e)
+    printf(["Error connecting to ADC. Check connection and ADDR pin:", e])
     ads = "dummy"
     pHsens = "dummy"
     ECsens = "dummy"
@@ -107,9 +139,8 @@ sonar = hcsr04.Measurement(PINS['res_trig'], PINS['res_echo'])
 try:
     tempSens = TempReader()
 except IndexError as e:
-    print("1-Wire connection is bad.\
-        Try checkng connection. Attempting reboot to fix.")
-    print(e)
+    printf(["1-Wire connection is bad.\
+        Try checkng connection. Attempting reboot to fix.", e])
     LCD.print(
         "1-Wire connection is bad. Try checkng connection. "
     )
@@ -118,18 +149,18 @@ except IndexError as e:
 
 
 # creating instance of state machines
-shrub = pumps.hydro(pumpM, sonar, valves, UV, test=args.test)
-condition = pumps.conditioner(condP, shrub, pHsens, ECsens, tempSens, test=args.test)
+shrub = pumps.hydro(pumpM, sonar, valves, UV, test=args.test, outoput=output_file)
+condition = pumps.conditioner(condP, shrub, pHsens, ECsens, tempSens, test=args.test, output=output_file)
 # pass in instance of conditioner to have them communicate
 shrub.conditioner = condition
-menu = LCDmenu.menu(LCD, shrub, condition, test=args.test)
+menu = LCDmenu.menu(LCD, shrub, condition, test=args.test, output=output_file)
 
 # timer to wait between accepting button presses to prevent repeats
 button_timer = LCDmenu.timer(.175)
 # timer to automatically save pump cycle timings to file
 saveCycleTime = LCDmenu.timer(60*1)
 
-print("Now expecting user input")
+printf("Now expecting user input")
 menu.idle()
 button_timer.timer_set()
 saveCycleTime.timer_set()
@@ -145,8 +176,8 @@ for _ in range(5):
                 a = str(condition)
                 b = str(shrub)
                 if test_timer.timer_event():
-                    print(a)
-                    print(b)
+                    printf(a)
+                    printf(b)
                     test_timer.timer_set()
             
             # prevent repeat events for one press
@@ -194,7 +225,7 @@ for _ in range(5):
                                 done = True
                                 break
                             elif event.type == pygame.KEYDOWN:
-                                print("key is pressed")
+                                printf("key is pressed")
                                 if (event.key == pygame.K_w) or (event.key == pygame.K_UP):
                                     menu.evt_handler(evt='U_B')
                                     button_timer.timer_set()
@@ -216,7 +247,7 @@ for _ in range(5):
                                 if (event.key == pygame.K_ESCAPE):
                                     done = True
                                     LCD.clear()
-                                    print("Esc exits program. Goodbye")
+                                    printf("Esc exits program. Goodbye")
                                     LCD.print("Esc exits program. Goodbye")
                     except Exception as e:
                         pass  # headless running of pi prevents use of pygame
@@ -271,22 +302,22 @@ for _ in range(5):
             if saveCycleTime.timer_event():
                 menu.saveParamChange(cycle=True)
                     
-        print("State machine loop broken. Attempting relaunch")
+        printf("State machine loop broken. Attempting relaunch")
         LCD.print("State machine loop broken. Attempting relaunch")
         sleep(4)
     except Exception as e:
         LCD.print(f'Fatal error: {e}\n')
-        print(f'Fatal error: {e}\n')
+        printf(f'Fatal error: {e}\n')
 
         import logging
         # get current time to make unique file name
         now = localtime()
-        log_file_path = f'/home/pi/Desktop/shrubbber_{now[0]}_{now[1]}_{now[2]}_{now[3]}-{now[4]}.log'
+        log_file = f'{log_path}shrub_error_{now[0]}_{now[1]}_{now[2]}_{now[3]}-{now[4]}.log'
         # create new file
-        with open(log_file_path,'w') as fp:
+        with open(log_file,'w') as fp:
             pass
         # save error to file
-        logging.basicConfig(filename=log_file_path,
+        logging.basicConfig(filename=log_file,
                             level=logging.DEBUG,
                             format='%(asctime)s %(levelname)s %(name)s %(message)s')
         logger=logging.getLogger(__name__)

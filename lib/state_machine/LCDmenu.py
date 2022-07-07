@@ -15,6 +15,8 @@
 from time import time
 from csv import reader, writer
 from warnings import warn
+
+from black import out
 from lib.lcd.lcd import CursorMode
 
 class timer():
@@ -118,13 +120,14 @@ class menu():
     idle_printer = timer(5)
     _idle_n = 0
 
-    def __init__(self, LCD, shrub, conditioner, test=False):
+    def __init__(self, LCD, shrub, conditioner, test=False, output=None):
         self.state = self.start
         self.LCD = LCD
         self.shrub = shrub
         self.conditioner = conditioner
 
         self.test = test
+        self.output_file = output
 
         # check to see if state machine settings exist. if not create w/ default settings
         try:
@@ -141,11 +144,11 @@ class menu():
                 self.ECL = float(rows[7][1])
                 self.__cycleIndex = int(rows[8][1])
                 self.__cycleTime = float(rows[9][1])
-                print("Settings loaded")
+                self.printf("Settings loaded")
 
         except (IOError, IndexError) as e:
             if (e is IOError) or (e is IndexError):
-                print("Settings.csv does not exist. Creating file with default settings.")
+                self.printf("Settings.csv does not exist. Creating file with default settings.")
             with open(r"Settings.csv", 'w') as f:
                 rows = [[self.ops[0], self.ft], 
                     [self.ops[1], self.ap], 
@@ -175,6 +178,23 @@ class menu():
         # calc time pump needs to be off to let plants be submerged and drained
         # save change to shrub state machine
         self.shrub.ptimes = [self.settings[0], self.settings[1], self.settings[2]]
+
+    def printf(self, msgs, terminal=False):
+        '''Save output to terminal to text file'''
+        if self.output_file is not None:
+            if type(msgs) is str:
+                with open(self.output_file, 'a') as f:
+                    print(msgs, file=f)
+                if terminal:
+                    print(msgs)
+            else:
+                for msg in msgs:
+                    with open(self.output_file, 'a') as f:
+                        print(msg, file=f)
+                    if terminal:
+                        print(msg)
+        else:
+            print(msgs)
 
     # TODO figure out more efficient way to save?
     def saveParamChange(self, cycle=False):
@@ -423,11 +443,11 @@ class menu():
     def evt_handler(self, evt=None, timer=False):
         '''Handles event passed to the menu'''
         if self.test:
-            print(f"child: {self.child}\nparent: {self.parent}")
+            self.printf(f"child: {self.child}\nparent: {self.parent}")
             try:
-                print('event:', evt)
+                self.printf('event:', evt)
             except Exception as e:
-                print('event: None', e)
+                self.printf('event: None', e)
 
         # whenever there has been no user input for a while, go back to idle
         if timer: 
@@ -826,7 +846,7 @@ class menu():
                         if self.param2change < 0:
                             self.param2change = 0
                         self.LCD.clear()
-                        print(f"unformatted:{self.param2change}\n{self.param2change:.2f}")
+                        self.printf(f"unformatted:{self.param2change}\n{self.param2change:.2f}")
                         self.LCD.print(f"EC High Threshold:\n{self.param2change:.2f}")
                     elif (evt == "R_B"):
                         # change hover position. loop if too far right
@@ -858,7 +878,7 @@ class menu():
                         if self.param2change > 10.0:
                             self.param2change = 10.0
                         self.LCD.clear()
-                        print(f"{self.param2change:.2f}")
+                        self.printf(f"{self.param2change:.2f}")
                         self.LCD.print(f"EC Low Threshold:\n{self.param2change:.2f}")
                     elif (evt == "D_B"):
                         # decrease the EC based on hover position. want it to be to two decimal places X.XX
@@ -872,7 +892,7 @@ class menu():
                         if self.param2change < 0:
                             self.param2change = 0
                         self.LCD.clear()
-                        print(f"{self.param2change:.2f}")
+                        self.printf(f"{self.param2change:.2f}")
                         self.LCD.print(f"EC Low Threshold:\n{self.param2change:.2f}")
                     elif (evt == "R_B"):
                         # change hover position. loop if too far right
@@ -902,11 +922,11 @@ class menu():
                     self.parent = None
                 elif (evt == "B_B") or (evt == "L_B"):
                     self.startMenu(self.m1_hover)
-            
+
 
 class LCDdummy():
     '''Dummy LCD class to handle methods before incorporating real LCD library. Use for testing/troubleshooting only.'''
-    def __init__(self):
+    def __init__(self, output=None):
         print("LCD test instance created.")
     
     def print(self, stuff):
@@ -921,7 +941,7 @@ class LCDdummy():
             print(stuff)
         else:
             raise Exception("Not a valid input to display")
-
+    
     def clear(self):
         print('Simulated lcd screen clear\n\n\n\n')
     

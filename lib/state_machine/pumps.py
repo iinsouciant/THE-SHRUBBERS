@@ -70,7 +70,7 @@ class hydro():
     # counter to trigger outputs during startup process
     n = 0
 
-    def __init__(self, pump, sonar, valves, UV, filter=.5, test=False):
+    def __init__(self, pump, sonar, valves, UV, filter=.5, test=False, output=None):
         self.pump = pump
         self.s = sonar
         self.fs = BF.LowPassFilter(filter)
@@ -81,6 +81,7 @@ class hydro():
         self.actual_times = self.__ptimes2actual(self.ptimes)
 
         self.test = test  # for printing state change and events
+        self.output_file = output
 
     def __repr__(self):
         return "state_machine({}, {}, {}, {})".format(self.pump, self.s, self.topValve, self.botValve)
@@ -88,13 +89,30 @@ class hydro():
     def __str__(self):  
         '''Provides formatted sensor values connected to state machine'''
         if self.test and self.str_timer.timer_event():
-            print(f'next cycle timer: {self.timeFormat(self.hydroTimer.time_remaining())}')
+            self.printf(f'next cycle timer: {self.timeFormat(self.hydroTimer.time_remaining())}')
             self.str_timer.timer_set()
         return "Pump: {}\nValves: {}, {}\nWater level: {:.1f} cm\nValves paused? {}\n\
         Overflow warning? {}".format(
             self.pumpVal, self.botValveVal, self.topValveVal, self.water_height(), self.vPause,
             self.overflowCondition
         )
+
+    def printf(self, msgs, terminal=False):
+        '''Save output to terminal to text file'''
+        if self.output_file is not None:
+            if (type(msgs) is str) or (type(msgs).__str__ is object.__str__):
+                with open(self.output_file, 'a') as f:
+                    print(msgs, file=f)
+                if terminal:
+                    print(msgs)
+            else:
+                for msg in msgs:
+                    with open(self.output_file, 'a') as f:
+                        print(msg, file=f)
+                    if terminal:
+                        print(msg)
+        else:
+            print(msgs)
 
     def timeFormat(self, sec) -> str:
         '''automatically convert seconds to HH:MM:SS format for user to read'''
@@ -153,9 +171,9 @@ class hydro():
         '''Handles the logic to choose and run the proper state
         depending on current state and event passed to it'''
         if self.test:
-            print(f'shrub user shut off: {self.userToggle}')
-            print(f'shrub overflow condition: {self.overflowCondition}')
-            print(f'new shrub event: {evt}')
+            self.printf(f'shrub user shut off: {self.userToggle}')
+            self.printf(f'shrub overflow condition: {self.overflowCondition}')
+            self.printf(f'new shrub event: {evt}')
         
         # getting stuck on no overflow even when it should be overflow
         if evt is not None:
@@ -166,8 +184,8 @@ class hydro():
                 self.vPause = True
                 self.overflowCondition = evt
                 if self.test:
-                    print("Top valve: off")
-                    print("Bottom valve: off")
+                    self.printf("Top valve: off")
+                    self.printf("Bottom valve: off")
                     
             elif (evt == "NO OVERFLOW") and (self.overflowCondition == "OVERFLOW"):
                 self.overflowCondition = evt
@@ -220,10 +238,10 @@ class hydro():
                     self.botValve.on() if self.botValveVal else self.botValve.off()
         
         if self.test:
-            print(f'new user shut off: {self.userToggle}')
-            print(f'new overflow condition: {self.overflowCondition}')
-            print(f'top valve state: {self.topValveVal}')
-            print(f'bot valve state: {self.botValveVal}')
+            self.printf(f'new user shut off: {self.userToggle}')
+            self.printf(f'new overflow condition: {self.overflowCondition}')
+            self.printf(f'top valve state: {self.topValveVal}')
+            self.printf(f'bot valve state: {self.botValveVal}')
     
     #  any reason to use this?
     def hydro_restart(self):
@@ -233,7 +251,7 @@ class hydro():
         self.hydro_state = 0
         self.overflowCondition = False
         self.userToggle = False
-        if self.test: print("Top valve: off\nBottom valve: off") 
+        if self.test: self.printf("Top valve: off\nBottom valve: off") 
 
     def active(self, pwr=45):
         '''Sets the pump and UV power level'''
@@ -260,7 +278,7 @@ class hydro():
         try:
             return True if height >= height_thresh else False
         except TypeError as e:
-            print(e)
+            self.printf(e)
             return True
     
     def grab_sonar(self) -> float:
@@ -275,7 +293,7 @@ class hydro():
                 dist = self.s.raw_distance(sample_size=10, sample_wait=0.01)
             except (SystemError, UnboundLocalError) as e:
                 # sonar removed from system
-                #print(f"The sonar is not detected: {e}")
+                #self.printf(f"The sonar is not detected: {e}")
                 #warnings.warn("The sonar sensor is not detected.")
                 dist = 25
             # limiting valid range of measurements
@@ -286,10 +304,10 @@ class hydro():
             self.last_sonar = dist
             self.sonar_timer.timer_set()
             if self.test:
-                print(f'New sonar value: {self.last_sonar}')
+                self.printf(f'New sonar value: {self.last_sonar}')
         else:
             if self.test:
-                #print(f'Old sonar value grabbed: {self.last_sonar}')
+                #self.printf(f'Old sonar value grabbed: {self.last_sonar}')
                 pass
 
         return self.last_sonar
@@ -344,7 +362,7 @@ class conditioner():
     evt_print.timer_set()
     last_pump = 2
 
-    def __init__(self, conditioning_pumps, shrub, pHsens, ECsens, temp, filters=[200, 200, .5], test=False):
+    def __init__(self, conditioning_pumps, shrub, pHsens, ECsens, temp, filters=[200, 200, .5], test=False, output=None):
         self.pumps = conditioning_pumps
         self.pumpA = conditioning_pumps[0]
         self.pumpB = conditioning_pumps[1]
@@ -365,6 +383,7 @@ class conditioner():
         self.fTemp_F = BF.LowPassFilter(filters[2])
 
         self.test = test
+        self.output_file = output
 
     def __repr__(self):
         return "state_machine({}, {}, {}, {}, {}, {})".format(self.pumpA, self.pumpB, self.pumpC, 
@@ -377,7 +396,24 @@ class conditioner():
             self.pumpA.value, self.pumpB.value, self.pumpN.value,  
             self.grab_pH(), self.grab_EC(test=True), self.grab_temp(unit="C")
         )
-    
+
+    def printf(self, msgs, terminal=False):
+        '''Save output to terminal to text file'''
+        if self.output_file is not None:
+            if type(msgs) is str:
+                with open(self.output_file, 'a') as f:
+                    print(msgs, file=f)
+                if terminal:
+                    print(msgs)
+            else:
+                for msg in msgs:
+                    with open(self.output_file, 'a') as f:
+                        print(msg, file=f)
+                    if terminal:
+                        print(msg)
+        else:
+            print(msgs)
+
     def update_settings(self, pH_High, pH_Low, EC_High, EC_Low):
         '''Take saved user settings and update instance operation'''
         self.pH_High = pH_High
@@ -387,9 +423,9 @@ class conditioner():
     
     def evt_handler(self, evt=None):
         if self.test and self.evt_print.event_no_reset():
-            print(f'cond user shut off: {self.userToggle}')
-            print(f'cond overflow condition: {self.overflowCondition}')
-            print(f'new cond event: {evt}')
+            self.printf(f'cond user shut off: {self.userToggle}')
+            self.printf(f'cond overflow condition: {self.overflowCondition}')
+            self.printf(f'new cond event: {evt}')
             self.evt_print.timer_set()
 
         pumpPause = None
@@ -399,8 +435,8 @@ class conditioner():
                 pumpPause = True
                 self.overflowCondition = evt
                 '''if self.test:
-                    print("Top valve: off")
-                    print("Bottom valve: off")'''
+                    self.printf("Top valve: off")
+                    self.printf("Bottom valve: off")'''
             elif (evt == "NO OVERFLOW") and (self.overflowCondition == "OVERFLOW"):
                 self.overflowCondition = evt
                 # prevent overflow condition from overriding the user toggling our outputs
@@ -460,7 +496,7 @@ class conditioner():
             EventError(f"Invalid event: {evt}")
 
         if self.test and self.evt_print.timer_event():
-            print(f'new pump vals: \nnutrient: {self.pumpN.is_active} \
+            self.printf(f'new pump vals: \nnutrient: {self.pumpN.is_active} \
 acid: {self.pumpA.is_active} base: {self.pumpB.is_active}')
             self.evt_print.timer_set()
 
@@ -488,11 +524,11 @@ acid: {self.pumpA.is_active} base: {self.pumpB.is_active}')
         try:
             dist = self.pH.readPH(self.pHsens.voltage)
             if self.test and self.ph_print.timer_event():
-                print(f'ph voltage reading: {self.pHsens.voltage:.3f}')
+                self.printf(f'ph voltage reading: {self.pHsens.voltage:.3f}')
                 self.ph_print.timer_set()
         except Exception as e:
             if self.ph_print.timer_event():
-                print(f"The pH sensor is not detected: {e}")
+                self.printf(f"The pH sensor is not detected: {e}")
                 warnings.warn("The pH sensor is not detected")
                 self.ph_print.timer_set()
             dist = 0
@@ -505,12 +541,12 @@ acid: {self.pumpA.is_active} base: {self.pumpB.is_active}')
             dist = self.EC.readEC(self.ECsens.voltage, self.grab_temp())*1000
             if self.test or test:
                 if self.EC_print.timer_event():
-                    print(f'ec voltage reading: {self.ECsens.voltage:.3f}')
+                    self.printf(f'ec voltage reading: {self.ECsens.voltage:.3f}')
                     self.EC_print.timer_set()
         except Exception as e:  # TODO find correct exceptions here
             if self.EC_print.timer_event():
                 self.EC_print.timer_set()
-                print(f"The conductivity sensor is not detected: {e}")
+                self.printf(f"The conductivity sensor is not detected: {e}")
                 warnings.warn("The conductivity sensor is not detected")
             dist = 0
         return self.fEC.filter(dist)
@@ -528,9 +564,9 @@ acid: {self.pumpA.is_active} base: {self.pumpB.is_active}')
                 elif unit == 'F':
                     dist = float(self.temp.read_temp()['temp_f'])
                 else:
-                    print("invalid unit. Try 'F' or 'C'")
+                    self.printf("invalid unit. Try 'F' or 'C'")
             except Exception as e:
-                print(f"The temperature sensor is not detected: {e}")
+                self.printf(f"The temperature sensor is not detected: {e}")
                 warnings.warn("The temperature sensor is not detected")
                 dist = 0
             self.last_therm_val = dist
