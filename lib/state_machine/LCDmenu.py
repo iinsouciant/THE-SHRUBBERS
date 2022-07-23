@@ -16,7 +16,6 @@ from time import time
 from csv import reader, writer
 from warnings import warn
 
-from black import out
 from lib.lcd.lcd import CursorMode
 
 class timer():

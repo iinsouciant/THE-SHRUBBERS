@@ -17,7 +17,7 @@ Ways to run the program:
 
 from time import sleep, localtime
 from os import system
-from os.path import abspath, exists
+from os.path import abspath, exists, dirname
 import argparse
 
 from gpiozero import Button, PWMLED, LED
@@ -39,15 +39,15 @@ import lib.state_machine.LCDmenu as LCDmenu
 from lib.state_machine import pumps
 
 # log file directory
-log_path = abspath("/home/pi/")
+log_path = dirname(dirname(abspath(__file__)))
 now = localtime()
-output_file = f'{log_path}shrubber_out_{now[0]}_{now[1]}_{now[2]}_{now[3]}-{now[4]}.txt'
+output_file = f'{log_path}/shrubber_out_{now[0]}_{now[1]}_{now[2]}_{now[3]}-{now[4]}.txt'
 
 # prevent overwriting previous file
 file_exists = exists(abspath(output_file))
 file_n = 1
 while file_exists:
-    output_file = f'{log_path}shrubber_out_{now[0]}_{now[1]}_{now[2]}_{now[3]}-{now[4]}_{file_n}.txt'
+    output_file = f'{log_path}/shrubber_out_{now[0]}_{now[1]}_{now[2]}_{now[3]}-{now[4]}_{file_n}.txt'
     file_n += 1
     file_exists = exists(abspath(output_file))
 
@@ -149,7 +149,7 @@ except IndexError as e:
 
 
 # creating instance of state machines
-shrub = pumps.hydro(pumpM, sonar, valves, UV, test=args.test, outoput=output_file)
+shrub = pumps.hydro(pumpM, sonar, valves, UV, test=args.test, output=output_file)
 condition = pumps.conditioner(condP, shrub, pHsens, ECsens, tempSens, test=args.test, output=output_file)
 # pass in instance of conditioner to have them communicate
 shrub.conditioner = condition
